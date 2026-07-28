@@ -3,212 +3,1428 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FASA · App</title>
+<title>FASA · Demo</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f5f5f5}
-.btn{background:#1F6F5C;color:#fff;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;font-size:16px}
-.btn:active{background:#164F41}
-.card{background:#fff;padding:20px;border-radius:12px;margin:16px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-input,textarea{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;font-size:16px}
-.nav-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
-.nav-item:active{background:#e0e0e0}
-.avatar{width:40px;height:40px;border-radius:50%;background:#1F6F5C;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#1F6F5C,#164F41)}
-.auth h1{color:#fff;margin-bottom:10px}
-.auth p{color:#fff;opacity:.8;margin-bottom:30px}
-.auth-box{background:#fff;padding:30px;border-radius:16px;width:100%;max-width:400px}
-.error{color:red;background:#fee;padding:10px;border-radius:8px;margin-bottom:16px;display:none}
-.error.show{display:block}
-.topbar{background:#1F6F5C;color:#fff;padding:16px;display:flex;align-items:center;gap:12px}
-.menu-btn{background:none;border:none;color:#fff;font-size:24px;cursor:pointer}
-.sidebar{position:fixed;left:0;top:0;width:280px;height:100vh;background:#fff;box-shadow:2px 0 8px rgba(0,0,0,.1);transform:translateX(-100%);transition:.3s;z-index:1000}
-.sidebar.open{transform:translateX(0)}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:999}
-.overlay.show{display:block}
-.post{background:#fff;padding:16px;margin:16px;border-radius:12px}
-.post-header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
-.post-actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #eee}
-.post-actions button{flex:1;padding:8px;background:none;border:1px solid #ddd;border-radius:8px;cursor:pointer}
-.badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;background:#e0f0ec;color:#1F6F5C}
+/* ============================================================
+   FASA — Design System (versão demo single-file)
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root{
+  --ink:#16241F;--ink-soft:#3B4A44;--muted:#64766F;--paper:#F3F7F3;--paper-2:#EAF1EC;--card:#FFFFFF;--line:#DCE6DF;
+  --primary:#1F6F5C;--primary-dk:#164F41;--primary-lt:#E4F1EC;--accent:#E8873A;--accent-dk:#C96A22;--accent-lt:#FBE7D4;
+  --danger:#C24545;--gold:#B8933B;
+  --f-display:'Fraunces',serif;--f-body:'Inter',system-ui,sans-serif;--f-mono:'JetBrains Mono',monospace;
+  --sidebar-w:248px;--radius:14px;--radius-sm:9px;--radius-pill:999px;
+  --shadow:0 1px 2px rgba(22,36,31,.05),0 8px 24px -12px rgba(22,36,31,.12);
+  --shadow-lg:0 12px 40px -16px rgba(22,36,31,.28);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--f-body);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+ul{list-style:none;margin:0;padding:0}
+img{max-width:100%;display:block}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-.01em}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--primary)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px;padding:11px 20px;border-radius:var(--radius-pill);border:1px solid transparent;cursor:pointer;transition:.15s ease;white-space:nowrap}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dk)}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent-dk)}
+.btn-ghost{background:transparent;color:var(--primary);border-color:var(--line)}.btn-ghost:hover{background:var(--primary-lt)}
+.btn-block{width:100%}.btn-sm{padding:7px 14px;font-size:13px}.btn[disabled]{opacity:.5;cursor:not-allowed}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;font-weight:500;padding:4px 12px 4px 4px;border-radius:var(--radius-pill);background:var(--primary-lt);color:var(--primary-dk);border:1px solid transparent}
+.pill::before{content:"";width:8px;height:16px;border-radius:5px;background:var(--primary);flex:none}
+.pill.accent{background:var(--accent-lt);color:var(--accent-dk)}.pill.accent::before{background:var(--accent)}
+.pill.muted{background:var(--paper-2);color:var(--muted)}.pill.muted::before{background:var(--muted)}
+.pill.live::before{background:#3AA35C;box-shadow:0 0 0 3px rgba(58,163,92,.25)}
+.auth-shell{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+@media (max-width:860px){.auth-shell{grid-template-columns:1fr}}
+.auth-art{background:linear-gradient(160deg,var(--primary-dk),var(--primary) 60%,#2F8A73);color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:48px}
+@media (max-width:860px){.auth-art{display:none}}
+.auth-art .caps{position:absolute;inset:0;opacity:.15}
+.auth-art .caps span{position:absolute;width:120px;height:44px;border-radius:999px;border:2px solid #fff}
+.auth-brand{display:flex;align-items:center;gap:12px;font-family:var(--f-display);font-size:22px;position:relative;z-index:1}
+.auth-quote{font-family:var(--f-display);font-size:28px;line-height:1.3;max-width:420px;position:relative;z-index:1}
+.auth-quote small{display:block;font-family:var(--f-mono);font-size:12px;opacity:.75;margin-top:14px;text-transform:uppercase;letter-spacing:.1em}
+.auth-form-wrap{display:flex;align-items:center;justify-content:center;padding:32px}
+.auth-form{width:100%;max-width:380px}
+.auth-form .mark-mobile{display:none}
+@media (max-width:860px){.auth-form .mark-mobile{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-family:var(--f-display);font-size:20px;color:var(--primary-dk)}}
+.auth-form h1{font-size:30px;margin-bottom:6px}
+.auth-form .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.01em}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:#fff;font-size:14px;font-family:var(--f-body);color:var(--ink)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);outline:none}
+.field-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:14px 0 22px}
+.checkline{display:flex;align-items:center;gap:8px;color:var(--ink-soft)}
+.checkline input{width:16px;height:16px;accent-color:var(--primary)}
+.link{color:var(--primary);font-weight:600}.link:hover{text-decoration:underline}
+.form-foot{margin-top:22px;text-align:center;font-size:13px;color:var(--muted)}
+.err{background:#FBEAEA;color:var(--danger);border:1px solid #F1C6C6;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+.err.show{display:block}
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);flex:none;background:var(--card);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:20px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;font-family:var(--f-display);font-size:19px;color:var(--primary-dk)}
+.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;color:var(--ink-soft);transition:.12s;cursor:pointer}
+.nav-item .ic{width:20px;text-align:center;font-size:16px}
+.nav-item:hover{background:var(--paper-2)}
+.nav-item.active{background:var(--primary-lt);color:var(--primary-dk);font-weight:700}
+.sidebar-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--line)}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none;font-family:var(--f-display)}
+.avatar.sm{width:30px;height:30px;font-size:12px}.avatar.lg{width:64px;height:64px;font-size:22px}
+.sidebar-user .who{min-width:0}
+.sidebar-user .who .name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user .who .role{font-size:11px;color:var(--muted)}
+.logout-btn{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px}
+.logout-btn:hover{color:var(--danger)}
+.main{flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:5;background:rgba(243,247,243,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:14px 28px;gap:16px}
+.topbar h2{font-size:20px}
+.topbar-search{flex:1;max-width:360px;display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:8px 16px;font-size:13px;color:var(--muted)}
+.topbar-search input{border:none;outline:none;background:none;font-size:13px;width:100%;font-family:inherit}
+.menu-btn{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink)}
+.page{padding:24px 28px;max-width:1040px}
+.page.wide{max-width:none}
+@media (max-width:900px){.sidebar{position:fixed;left:-260px;z-index:20;transition:.2s;box-shadow:var(--shadow-lg)}.sidebar.open{left:0}.menu-btn{display:block}.page{padding:18px}.topbar{padding:12px 16px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.composer{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px}
+.composer textarea{flex:1;resize:none;border:none;background:var(--paper-2);border-radius:var(--radius-sm);padding:12px 14px;font-family:inherit;font-size:14px;min-height:44px;color:var(--ink)}
+.composer textarea:focus{outline:2px solid var(--primary)}
+.composer-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.composer-tools{display:flex;gap:6px}
+.tool-btn{background:none;border:1px solid var(--line);border-radius:var(--radius-pill);padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer}
+.tool-btn:hover{background:var(--paper-2)}
+.post{margin-bottom:16px}
+.post-head{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.post-head .meta .name{font-weight:700;font-size:14px}
+.post-head .meta .sub{font-size:12px;color:var(--muted)}
+.post-body{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin-bottom:12px;white-space:pre-wrap}
+.post-actions{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.post-actions button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:none;border:none;border-radius:var(--radius-sm);padding:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.post-actions button:hover{background:var(--paper-2);color:var(--primary-dk)}
+.post-actions button.liked{color:var(--accent-dk)}
+.comment-box{display:none;margin-top:10px;gap:8px}.comment-box.open{display:flex}
+.comment-box input{flex:1;border:1px solid var(--line);border-radius:var(--radius-pill);padding:8px 14px;font-size:13px}
+.comments-list{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.comment-item{background:var(--paper-2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px}
+.comment-item b{font-size:12.5px}
+.two-col{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
+@media (max-width:900px){.two-col{grid-template-columns:1fr}}
+.side-card+.side-card{margin-top:18px}
+.side-card h3{font-size:14px;margin-bottom:12px}
+.mini-list{display:flex;flex-direction:column;gap:10px}
+.mini-item{display:flex;align-items:center;gap:10px;font-size:13px}
+.mini-item .t{flex:1;min-width:0}
+.mini-item .t .n{font-weight:600;font-size:13px}
+.mini-item .t .s{font-size:11.5px;color:var(--muted)}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+.comm-card{overflow:hidden}
+.comm-banner{height:84px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;margin:-18px -18px 14px;background:linear-gradient(135deg,var(--primary),var(--accent))}
+.comm-card h3{font-size:16px;margin-bottom:4px}
+.comm-card .desc{font-size:12.5px;color:var(--muted);margin-bottom:12px;min-height:32px}
+.comm-card .foot{display:flex;justify-content:space-between;align-items:center}
+.aviso{border-left:4px solid var(--accent);padding-left:14px}
+.aviso h3{font-size:15px;margin-bottom:4px}
+.aviso .sub{font-size:12px;color:var(--muted);margin-bottom:8px}
+.aviso p{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0}
+.doc-card{display:flex;gap:12px;align-items:flex-start}
+.doc-ic{width:42px;height:42px;border-radius:var(--radius-sm);background:var(--primary-lt);color:var(--primary-dk);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.doc-card h3{font-size:14px;margin-bottom:2px}
+.doc-card .meta{font-size:11.5px;color:var(--muted)}
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:var(--radius-pill);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff}
+.tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.poll-opt{position:relative;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;cursor:pointer;overflow:hidden;background:#fff}
+.poll-opt .fill{position:absolute;inset:0;background:var(--primary-lt);z-index:0;transition:.4s}
+.poll-opt .txt{position:relative;z-index:1;display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
+.poll-opt.voted{border-color:var(--primary)}
+.rank-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rank-row:last-child{border-bottom:none}
+.rank-pos{width:26px;text-align:center;font-family:var(--f-mono);font-weight:700;color:var(--muted)}
+.rank-pos.top{color:var(--gold)}
+.rank-row .pts{margin-left:auto;font-family:var(--f-mono);font-size:13px;color:var(--primary-dk);font-weight:700}
+.chat-shell{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 62px)}
+@media (max-width:760px){.chat-shell{grid-template-columns:1fr}}
+.chat-list{border-right:1px solid var(--line);overflow-y:auto;padding:12px}
+.chat-search{margin-bottom:10px}
+.chat-conv{display:flex;gap:10px;align-items:center;padding:10px;border-radius:var(--radius-sm);cursor:pointer}
+.chat-conv:hover,.chat-conv.active{background:var(--paper-2)}
+.chat-conv .t{min-width:0;flex:1}
+.chat-conv .t .n{font-size:13.5px;font-weight:700}
+.chat-conv .t .m{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-main{display:flex;flex-direction:column;min-width:0}
+.chat-head{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:60%;padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.4}
+.msg.in{background:var(--paper-2);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.out{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg .time{display:block;font-size:10px;opacity:.65;margin-top:4px}
+.chat-input{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
+.chat-input input{flex:1;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;font-size:13.5px}
+.icon-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:6px}
+.icon-btn:hover{color:var(--primary)}
+.stat-card{display:flex;flex-direction:column;gap:6px}
+.stat-card .num{font-family:var(--f-display);font-size:32px;color:var(--primary-dk)}
+.stat-card .lbl{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.table-wrap{overflow-x:auto}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--radius-pill)}
+.badge.ok{background:#E3F3E7;color:#2C7A45}.badge.warn{background:var(--accent-lt);color:var(--accent-dk)}.badge.off{background:#F1F1F1;color:var(--muted)}
+.icon-action{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px}
+.icon-action:hover{color:var(--danger)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty .big{font-size:32px;margin-bottom:10px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:.25s;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.overlay-bg{position:fixed;inset:0;background:rgba(22,36,31,.4);z-index:15;display:none}
+.overlay-bg.show{display:block}
+.demo-badge{position:fixed;top:10px;right:10px;z-index:200;background:var(--ink);color:#fff;font-family:var(--f-mono);font-size:10px;padding:5px 10px;border-radius:var(--radius-pill);opacity:.7}
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="root"></div>
+<div class="demo-badge">FASA · protótipo demo</div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-let currentUser = null;
-let currentView = 'feed';
-let db = JSON.parse(localStorage.getItem('fasa_db')) || null;
+/* ============================================================
+   Conexão real com o Supabase (banco de dados da FASA)
+   ============================================================ */
+const SUPABASE_URL = 'https://qhmjrdnxjkpqxijhxjuv.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_pdI7QD_wTeWcGO1vn1cETg_xnUXUDbz';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function initDB() {
-  if (!db) {
-    db = {
-      users: [
-        {id:'u1',nome:'Alexandre',cargo:'Técnico de Farmácia',setor:'Farmácia',email:'alexandre@fasa.local',senha:'123456',admin:true,pontos:260},
-        {id:'u2',nome:'Thais',cargo:'Coordenadora',setor:'Farmácia',email:'thais@fasa.local',senha:'123456',admin:true,pontos:480}
+/* ============================================================
+   FASA — núcleo de dados (localStorage) + helpers
+   ============================================================ */
+const FASA = (() => {
+  let _db = null;
+  let _session = null;
+  const _joined = {};
+
+  const NAV_ITEMS = [
+    { id: 'feed', icon: '🏠', label: 'Início' },
+    { id: 'perfil', icon: '👤', label: 'Meu Perfil' },
+    { id: 'chat', icon: '💬', label: 'Chat' },
+    { id: 'comunidades', icon: '👥', label: 'Comunidades' },
+    { id: 'avisos', icon: '📢', label: 'Avisos' },
+    { id: 'escala', icon: '📅', label: 'Escalas' },
+    { id: 'biblioteca', icon: '📚', label: 'Biblioteca' },
+    { id: 'enquetes', icon: '📊', label: 'Enquetes' },
+    { id: 'sugestoes', icon: '💡', label: 'Sugestões' },
+    { id: 'ranking', icon: '🏆', label: 'Reconhecimento' },
+  ];
+
+  const COMUNIDADES = [
+    { id: 'farmacia-clinica', nome: 'Farmácia Clínica', desc: 'Discussões clínicas, interações e acompanhamento farmacoterapêutico.', membros: 84 },
+    { id: 'centro-cirurgico', nome: 'Centro Cirúrgico', desc: 'Escalas, materiais e protocolos do centro cirúrgico.', membros: 52 },
+    { id: 'uti', nome: 'UTI', desc: 'Rotina, intercorrências e protocolos da unidade de terapia intensiva.', membros: 47 },
+    { id: 'oncologia', nome: 'Oncologia', desc: 'Quimioterápicos, manipulação e cuidados oncológicos.', membros: 36 },
+    { id: 'logistica', nome: 'Logística', desc: 'Estoque, recebimento e distribuição de medicamentos.', membros: 29 },
+    { id: 'treinamentos', nome: 'Treinamentos', desc: 'Capacitações, cursos internos e certificações.', membros: 61 },
+    { id: 'qualidade', nome: 'Qualidade', desc: 'Indicadores, auditorias e melhoria contínua.', membros: 33 },
+  ];
+
+  function seed() {
+    if (_db) return;
+    const now = Date.now();
+    const db = {
+      usuarios: [
+        { id: 'u1', nome: 'Alexandre', matricula: '30001', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'alexandre@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 260 },
+        { id: 'u2', nome: 'Thais', matricula: '30002', cargo: 'Coordenadora', setor: 'Farmácia', email: 'thais@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 480 },
+        { id: 'u3', nome: 'Camila', matricula: '30003', cargo: 'Farmacêutica', setor: 'Farmácia', email: 'camila@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 400 },
+        { id: 'u4', nome: 'Welton', matricula: '30004', cargo: 'Líder', setor: 'Farmácia', email: 'welton@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 440 },
+        { id: 'u5', nome: 'Antônio', matricula: '30005', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'antonio@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 210 },
+        { id: 'u6', nome: 'Basílio', matricula: '30006', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'basilio@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 195 },
+        { id: 'u7', nome: 'Vanessa', matricula: '30007', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'vanessa@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 170 },
+        { id: 'u8', nome: 'Sheila', matricula: '30008', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'sheila@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 165 },
+        { id: 'u9', nome: 'Kailane', matricula: '30009', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'kailane@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 150 },
+        { id: 'u10', nome: 'Gislaine', matricula: '30010', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'gislaine@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 140 },
+        { id: 'u11', nome: 'Maria Eduarda', matricula: '30011', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'mariaeduarda@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 130 },
+        { id: 'u12', nome: 'Carolina', matricula: '30012', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'carolina@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 120 },
       ],
       posts: [
-        {id:'p1',userId:'u2',content:'Bom dia equipe! Lembrem-se de conferir as validades.',timestamp:Date.now()-3600000,likes:[],comments:[]}
+        { id: 'p1', autorId: 'u4', texto: 'Bom dia, equipe! Hoje às 15h teremos o treinamento sobre medicamentos termolábeis na sala 2. Presença confirmada para quem está na escala.', ts: now - 3600e3 * 2, likes: ['u1', 'u3'], comentarios: [{ autorId: 'u3', texto: 'Confirmado, já anotei!', ts: now - 3400e3 }] },
+        { id: 'p2', autorId: 'u1', texto: 'Alguém tem o contato atualizado do plantão de hoje? Preciso validar uma dispensação.', ts: now - 3600e3 * 5, likes: ['u7'], comentarios: [] },
+        { id: 'p3', autorId: 'u3', texto: 'Conseguimos reduzir o tempo médio de dispensação essa semana 🎉 Obrigada a todos pela parceria!', ts: now - 3600e3 * 22, likes: ['u1', 'u2', 'u4', 'u7'], comentarios: [{ autorId: 'u2', texto: 'Excelente resultado, parabéns a todos!', ts: now - 3600e3 * 20 }] },
       ],
       avisos: [
-        {id:'a1',titulo:'Feriado',texto:'Escala disponível',timestamp:Date.now()-86400000}
+        { id: 'a1', autorId: 'u2', titulo: 'Atualização do protocolo de antibióticos', ts: now - 3600e3 * 8, texto: 'O protocolo de antibioticoterapia foi revisado pela CCIH. A nova versão já está disponível na Biblioteca, seção Protocolos.' },
+        { id: 'a2', autorId: 'u4', titulo: 'Manutenção do sistema de dispensação', ts: now - 3600e3 * 30, texto: 'Sábado, das 22h às 23h, o sistema de dispensação ficará indisponível para manutenção programada.' },
       ],
-      enquetes: [],
-      sugestoes: [],
-      escalas: [],
-      biblioteca: [],
-      chats: []
+      biblioteca: [
+        { id: 'd1', nome: 'POP — Dispensação de Antibióticos', tipo: 'PDF', categoria: 'POPs', atualizado: now - 3600e3 * 20 },
+        { id: 'd2', nome: 'Protocolo de Medicamentos Termolábeis', tipo: 'PDF', categoria: 'Protocolos', atualizado: now - 3600e3 * 8 },
+        { id: 'd3', nome: 'Manual do Colaborador FASA', tipo: 'PDF', categoria: 'Manuais', atualizado: now - 3600e3 * 400 },
+        { id: 'd4', nome: 'Treinamento — Boas Práticas de Manipulação', tipo: 'Vídeo', categoria: 'Vídeos', atualizado: now - 3600e3 * 120 },
+        { id: 'd5', nome: 'POP — Controle de Psicotrópicos', tipo: 'PDF', categoria: 'POPs', atualizado: now - 3600e3 * 60 },
+      ],
+      escala: [
+        { dia: 'Segunda', turno: 'Manhã', equipe: ['Alexandre', 'Vanessa'] },
+        { dia: 'Segunda', turno: 'Tarde', equipe: ['Antônio'] },
+        { dia: 'Terça', turno: 'Manhã', equipe: ['Welton', 'Sheila'] },
+        { dia: 'Terça', turno: 'Noite', equipe: ['Basílio'] },
+        { dia: 'Quarta', turno: 'Manhã', equipe: ['Kailane'] },
+        { dia: 'Quinta', turno: 'Tarde', equipe: ['Gislaine', 'Maria Eduarda'] },
+        { dia: 'Sexta', turno: 'Manhã', equipe: ['Carolina', 'Camila'] },
+      ],
+      enquetes: [
+        { id: 'e1', pergunta: 'Qual tema você quer no próximo treinamento?', opcoes: [{ t: 'Medicamentos de alta vigilância', v: 8 }, { t: 'Boas práticas de manipulação', v: 5 }, { t: 'Atendimento humanizado', v: 3 }], votouIds: [] },
+      ],
+      sugestoes: [
+        { id: 's1', autorId: 'u7', texto: 'Poderíamos ter um mural digital com aniversariantes do mês.', ts: now - 3600e3 * 50, apoios: ['u1', 'u3'] },
+        { id: 's2', autorId: 'u1', texto: 'Sugiro criar um checklist rápido dentro do app para conferência de materiais.', ts: now - 3600e3 * 12, apoios: ['u4'] },
+      ],
+      chats: {
+        'u1_u2': [
+          { de: 'u2', texto: 'Oi! Você viu o aviso do treinamento de hoje?', ts: now - 3600e3 * 3 },
+          { de: 'u1', texto: 'Vi sim, já confirmei presença 👍', ts: now - 3600e3 * 2.8 },
+        ],
+        'u1_u3': [
+          { de: 'u3', texto: 'Bom dia! Consegue validar uma dispensação pra mim?', ts: now - 3600e3 * 6 },
+        ],
+      },
+      grupos: [
+        { id: 'g1', nome: 'Plantão de Hoje', membros: ['u1', 'u2', 'u3', 'u4'], msgs: [{ de: 'u4', texto: 'Bom turno a todos! Qualquer intercorrência, avisem por aqui.', ts: now - 3600e3 * 4 }] },
+        { id: 'g2', nome: 'Equipe Farmácia', membros: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10', 'u11', 'u12'], msgs: [{ de: 'u2', texto: 'Reunião de equipe remarcada para quinta às 10h.', ts: now - 3600e3 * 30 }] },
+      ],
     };
-    saveDB();
+    _db = db;
   }
-}
 
-function saveDB() {
-  localStorage.setItem('fasa_db', JSON.stringify(db));
-}
-
-function login(email, senha) {
-  const user = db.users.find(u => u.email === email && u.senha === senha);
-  if (user) {
-    currentUser = user;
-    localStorage.setItem('fasa_user', JSON.stringify(user));
-    render();
-  } else {
-    document.getElementById('loginError').classList.add('show');
+  function getDB() { return _db; }
+  function saveDB(db) { _db = db; }
+  function getSession() { return _session; }
+  function setSession(userId) { _session = { userId, ts: Date.now() }; }
+  function clearSession() { _session = null; }
+  function getJoined(userId, fallback) {
+    if (!_joined[userId]) _joined[userId] = fallback;
+    return _joined[userId];
   }
-}
-
-function logout() {
-  currentUser = null;
-  localStorage.removeItem('fasa_user');
-  render();
-}
-
-function render() {
-  const app = document.getElementById('app');
-  if (!currentUser) {
-    app.innerHTML = renderLogin();
-  } else {
-    app.innerHTML = renderApp();
-    if (currentView === 'feed') renderFeed();
-    else if (currentView === 'perfil') renderPerfil();
-    else if (currentView === 'avisos') renderAvisos();
+  function setJoined(userId, arr) { _joined[userId] = arr; }
+  function currentUser() {
+    const s = getSession();
+    if (!s) return null;
+    return getDB().usuarios.find(u => u.id === s.userId) || null;
   }
-}
+  function initials(nome) { return nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase(); }
+  function avatarHtml(pessoa, sizeClass) {
+    sizeClass = sizeClass || '';
+    const cls = ('avatar ' + sizeClass).trim();
+    if (pessoa && pessoa.foto_url) {
+      return `<div class="${cls}" style="padding:0;overflow:hidden"><img src="${pessoa.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+    }
+    return `<div class="${cls}">${initials((pessoa && pessoa.nome) || '?')}</div>`;
+  }
+  function timeAgo(ts) {
+    const diff = Date.now() - ts, h = Math.floor(diff / 3600e3);
+    if (h < 1) return 'agora há pouco';
+    if (h < 24) return `há ${h}h`;
+    const d = Math.floor(h / 24);
+    if (d < 30) return `há ${d}d`;
+    return `há ${Math.floor(d / 30)} mês(es)`;
+  }
+  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function logoMark(size) {
+    size = size || 30;
+    return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="12" fill="#1F6F5C"/>
+      <rect x="9" y="17" width="22" height="10" rx="5" fill="#F3F7F3"/>
+      <rect x="9" y="17" width="11" height="10" rx="5" fill="#E8873A"/>
+    </svg>`;
+  }
+  function toast(msg) {
+    let el = document.querySelector('.toast');
+    if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+  function go(route) { location.hash = '#/' + route; }
 
-function renderLogin() {
-  return `<div class="auth">
-    <h1>💊 FASA</h1>
-    <p>Bem-vindo de volta</p>
-    <div class="auth-box">
-      <div id="loginError" class="error">E-mail ou senha inválidos</div>
-      <input type="email" id="email" placeholder="E-mail" value="alexandre@fasa.local">
-      <input type="password" id="senha" placeholder="Senha" value="123456">
-      <button class="btn" onclick="login(document.getElementById('email').value,document.getElementById('senha').value)" style="width:100%;margin-top:16px">Entrar</button>
-    </div>
-  </div>`;
-}
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS };
+})();
 
-function renderApp() {
-  return `<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-    <div class="sidebar" id="sidebar">
-      <div style="padding:20px;border-bottom:1px solid #eee">
-        <div style="display:flex;gap:12px;align-items:center">
-          <div class="avatar">${currentUser.nome.charAt(0)}</div>
-          <div><b>${currentUser.nome}</b><div style="font-size:12px;color:#666">${currentUser.cargo}</div></div>
+const root = document.getElementById('root');
+let _chatPollInterval = null;
+
+/* ---------------- Shell (sidebar + topbar) ---------------- */
+function renderShell(activeId, title) {
+  if (_chatPollInterval && activeId !== 'chat') { clearInterval(_chatPollInterval); _chatPollInterval = null; }
+  const user = FASA.currentUser();
+  root.innerHTML = `
+    <div class="overlay-bg" id="fasa-overlay"></div>
+    <div class="app-shell">
+      <aside class="sidebar" id="fasa-sidebar">
+        <div class="brand">${FASA.logoMark(30)} FASA</div>
+        <nav class="nav-group" id="fasa-nav"></nav>
+        <div class="sidebar-user">
+          ${FASA.avatarHtml(user, 'sm')}
+          <div class="who"><div class="name">${user.nome}</div><div class="role">${user.cargo}</div></div>
+          <button class="logout-btn" id="fasa-logout" title="Sair">⏻</button>
         </div>
-      </div>
-      <div class="nav-item" onclick="setView('feed')">🏠 Início</div>
-      <div class="nav-item" onclick="setView('perfil')">👤 Meu Perfil</div>
-      <div class="nav-item" onclick="setView('avisos')"> Avisos</div>
-      <div class="nav-item" onclick="setView('enquetes')"> Enquetes</div>
-      <div class="nav-item" onclick="setView('escalas')">📅 Escalas</div>
-      <div class="nav-item" onclick="logout()" style="color:red">🚪 Sair</div>
-    </div>
-    <div class="topbar">
-      <button class="menu-btn" onclick="toggleMenu()">☰</button>
-      <h2>${currentView === 'feed' ? 'Início' : currentView === 'perfil' ? 'Meu Perfil' : 'Avisos'}</h2>
-    </div>
-    <div id="content"></div>`;
-}
-
-function toggleMenu() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
-}
-
-function setView(view) {
-  currentView = view;
-  toggleMenu();
-  render();
-}
-
-function renderFeed() {
-  const content = document.getElementById('content');
-  const posts = db.posts.map(p => {
-    const user = db.users.find(u => u.id === p.userId);
-    return `<div class="post">
-      <div class="post-header">
-        <div class="avatar">${user.nome.charAt(0)}</div>
-        <div><b>${user.nome}</b><div style="font-size:12px;color:#666">${user.cargo}</div></div>
-      </div>
-      <div>${p.content}</div>
-      <div class="post-actions">
-        <button>❤️ Curtir</button>
-        <button>💬 Comentar</button>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="menu-btn" id="fasa-menu-btn">☰</button>
+            <h2>${title}</h2>
+          </div>
+          <div class="topbar-search">🔍 <input placeholder="Pesquisar no FASA..."></div>
+        </div>
+        <div class="page" id="fasa-page"></div>
       </div>
     </div>`;
-  }).join('');
-  
-  content.innerHTML = `<div class="card">
-    <textarea id="newPost" placeholder="No que você está pensando?"></textarea>
-    <button class="btn" onclick="addPost()" style="margin-top:8px">Publicar</button>
-  </div>${posts}`;
+
+  const navEl = document.getElementById('fasa-nav');
+  navEl.innerHTML = FASA.NAV_ITEMS.map(it => `
+    <a class="nav-item ${it.id === activeId ? 'active' : ''}" data-route="${it.id}"><span class="ic">${it.icon}</span>${it.label}</a>
+  `).join('') + (user.admin ? `<a class="nav-item ${activeId === 'admin' ? 'active' : ''}" data-route="admin"><span class="ic">⚙</span>Administração</a>` : '');
+  navEl.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => FASA.go(a.dataset.route)));
+
+  document.getElementById('fasa-logout').addEventListener('click', async () => { await sb.auth.signOut(); FASA.clearSession(); FASA.go('login'); });
+  const sidebar = document.getElementById('fasa-sidebar');
+  const overlay = document.getElementById('fasa-overlay');
+  document.getElementById('fasa-menu-btn').addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('show'); });
+  overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
+
+  return { user, pageEl: document.getElementById('fasa-page') };
 }
 
-function renderPerfil() {
-  const content = document.getElementById('content');
-  content.innerHTML = `<div class="card">
-    <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px">
-      <div class="avatar" style="width:64px;height:64px;font-size:28px">${currentUser.nome.charAt(0)}</div>
-      <div><h2>${currentUser.nome}</h2><div style="color:#666">${currentUser.cargo}</div><span class="badge">⭐ ${currentUser.pontos} pontos</span></div>
+/* ---------------- Login / Cadastro ---------------- */
+function renderLogin() {
+  root.innerHTML = `
+  <div class="auth-shell">
+    <div class="auth-art">
+      <div class="caps">
+        <span style="top:8%;left:-6%;transform:rotate(20deg)"></span>
+        <span style="top:40%;left:60%;transform:rotate(-15deg)"></span>
+        <span style="top:75%;left:10%;transform:rotate(35deg)"></span>
+        <span style="top:15%;left:70%;transform:rotate(60deg)"></span>
+      </div>
+      <div class="auth-brand">${FASA.logoMark(34)}<span>FASA</span></div>
+      <div class="auth-quote">"A gente cuida de quem cuida."<small>Rede interna da equipe de farmácia</small></div>
     </div>
-    <h3>Conquistas</h3>
-    <div style="margin-top:16px">
-      <div style="padding:12px;background:#f9f9f9;border-radius:8px;margin-bottom:8px">🥇 Colaborador do mês</div>
-      <div style="padding:12px;background:#f9f9f9;border-radius:8px;margin-bottom:8px">📚 Trilha concluída</div>
+    <div class="auth-form-wrap">
+      <div class="auth-form" id="login-form">
+        <div class="mark-mobile">${FASA.logoMark(34)}<span>FASA</span></div>
+        <h1>Bem-vindo de volta</h1>
+        <p class="sub">Entre com seu e-mail para acessar o FASA.</p>
+        <div class="err" id="login-err">E-mail ou senha inválidos.</div>
+        <div class="field"><label>E-mail</label><input id="usuario" type="text" placeholder="voce@email.com" value="alexandre.jsilva.ajs@gmail.com"></div>
+        <div class="field"><label>Senha</label><input id="senha" type="password" placeholder="••••••••" value="Farmaciasat@2026"></div>
+        <div class="field-row">
+          <label class="checkline"><input type="checkbox"> Lembrar acesso</label>
+          <a href="#" class="link" id="forgot-link">Esqueci minha senha</a>
+        </div>
+        <button type="button" id="login-submit" class="btn btn-primary btn-block">Entrar</button>
+        <p class="form-foot">Não tem conta? <a class="link" id="go-cadastro">Como pedir acesso</a></p>
+      </div>
     </div>
   </div>`;
-}
 
-function renderAvisos() {
-  const content = document.getElementById('content');
-  const avisos = db.avisos.map(a => `<div class="card"><h3>${a.titulo}</h3><p>${a.texto}</p></div>`).join('');
-  content.innerHTML = avisos || '<div class="card">Nenhum aviso</div>';
-}
+  document.getElementById('go-cadastro').addEventListener('click', () => FASA.go('cadastro'));
+  document.getElementById('forgot-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    FASA.toast('Link de redefinição enviado para o seu e-mail (simulado).');
+  });
 
-function addPost() {
-  const content = document.getElementById('newPost').value;
-  if (content) {
-    db.posts.unshift({
-      id: 'p' + Date.now(),
-      userId: currentUser.id,
-      content: content,
-      timestamp: Date.now(),
-      likes: [],
-      comments: []
-    });
-    saveDB();
-    renderFeed();
+  async function doLogin() {
+    const email = document.getElementById('usuario').value.trim().toLowerCase();
+    const senha = document.getElementById('senha').value;
+    const errBox = document.getElementById('login-err');
+    const btn = document.getElementById('login-submit');
+    errBox.classList.remove('show');
+    btn.textContent = 'Entrando...';
+    btn.disabled = true;
+
+    const { data: loginData, error: loginError } = await sb.auth.signInWithPassword({ email, password: senha });
+    if (loginError) {
+      errBox.textContent = 'E-mail ou senha inválidos.';
+      errBox.classList.add('show');
+      btn.textContent = 'Entrar';
+      btn.disabled = false;
+      return;
+    }
+
+    const { data: perfil, error: perfilError } = await sb.from('usuarios').select('*').eq('id', loginData.user.id).single();
+    if (perfilError || !perfil) {
+      errBox.textContent = 'Login funcionou, mas seu perfil ainda não foi cadastrado. Fale com a liderança.';
+      errBox.classList.add('show');
+      btn.textContent = 'Entrar';
+      btn.disabled = false;
+      return;
+    }
+
+    // mescla o perfil real no "banco" local, pra telas ainda não migradas
+    // (Chat, Admin, etc.) continuarem funcionando com seu nome/cargo reais
+    FASA.seed();
+    const db = FASA.getDB();
+    const jaExiste = db.usuarios.find(u => u.id === perfil.id);
+    if (jaExiste) {
+      Object.assign(jaExiste, perfil);
+    } else {
+      db.usuarios.unshift(perfil);
+    }
+    FASA.saveDB(db);
+    FASA.setSession(perfil.id);
+    FASA.go('feed');
   }
+  document.getElementById('login-submit').addEventListener('click', doLogin);
+  document.getElementById('senha').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('usuario').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 }
 
-// Inicializa
-initDB();
-const savedUser = localStorage.getItem('fasa_user');
-if (savedUser) currentUser = JSON.parse(savedUser);
-render();
+function renderCadastro() {
+  root.innerHTML = `
+  <div class="auth-shell">
+    <div class="auth-art">
+      <div class="caps">
+        <span style="top:12%;left:65%;transform:rotate(-25deg)"></span>
+        <span style="top:55%;left:-8%;transform:rotate(15deg)"></span>
+        <span style="top:80%;left:55%;transform:rotate(45deg)"></span>
+      </div>
+      <div class="auth-brand">${FASA.logoMark(34)}<span>FASA</span></div>
+      <div class="auth-quote">"Acesso só por convite."<small>Rede interna da equipe de farmácia</small></div>
+    </div>
+    <div class="auth-form-wrap">
+      <div class="auth-form">
+        <div class="mark-mobile">${FASA.logoMark(34)}<span>FASA</span></div>
+        <h1>Como pedir acesso</h1>
+        <p class="sub">O FASA é um app interno da empresa. Ninguém cria conta sozinho — o acesso é liberado pela liderança.</p>
+        <div class="card" style="margin-bottom:20px">
+          <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;margin:0">
+            Fale com a <b>Coordenadora</b> ou seu <b>Líder</b> e peça pra ser cadastrado(a).
+            Você vai receber um e-mail de convite — é só abrir o link e definir sua senha.
+          </p>
+        </div>
+        <button type="button" id="go-login" class="btn btn-primary btn-block">Voltar ao login</button>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('go-login').addEventListener('click', () => FASA.go('login'));
+}
+
+/* ---------------- Feed ---------------- */
+function renderFeed() {
+  const { user, pageEl } = renderShell('feed', 'Início');
+  let arquivoSelecionado = null;
+
+  async function fetchPosts() {
+    const { data, error } = await sb
+      .from('posts')
+      .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url), post_likes(usuario_id), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
+      .order('criado_em', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar posts: ' + error.message); return []; }
+    return data;
+  }
+
+  function anexoHtml(p) {
+    if (!p.arquivo_url) return '';
+    if ((p.arquivo_tipo || '').startsWith('image/')) {
+      return `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:10px;margin-bottom:12px;display:block">`;
+    }
+    return `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;color:var(--primary-dk)">📎 ${p.arquivo_nome || 'Anexo'}</a>`;
+  }
+
+  function postsHtml(list) {
+    return list.map(p => {
+      const autor = p.usuarios || { nome: 'Ex-colaborador', cargo: '' };
+      const likes = p.post_likes || [];
+      const liked = likes.some(l => l.usuario_id === user.id);
+      const comentarios = (p.comentarios || []).sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
+      const souAutor = p.autor_id === user.id;
+      return `
+      <div class="card post" data-id="${p.id}">
+        <div class="post-head">${FASA.avatarHtml(autor)}
+          <div class="meta" style="flex:1"><div class="name">${autor.nome}</div><div class="sub">${autor.cargo || ''} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
+          ${souAutor ? '<button class="icon-btn del-post-btn" title="Excluir publicação">🗑</button>' : ''}
+        </div>
+        <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
+        ${anexoHtml(p)}
+        <div class="post-actions">
+          <button class="like-btn ${liked ? 'liked' : ''}">${liked ? '❤️' : '🤍'} Curtir ${likes.length ? `(${likes.length})` : ''}</button>
+          <button class="comment-btn">💬 Comentar ${comentarios.length ? `(${comentarios.length})` : ''}</button>
+          <button class="share-btn">↗ Compartilhar</button>
+        </div>
+        <div class="comments-list">${comentarios.map(c => `<div class="comment-item"><b>${(c.usuarios || {}).nome || 'Colaborador'}</b><br>${FASA.escapeHtml(c.texto)}</div>`).join('')}</div>
+        <div class="comment-box"><input type="text" placeholder="Escreva um comentário..."><button class="btn btn-sm btn-primary send-comment">Enviar</button></div>
+      </div>`;
+    }).join('') || `<div class="empty"><div class="big">📭</div>Ainda não há publicações. Seja o primeiro a postar!</div>`;
+  }
+
+  function side() {
+    const comms = FASA.COMUNIDADES.slice(0, 4);
+    const emPlantao = FASA.getDB().usuarios.slice(0, 3);
+    return `
+    <div class="side-card card"><h3>Minhas comunidades</h3><div class="mini-list">
+      ${comms.map(c => `<div class="mini-item"><div class="avatar sm" style="background:var(--accent)">${c.nome[0]}</div><div class="t"><div class="n">${c.nome}</div><div class="s">${c.membros} membros</div></div></div>`).join('')}
+    </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="comunidades">Ver todas</a></div>
+    <div class="side-card card"><h3>Quem está de plantão agora</h3><div class="mini-list">
+      ${emPlantao.map(u => `<div class="mini-item"><div class="avatar sm">${FASA.initials(u.nome)}</div><div class="t"><div class="n">${u.nome}</div><div class="s">${u.setor}</div></div><span class="pill live">on</span></div>`).join('')}
+    </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="escala">Ver escala completa</a></div>`;
+  }
+
+  function paintPreview() {
+    const wrap = document.getElementById('anexo-preview-wrap');
+    if (!arquivoSelecionado) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = `<div style="display:flex;align-items:center;gap:8px;background:var(--paper-2);border-radius:var(--radius-sm);padding:6px 12px;font-size:12.5px;margin-top:8px">
+      📎 ${arquivoSelecionado.name} <button id="anexo-remover" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px">✕</button></div>`;
+    document.getElementById('anexo-remover').addEventListener('click', () => { arquivoSelecionado = null; paintPreview(); });
+  }
+
+  async function paint() {
+    pageEl.innerHTML = `<div class="two-col"><div>
+      <div class="card composer">${FASA.avatarHtml(user)}
+        <div style="flex:1"><textarea id="post-text" placeholder="No que você está pensando, ${user.nome.split(' ')[0]}?"></textarea>
+        <div id="anexo-preview-wrap"></div>
+        <input type="file" id="foto-input-composer" accept="image/*" style="display:none">
+        <input type="file" id="anexo-input-composer" style="display:none">
+        <div class="composer-actions"><div class="composer-tools"><button class="tool-btn" id="foto-btn-composer">📷 Foto</button><button class="tool-btn" id="anexo-btn-composer">📎 Anexo</button></div>
+        <button class="btn btn-primary btn-sm" id="post-submit">Publicar</button></div></div></div>
+      <div id="posts-list"><div class="empty">Carregando publicações...</div></div>
+    </div><div>${side()}</div></div>`;
+
+    pageEl.querySelectorAll('[data-route]').forEach(a => a.addEventListener('click', () => FASA.go(a.dataset.route)));
+
+    const fotoInput = document.getElementById('foto-input-composer');
+    const anexoInput = document.getElementById('anexo-input-composer');
+    document.getElementById('foto-btn-composer').addEventListener('click', () => fotoInput.click());
+    document.getElementById('anexo-btn-composer').addEventListener('click', () => anexoInput.click());
+    fotoInput.addEventListener('change', () => { if (fotoInput.files[0]) { arquivoSelecionado = fotoInput.files[0]; paintPreview(); } });
+    anexoInput.addEventListener('change', () => { if (anexoInput.files[0]) { arquivoSelecionado = anexoInput.files[0]; paintPreview(); } });
+
+    document.getElementById('post-submit').addEventListener('click', async () => {
+      const ta = document.getElementById('post-text'), texto = ta.value.trim();
+      if (!texto && !arquivoSelecionado) return;
+      const btn = document.getElementById('post-submit');
+      btn.disabled = true;
+      btn.textContent = 'Publicando...';
+
+      let payload = { autor_id: user.id, texto };
+      if (arquivoSelecionado) {
+        const path = `${user.id}/${Date.now()}-${arquivoSelecionado.name}`;
+        const { error: upError } = await sb.storage.from('posts-media').upload(path, arquivoSelecionado);
+        if (upError) { FASA.toast('Erro ao enviar arquivo: ' + upError.message); btn.disabled = false; btn.textContent = 'Publicar'; return; }
+        const { data: pub } = sb.storage.from('posts-media').getPublicUrl(path);
+        payload.arquivo_url = pub.publicUrl;
+        payload.arquivo_tipo = arquivoSelecionado.type;
+        payload.arquivo_nome = arquivoSelecionado.name;
+      }
+
+      const { error } = await sb.from('posts').insert(payload);
+      btn.disabled = false;
+      btn.textContent = 'Publicar';
+      if (error) { FASA.toast('Erro ao publicar: ' + error.message); return; }
+      ta.value = '';
+      arquivoSelecionado = null;
+      paintPreview();
+      FASA.toast('Publicação criada!');
+      refresh();
+    });
+
+    refresh();
+  }
+
+  async function refresh() {
+    const list = await fetchPosts();
+    const listEl = document.getElementById('posts-list');
+    if (!listEl) return;
+    listEl.innerHTML = postsHtml(list);
+    bindPostEvents();
+  }
+
+  function bindPostEvents() {
+    pageEl.querySelectorAll('.post').forEach(postEl => {
+      const id = postEl.dataset.id;
+      postEl.querySelector('.like-btn').addEventListener('click', async () => {
+        const liked = postEl.querySelector('.like-btn').classList.contains('liked');
+        if (liked) {
+          await sb.from('post_likes').delete().eq('post_id', id).eq('usuario_id', user.id);
+        } else {
+          await sb.from('post_likes').insert({ post_id: id, usuario_id: user.id });
+        }
+        refresh();
+      });
+      postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
+      postEl.querySelector('.share-btn').addEventListener('click', () => FASA.toast('Publicação compartilhada no seu perfil!'));
+      const sendBtn = postEl.querySelector('.send-comment');
+      if (sendBtn) sendBtn.addEventListener('click', async () => {
+        const input = postEl.querySelector('.comment-box input'), texto = input.value.trim();
+        if (!texto) return;
+        const { error } = await sb.from('comentarios').insert({ post_id: id, autor_id: user.id, texto });
+        if (error) { FASA.toast('Erro ao comentar: ' + error.message); return; }
+        refresh();
+      });
+      const delBtn = postEl.querySelector('.del-post-btn');
+      if (delBtn) delBtn.addEventListener('click', async () => {
+        if (!confirm('Excluir esta publicação? Essa ação não pode ser desfeita.')) return;
+        const { error } = await sb.from('posts').delete().eq('id', id);
+        if (error) { FASA.toast('Erro ao excluir: ' + error.message); return; }
+        FASA.toast('Publicação excluída.');
+        refresh();
+      });
+    });
+  }
+
+  paint();
+}
+
+/* ---------------- Perfil ---------------- */
+async function renderPerfil() {
+  const { user, pageEl } = renderShell('perfil', 'Meu Perfil');
+  pageEl.innerHTML = `<div class="empty">Carregando perfil...</div>`;
+
+  const { data: meusPosts, error } = await sb
+    .from('posts')
+    .select('*, post_likes(usuario_id)')
+    .eq('autor_id', user.id)
+    .order('criado_em', { ascending: false });
+
+  if (error) { FASA.toast('Erro ao carregar perfil: ' + error.message); }
+  const posts = meusPosts || [];
+  const curtidasRecebidas = posts.reduce((s, p) => s + (p.post_likes || []).length, 0);
+
+  const conquistas = [
+    { ic: '🏅', t: 'Colaborador do mês', d: 'Reconhecido pela equipe' },
+    { ic: '📚', t: 'Trilha concluída', d: 'Boas Práticas de Manipulação' },
+    { ic: '💬', t: 'Voz ativa', d: '10+ contribuições em comunidades' },
+  ];
+
+  let editMode = false;
+
+  function headerHtml() {
+    const capaStyle = user.capa_url
+      ? `background:url('${user.capa_url}') center/cover no-repeat`
+      : `background:linear-gradient(135deg,var(--primary),var(--accent))`;
+
+    if (!editMode) {
+      return `
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
+        <div style="height:130px;position:relative;${capaStyle}">
+          <button id="capa-btn" title="Alterar capa" style="position:absolute;bottom:10px;right:10px;background:rgba(22,36,31,.55);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">📷 Capa</button>
+          <input type="file" id="capa-input" accept="image/*" style="display:none">
+        </div>
+        <div style="padding:0 20px 24px;text-align:center;margin-top:-40px">
+          <div style="position:relative;width:80px;margin:0 auto 12px">
+            ${FASA.avatarHtml(user, 'lg')}
+            <button id="foto-btn" title="Alterar foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">📷</button>
+            <input type="file" id="foto-input" accept="image/*" style="display:none">
+          </div>
+          <h1 style="font-size:22px">${user.nome}</h1>
+          <p style="color:var(--muted);font-size:13.5px;margin:4px 0 12px">${user.cargo || ''} · ${user.setor || ''}</p>
+          ${user.bio ? `<p style="font-size:13.5px;color:var(--ink-soft);max-width:420px;margin:0 auto 14px">${FASA.escapeHtml(user.bio)}</p>` : ''}
+          <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+            <span class="pill">Matrícula ${user.matricula}</span><span class="pill accent">${user.tempo_empresa || 'A definir'} de empresa</span>
+            ${user.admin ? '<span class="pill muted">Administrador</span>' : ''}
+          </div>
+          <button class="btn btn-ghost btn-sm" id="edit-perfil-btn">✎ Editar perfil</button>
+        </div>
+      </div>`;
+    }
+
+    return `
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
+        <div style="height:130px;position:relative;${capaStyle}"></div>
+        <div style="padding:20px">
+          <h3 style="margin-bottom:14px">Editar perfil</h3>
+          <div class="field"><label>Cargo</label><input id="ep-cargo" value="${user.cargo || ''}"></div>
+          <div class="field"><label>Setor</label><input id="ep-setor" value="${user.setor || ''}"></div>
+          <div class="field"><label>Tempo de empresa</label><input id="ep-tempo" value="${user.tempo_empresa || ''}"></div>
+          <div class="field"><label>Bio (uma frase sobre você)</label><textarea id="ep-bio" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit">${user.bio || ''}</textarea></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-primary" id="ep-salvar">Salvar</button>
+            <button class="btn btn-ghost" id="ep-cancelar">Cancelar</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function bindHeaderEvents() {
+    if (!editMode) {
+      document.getElementById('edit-perfil-btn').addEventListener('click', () => { editMode = true; paintHeader(); });
+
+      const fotoBtn = document.getElementById('foto-btn');
+      const fotoInput = document.getElementById('foto-input');
+      fotoBtn.addEventListener('click', () => fotoInput.click());
+      fotoInput.addEventListener('change', () => uploadImagem(fotoInput.files[0], 'avatar', 'foto_url', fotoBtn));
+
+      const capaBtn = document.getElementById('capa-btn');
+      const capaInput = document.getElementById('capa-input');
+      capaBtn.addEventListener('click', () => capaInput.click());
+      capaInput.addEventListener('change', () => uploadImagem(capaInput.files[0], 'capa', 'capa_url', capaBtn));
+    } else {
+      document.getElementById('ep-cancelar').addEventListener('click', () => { editMode = false; paintHeader(); });
+      document.getElementById('ep-salvar').addEventListener('click', async () => {
+        const cargo = document.getElementById('ep-cargo').value.trim();
+        const setor = document.getElementById('ep-setor').value.trim();
+        const tempo_empresa = document.getElementById('ep-tempo').value.trim();
+        const bio = document.getElementById('ep-bio').value.trim();
+        const { error: updError } = await sb.from('usuarios').update({ cargo, setor, tempo_empresa, bio }).eq('id', user.id);
+        if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
+        Object.assign(user, { cargo, setor, tempo_empresa, bio });
+        const db = FASA.getDB();
+        const jaExiste = db.usuarios.find(u => u.id === user.id);
+        if (jaExiste) Object.assign(jaExiste, { cargo, setor, tempo_empresa, bio });
+        FASA.saveDB(db);
+        editMode = false;
+        FASA.toast('Perfil atualizado!');
+        paintHeader();
+      });
+    }
+  }
+
+  async function uploadImagem(file, nomeArquivo, coluna, btnEl) {
+    if (!file) return;
+    btnEl.textContent = '…';
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/${nomeArquivo}.${ext}`;
+
+    const { error: upError } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
+    if (upError) { FASA.toast('Erro ao enviar imagem: ' + upError.message); paintHeader(); return; }
+
+    const { data: pub } = sb.storage.from('avatars').getPublicUrl(path);
+    const url = pub.publicUrl + '?t=' + Date.now();
+
+    const { error: updError } = await sb.from('usuarios').update({ [coluna]: url }).eq('id', user.id);
+    if (updError) { FASA.toast('Erro ao salvar imagem: ' + updError.message); paintHeader(); return; }
+
+    user[coluna] = url;
+    const db = FASA.getDB();
+    const jaExiste = db.usuarios.find(u => u.id === user.id);
+    if (jaExiste) jaExiste[coluna] = url;
+    FASA.saveDB(db);
+
+    FASA.toast('Imagem atualizada!');
+    paintHeader();
+  }
+
+  function paintHeader() {
+    document.getElementById('perfil-header').outerHTML = `<div id="perfil-header">${headerHtml()}</div>`;
+    bindHeaderEvents();
+  }
+
+  pageEl.innerHTML = `
+    <div id="perfil-header">${headerHtml()}</div>
+    <div class="grid grid-3" style="margin-bottom:20px">
+      <div class="card stat-card"><div class="num">${posts.length}</div><div class="lbl">Publicações</div></div>
+      <div class="card stat-card"><div class="num">${curtidasRecebidas}</div><div class="lbl">Curtidas recebidas</div></div>
+      <div class="card stat-card"><div class="num">${user.pontos}</div><div class="lbl">Pontos de reconhecimento</div></div>
+    </div>
+    <div class="card" style="margin-bottom:20px"><h3 style="margin-bottom:14px">Conquistas</h3><div class="grid grid-3">
+      ${conquistas.map(c => `<div style="text-align:center;padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm)"><div style="font-size:26px;margin-bottom:6px">${c.ic}</div><div style="font-weight:700;font-size:13px">${c.t}</div><div style="font-size:11.5px;color:var(--muted)">${c.d}</div></div>`).join('')}
+    </div></div>
+    <div class="card"><h3 style="margin-bottom:14px">Minhas publicações</h3>
+      ${posts.length ? posts.map(p => `<div style="padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>${FASA.escapeHtml(p.texto)}</div>`).join('') : `<div class="empty">Você ainda não publicou nada.</div>`}
+    </div>`;
+
+  bindHeaderEvents();
+}
+
+/* ---------------- Comunidades ---------------- */
+async function renderComunidades() {
+  const { user, pageEl } = renderShell('comunidades', 'Comunidades');
+  pageEl.innerHTML = `<div class="empty">Carregando comunidades...</div>`;
+
+  async function load() {
+    const { data: comunidades, error: e1 } = await sb.from('comunidades').select('*').order('nome');
+    const { data: membros, error: e2 } = await sb.from('comunidade_membros').select('comunidade_id');
+    const { data: minhas, error: e3 } = await sb.from('comunidade_membros').select('comunidade_id').eq('usuario_id', user.id);
+    if (e1 || e2 || e3) { FASA.toast('Erro ao carregar comunidades'); return; }
+
+    const contagem = {};
+    (membros || []).forEach(m => { contagem[m.comunidade_id] = (contagem[m.comunidade_id] || 0) + 1; });
+    const joined = new Set((minhas || []).map(m => m.comunidade_id));
+
+    pageEl.innerHTML = `
+      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Participe das comunidades da sua equipe para trocar experiências, tirar dúvidas e acompanhar novidades por setor.</p>
+      <div class="grid grid-3">
+        ${(comunidades || []).map(c => {
+          const isIn = joined.has(c.id);
+          return `<div class="card comm-card" data-id="${c.id}"><div class="comm-banner"></div><h3>${c.nome}</h3><div class="desc">${c.descricao || ''}</div>
+          <div class="foot"><span class="pill muted">${contagem[c.id] || 0} membros</span><button class="btn btn-sm ${isIn ? 'btn-ghost' : 'btn-primary'} join-btn">${isIn ? 'Participando' : 'Participar'}</button></div></div>`;
+        }).join('')}
+      </div>`;
+
+    pageEl.querySelectorAll('.comm-card').forEach(card => {
+      card.querySelector('.join-btn').addEventListener('click', async () => {
+        const id = card.dataset.id;
+        if (joined.has(id)) {
+          await sb.from('comunidade_membros').delete().eq('comunidade_id', id).eq('usuario_id', user.id);
+        } else {
+          await sb.from('comunidade_membros').insert({ comunidade_id: id, usuario_id: user.id });
+        }
+        load();
+      });
+    });
+  }
+  load();
+}
+
+/* ---------------- Avisos ---------------- */
+function renderAvisos() {
+  const { user, pageEl } = renderShell('avisos', 'Avisos');
+  const podePublicar = user.admin;
+
+  async function paint() {
+    pageEl.innerHTML = `<div class="empty">Carregando avisos...</div>`;
+    const { data: avisos, error } = await sb
+      .from('avisos')
+      .select('*, usuarios!avisos_autor_id_fkey(nome)')
+      .order('criado_em', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar avisos: ' + error.message); }
+
+    pageEl.innerHTML = `
+      ${podePublicar ? `<div class="card" style="margin-bottom:20px"><h3 style="margin-bottom:12px">Publicar novo aviso</h3>
+        <div class="field"><input id="av-titulo" placeholder="Título do aviso"></div>
+        <div class="field"><textarea id="av-texto" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit" placeholder="Escreva o aviso..."></textarea></div>
+        <button class="btn btn-accent" id="av-submit">Publicar aviso</button></div>`
+        : `<div class="card" style="margin-bottom:20px;color:var(--muted);font-size:13px">Somente líderes podem publicar avisos. Você pode visualizar todos os comunicados abaixo.</div>`}
+      <div class="card" style="display:flex;flex-direction:column;gap:20px">
+        ${(avisos || []).map(a => { const au = a.usuarios || { nome: 'Liderança' }; return `<div class="aviso"><h3>${a.titulo}</h3><div class="sub">${au.nome} · ${FASA.timeAgo(new Date(a.criado_em).getTime())}</div><p>${a.texto}</p></div>`; }).join('') || `<div class="empty">Nenhum aviso publicado ainda.</div>`}
+      </div>`;
+    const btn = document.getElementById('av-submit');
+    if (btn) btn.addEventListener('click', async () => {
+      const titulo = document.getElementById('av-titulo').value.trim(), texto = document.getElementById('av-texto').value.trim();
+      if (!titulo || !texto) return;
+      const { error: insError } = await sb.from('avisos').insert({ autor_id: user.id, titulo, texto });
+      if (insError) { FASA.toast('Erro ao publicar: ' + insError.message); return; }
+      FASA.toast('Aviso publicado!'); paint();
+    });
+  }
+  paint();
+}
+
+/* ---------------- Escala ---------------- */
+async function renderEscala() {
+  const { pageEl } = renderShell('escala', 'Escalas');
+  pageEl.innerHTML = `<div class="empty">Carregando escala...</div>`;
+
+  const { data: rows, error } = await sb
+    .from('escalas')
+    .select('dia, turno, usuarios!escalas_usuario_id_fkey(nome)');
+  if (error) { FASA.toast('Erro ao carregar escala: ' + error.message); }
+
+  const ordemDias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const grupos = {};
+  (rows || []).forEach(r => {
+    const chave = r.dia + '|' + r.turno;
+    if (!grupos[chave]) grupos[chave] = { dia: r.dia, turno: r.turno, equipe: [] };
+    grupos[chave].equipe.push((r.usuarios || {}).nome || '—');
+  });
+  const escala = Object.values(grupos).sort((a, b) => {
+    const d = ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia);
+    return d !== 0 ? d : a.turno.localeCompare(b.turno);
+  });
+
+  pageEl.innerHTML = `
+    <div class="card table-wrap"><table><thead><tr><th>Dia</th><th>Turno</th><th>Equipe escalada</th></tr></thead><tbody>
+      ${escala.map(e => `<tr><td><b>${e.dia}</b></td><td><span class="pill ${e.turno === 'Manhã' ? '' : e.turno === 'Tarde' ? 'accent' : 'muted'}">${e.turno}</span></td><td>${e.equipe.join(', ')}</td></tr>`).join('') || `<tr><td colspan="3"><div class="empty">Nenhuma escala cadastrada ainda.</div></td></tr>`}
+    </tbody></table></div>
+    <p style="color:var(--muted);font-size:12.5px;margin-top:14px">A escala é definida pela liderança de cada setor e pode ser ajustada pela Administração.</p>`;
+}
+
+/* ---------------- Biblioteca ---------------- */
+function renderBiblioteca() {
+  const { pageEl } = renderShell('biblioteca', 'Biblioteca');
+  const cats = ['Todos', 'POPs', 'Protocolos', 'Manuais', 'Vídeos', 'PDF'];
+  let activeCat = 'Todos';
+  const ICONS = { PDF: '📄', 'Vídeo': '🎬' };
+  let todosDocs = [];
+
+  async function carregar() {
+    const { data, error } = await sb.from('biblioteca').select('*').order('atualizado_em', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar biblioteca: ' + error.message); return; }
+    todosDocs = data || [];
+    paint();
+  }
+
+  function paint() {
+    const docs = todosDocs.filter(d => activeCat === 'Todos' || d.categoria === activeCat || d.tipo === activeCat);
+    pageEl.innerHTML = `
+      <div class="tabs">${cats.map(c => `<div class="tab ${c === activeCat ? 'active' : ''}" data-cat="${c}">${c}</div>`).join('')}</div>
+      <div class="grid grid-2">${docs.map(d => `
+        <div class="card doc-card"><div class="doc-ic">${ICONS[d.tipo] || '📁'}</div>
+        <div style="flex:1"><h3>${d.nome}</h3><div class="meta">${d.categoria} · ${d.tipo} · atualizado ${FASA.timeAgo(new Date(d.atualizado_em).getTime())}</div></div>
+        <button class="btn btn-ghost btn-sm abrir-doc">Abrir</button></div>`).join('') || `<div class="empty" style="grid-column:1/-1">Nenhum documento nesta categoria.</div>`}</div>`;
+    pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { activeCat = t.dataset.cat; paint(); }));
+    pageEl.querySelectorAll('.abrir-doc').forEach(b => b.addEventListener('click', () => FASA.toast('Abrindo documento...')));
+  }
+  pageEl.innerHTML = `<div class="empty">Carregando biblioteca...</div>`;
+  carregar();
+}
+
+/* ---------------- Enquetes ---------------- */
+function renderEnquetes() {
+  const { user, pageEl } = renderShell('enquetes', 'Enquetes');
+  let numOpcoes = 2;
+
+  function formHtml() {
+    if (!user.admin) return '';
+    let campos = '';
+    for (let i = 0; i < numOpcoes; i++) {
+      campos += `<div class="field"><input class="eq-opcao" placeholder="Opção ${i + 1}"></div>`;
+    }
+    return `<div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:12px">Criar enquete</h3>
+      <div class="field"><input id="eq-pergunta" placeholder="Qual é a pergunta?"></div>
+      <div id="eq-opcoes-wrap">${campos}</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <button class="btn btn-ghost btn-sm" id="eq-add-opcao" type="button">+ Adicionar opção</button>
+      </div>
+      <button class="btn btn-accent" id="eq-submit">Criar enquete</button>
+    </div>`;
+  }
+
+  function bindForm() {
+    if (!user.admin) return;
+    document.getElementById('eq-add-opcao').addEventListener('click', () => {
+      if (numOpcoes >= 10) { FASA.toast('Máximo de 10 opções.'); return; }
+      numOpcoes++;
+      document.getElementById('eq-opcoes-wrap').innerHTML = Array.from({ length: numOpcoes }).map((_, i) => `<div class="field"><input class="eq-opcao" placeholder="Opção ${i + 1}"></div>`).join('');
+    });
+    document.getElementById('eq-submit').addEventListener('click', async () => {
+      const pergunta = document.getElementById('eq-pergunta').value.trim();
+      const opcoes = [...pageEl.querySelectorAll('.eq-opcao')].map(i => i.value.trim()).filter(Boolean);
+      if (!pergunta || opcoes.length < 2) { FASA.toast('Escreva a pergunta e pelo menos 2 opções.'); return; }
+      const { data: enq, error: e1 } = await sb.from('enquetes').insert({ pergunta }).select().single();
+      if (e1) { FASA.toast('Erro ao criar enquete: ' + e1.message); return; }
+      const { error: e2 } = await sb.from('enquete_opcoes').insert(opcoes.map(texto => ({ enquete_id: enq.id, texto })));
+      if (e2) { FASA.toast('Erro ao criar opções: ' + e2.message); return; }
+      FASA.toast('Enquete criada!');
+      numOpcoes = 2;
+      paint();
+    });
+  }
+
+  async function paint() {
+    pageEl.innerHTML = `<div class="empty">Carregando enquetes...</div>`;
+    const { data: enquetes, error: e1 } = await sb.from('enquetes').select('*, enquete_opcoes(*)').order('criado_em', { ascending: false });
+    const { data: meusVotos, error: e2 } = await sb.from('enquete_votos').select('enquete_id, opcao_id').eq('usuario_id', user.id);
+    if (e1 || e2) { FASA.toast('Erro ao carregar enquetes'); return; }
+    const votosMap = {};
+    (meusVotos || []).forEach(v => { votosMap[v.enquete_id] = v.opcao_id; });
+
+    pageEl.innerHTML = `${formHtml()}<div class="grid grid-2">${(enquetes || []).map(e => {
+      const opcoes = e.enquete_opcoes || [];
+      const total = opcoes.reduce((s, o) => s + o.votos, 0) || 1;
+      const voted = !!votosMap[e.id];
+      return `<div class="card" data-id="${e.id}"><h3 style="font-size:15px;margin-bottom:14px">${e.pergunta}</h3>
+        ${opcoes.map(o => { const pct = Math.round((o.votos / total) * 100); return `<div class="poll-opt ${voted ? 'voted' : ''}" data-opcao="${o.id}">${voted ? `<div class="fill" style="width:${pct}%"></div>` : ''}<div class="txt"><span>${o.texto}</span><span>${voted ? pct + '%' : ''}</span></div></div>`; }).join('')}
+        <div style="font-size:11.5px;color:var(--muted);margin-top:8px">${total} voto(s) ${voted ? '· você já votou' : '· toque em uma opção para votar'}</div></div>`;
+    }).join('') || `<div class="empty">Nenhuma enquete no momento.${user.admin ? '' : ' Peça pra liderança criar uma!'}</div>`}</div>`;
+
+    bindForm();
+    pageEl.querySelectorAll('.card[data-id]').forEach(card => {
+      const eid = card.dataset.id;
+      card.querySelectorAll('.poll-opt').forEach(opt => opt.addEventListener('click', async () => {
+        if (votosMap[eid]) return;
+        const opcaoId = opt.dataset.opcao;
+        const { error: voteError } = await sb.from('enquete_votos').insert({ enquete_id: eid, usuario_id: user.id, opcao_id: opcaoId });
+        if (voteError) { FASA.toast('Erro ao votar: ' + voteError.message); return; }
+        const { data: opcaoAtual } = await sb.from('enquete_opcoes').select('votos').eq('id', opcaoId).single();
+        await sb.from('enquete_opcoes').update({ votos: (opcaoAtual?.votos || 0) + 1 }).eq('id', opcaoId);
+        paint();
+      }));
+    });
+  }
+  paint();
+}
+
+/* ---------------- Sugestões ---------------- */
+function renderSugestoes() {
+  const { user, pageEl } = renderShell('sugestoes', 'Sugestões');
+
+  async function paint() {
+    pageEl.innerHTML = `<div class="empty">Carregando sugestões...</div>`;
+    const { data: sugs, error } = await sb
+      .from('sugestoes')
+      .select('*, usuarios!sugestoes_autor_id_fkey(nome), sugestao_apoios(usuario_id)')
+      .order('criado_em', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar sugestões: ' + error.message); }
+    const lista = (sugs || []).sort((a, b) => (b.sugestao_apoios || []).length - (a.sugestao_apoios || []).length);
+
+    pageEl.innerHTML = `
+      <div class="card" style="margin-bottom:20px"><h3 style="margin-bottom:12px">Compartilhe uma ideia</h3>
+        <div class="field"><textarea id="sug-texto" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit" placeholder="O que podemos melhorar?"></textarea></div>
+        <button class="btn btn-accent" id="sug-submit">Enviar sugestão</button></div>
+      <div style="display:flex;flex-direction:column;gap:14px">${lista.map(s => {
+        const au = s.usuarios || { nome: 'Colaborador' };
+        const apoios = s.sugestao_apoios || [];
+        const apoiado = apoios.some(a => a.usuario_id === user.id);
+        return `<div class="card" data-id="${s.id}"><div class="post-head"><div class="avatar sm">${FASA.initials(au.nome)}</div><div class="meta"><div class="name">${au.nome}</div><div class="sub">${FASA.timeAgo(new Date(s.criado_em).getTime())}</div></div></div>
+        <p style="font-size:13.5px;color:var(--ink-soft);margin:10px 0">${FASA.escapeHtml(s.texto)}</p>
+        <button class="btn btn-sm ${apoiado ? 'btn-primary' : 'btn-ghost'} apoiar-btn">👍 Apoiar (${apoios.length})</button></div>`;
+      }).join('') || `<div class="empty">Nenhuma sugestão ainda. Seja o primeiro!</div>`}</div>`;
+
+    document.getElementById('sug-submit').addEventListener('click', async () => {
+      const texto = document.getElementById('sug-texto').value.trim();
+      if (!texto) return;
+      const { error: insError } = await sb.from('sugestoes').insert({ autor_id: user.id, texto });
+      if (insError) { FASA.toast('Erro ao enviar: ' + insError.message); return; }
+      FASA.toast('Sugestão enviada!'); paint();
+    });
+    pageEl.querySelectorAll('.card[data-id]').forEach(card => {
+      card.querySelector('.apoiar-btn').addEventListener('click', async () => {
+        const id = card.dataset.id;
+        const apoiado = card.querySelector('.apoiar-btn').classList.contains('btn-primary');
+        if (apoiado) {
+          await sb.from('sugestao_apoios').delete().eq('sugestao_id', id).eq('usuario_id', user.id);
+        } else {
+          await sb.from('sugestao_apoios').insert({ sugestao_id: id, usuario_id: user.id });
+        }
+        paint();
+      });
+    });
+  }
+  paint();
+}
+
+/* ---------------- Ranking ---------------- */
+async function renderRanking() {
+  const { pageEl } = renderShell('ranking', 'Reconhecimento');
+  pageEl.innerHTML = `<div class="empty">Carregando ranking...</div>`;
+  const { data: ranking, error } = await sb.from('usuarios').select('*').order('pontos', { ascending: false });
+  if (error) { FASA.toast('Erro ao carregar ranking: ' + error.message); }
+  pageEl.innerHTML = `
+    <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Pontos são acumulados por participação: publicações, ajuda em comunidades, sugestões implementadas e treinamentos concluídos.</p>
+    <div class="card">${(ranking || []).map((u, i) => `
+      <div class="rank-row"><div class="rank-pos ${i < 3 ? 'top' : ''}">${i + 1}º</div><div class="avatar sm">${FASA.initials(u.nome)}</div>
+      <div><div style="font-weight:700;font-size:13.5px">${u.nome}</div><div style="font-size:11.5px;color:var(--muted)">${u.setor}</div></div><div class="pts">${u.pontos} pts</div></div>`).join('')}
+    </div>`;
+}
+
+/* ---------------- Chat ---------------- */
+async function renderChat() {
+  const { user, pageEl } = renderShell('chat', 'Chat');
+  pageEl.classList.add('wide');
+  pageEl.innerHTML = `<div class="empty">Carregando conversas...</div>`;
+  const EMOJIS = ['😀','😁','😂','🤣','😊','😇','🙂','😉','😍','🥰','😘','😋','😜','🤔','😐','😴','😪','😢','😭','😱','😡','🤬','🥳','😎','🤩','😷','🤒','🙏','👍','👎','👏','🙌','🤝','💪','👋','✌️','🤞','❤️','🧡','💚','💙','💜','🖤','🔥','✨','🎉','🎂','👏','🙏','✅','❌','❗','❓','💡','📌','📎','⏰','😴','🤯'];
+
+  let outros = [];
+  let grupos = [];
+  let allMsgs = [];
+  let activeType = null, activeId = null;
+  let search = '';
+
+  async function carregarBase() {
+    const { data: usuarios } = await sb.from('usuarios').select('*').neq('id', user.id).order('nome');
+    outros = usuarios || [];
+
+    const { data: minhasGm } = await sb.from('grupo_membros').select('grupo_id').eq('usuario_id', user.id);
+    const grupoIds = (minhasGm || []).map(g => g.grupo_id);
+    if (grupoIds.length) {
+      const { data: gs } = await sb.from('grupos').select('*').in('id', grupoIds);
+      grupos = gs || [];
+    } else {
+      grupos = [];
+    }
+
+    if (!activeId) {
+      if (grupos[0]) { activeType = 'group'; activeId = grupos[0].id; }
+      else if (outros[0]) { activeType = 'user'; activeId = outros[0].id; }
+    }
+  }
+
+  async function carregarMensagens() {
+    const orFiltro = `remetente_id.eq.${user.id},destinatario_id.eq.${user.id}`;
+    const { data: dms } = await sb.from('mensagens').select('*').is('grupo_id', null).or(orFiltro).order('criado_em', { ascending: true });
+    let gms = [];
+    if (grupos.length) {
+      const ids = grupos.map(g => g.id);
+      const { data } = await sb.from('mensagens').select('*').in('grupo_id', ids).order('criado_em', { ascending: true });
+      gms = data || [];
+    }
+    allMsgs = [...(dms || []), ...gms];
+  }
+
+  function userById(id) { return id === user.id ? user : outros.find(u => u.id === id); }
+
+  function convList() {
+    const userConvs = outros.filter(u => u.nome.toLowerCase().includes(search.toLowerCase())).map(u => {
+      const msgs = allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === u.id) || (m.remetente_id === u.id && m.destinatario_id === user.id)));
+      const last = msgs[msgs.length - 1];
+      return { type: 'user', id: u.id, nome: u.nome, pessoa: u, lastMsg: last ? last.texto : 'Diga olá 👋' };
+    });
+    const groupConvs = grupos.filter(g => g.nome.toLowerCase().includes(search.toLowerCase())).map(g => {
+      const msgs = allMsgs.filter(m => m.grupo_id === g.id);
+      const last = msgs[msgs.length - 1];
+      return { type: 'group', id: g.id, nome: g.nome, lastMsg: last ? last.texto : 'Grupo criado' };
+    });
+    return [...groupConvs, ...userConvs];
+  }
+
+  function paintList() {
+    const list = convList();
+    pageEl.querySelector('#chat-list-inner').innerHTML = list.map(c => `
+      <div class="chat-conv ${c.type === activeType && c.id === activeId ? 'active' : ''}" data-type="${c.type}" data-id="${c.id}">
+        ${c.type === 'group' ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(c.pessoa, 'sm')}
+        <div class="t"><div class="n">${c.nome}</div><div class="m">${c.lastMsg}</div></div></div>`).join('') || `<div class="empty" style="padding:20px 10px">Nenhuma conversa encontrada.</div>`;
+    pageEl.querySelectorAll('.chat-conv').forEach(el => el.addEventListener('click', () => { activeType = el.dataset.type; activeId = el.dataset.id; paintList(); paintMain(); }));
+  }
+
+  function paintMain() {
+    const mainWrap = pageEl.querySelector('#chat-main-wrap');
+    if (!activeId) { mainWrap.innerHTML = `<div class="empty" style="margin:auto">Nenhuma conversa ainda. Escreva pra alguém da equipe!</div>`; return; }
+    const isGroup = activeType === 'group';
+    const info = isGroup ? grupos.find(g => g.id === activeId) : outros.find(u => u.id === activeId);
+    if (!info) { mainWrap.innerHTML = `<div class="empty" style="margin:auto">Conversa não encontrada.</div>`; return; }
+    const nome = info.nome;
+    const sub = isGroup ? 'Grupo' : `${info.cargo || ''} · ${info.setor || ''}`;
+    const msgs = isGroup
+      ? allMsgs.filter(m => m.grupo_id === activeId)
+      : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
+
+    mainWrap.innerHTML = `
+      <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
+        <div><div style="font-weight:700;font-size:14px">${nome}</div><div style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
+      <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${(userById(m.remetente_id) || {}).nome || ''}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+      <div style="position:relative">
+        <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
+          ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
+        </div>
+        <div class="chat-input">
+          <button class="icon-btn" id="emoji-btn" title="Emoji">😊</button>
+          <input type="text" id="chat-text-input" placeholder="Escreva uma mensagem...">
+          <button class="btn btn-primary btn-sm" id="chat-send-btn">Enviar</button>
+        </div>
+      </div>`;
+
+    const msgsWrap = document.getElementById('chat-msgs');
+    msgsWrap.scrollTop = msgsWrap.scrollHeight;
+    const input = document.getElementById('chat-text-input');
+
+    async function send(texto) {
+      texto = texto.trim();
+      if (!texto) return;
+      const payload = isGroup ? { remetente_id: user.id, grupo_id: activeId, texto } : { remetente_id: user.id, destinatario_id: activeId, texto };
+      const { error } = await sb.from('mensagens').insert(payload);
+      if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
+      input.value = '';
+      await carregarMensagens();
+      paintMain(); paintList();
+    }
+    document.getElementById('chat-send-btn').addEventListener('click', () => send(input.value));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(input.value); });
+    const emojiBtn = document.getElementById('emoji-btn'), emojiPop = document.getElementById('emoji-pop');
+    emojiBtn.addEventListener('click', () => { emojiPop.style.display = emojiPop.style.display === 'none' ? 'flex' : 'none'; });
+    emojiPop.querySelectorAll('.emoji-choice').forEach(e => e.addEventListener('click', () => { input.value += e.textContent; emojiPop.style.display = 'none'; input.focus(); }));
+  }
+
+  await carregarBase();
+  await carregarMensagens();
+
+  pageEl.innerHTML = `<div class="chat-shell card" style="padding:0;overflow:hidden">
+    <div class="chat-list"><div class="chat-search field"><input id="chat-search-input" placeholder="🔍 Pesquisar conversa..."></div><div id="chat-list-inner"></div></div>
+    <div class="chat-main" id="chat-main-wrap"></div></div>`;
+  document.getElementById('chat-search-input').addEventListener('input', (e) => { search = e.target.value; paintList(); });
+  paintList(); paintMain();
+
+  if (_chatPollInterval) clearInterval(_chatPollInterval);
+  _chatPollInterval = setInterval(async () => {
+    await carregarMensagens();
+    paintMain(); paintList();
+  }, 4000);
+}
+
+/* ---------------- Admin ---------------- */
+function renderAdmin() {
+  const { user, pageEl } = renderShell('admin', 'Administração');
+  if (!user.admin) { pageEl.innerHTML = `<div class="empty"><div class="big">🔒</div>Esta área é restrita à liderança.</div>`; return; }
+
+  let tab = 'painel';
+  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }];
+  function shellHtml(inner) { return `<div class="tabs">${TABS.map(t => `<div class="tab ${t.id === tab ? 'active' : ''}" data-tab="${t.id}">${t.label}</div>`).join('')}</div>${inner}`; }
+  function bindTabs() { pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { tab = t.dataset.tab; render(); })); }
+
+  async function paintPainel() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando painel...</div>`);
+    const [{ count: totalUsuarios }, { data: postsRecentes }, { count: totalDocs }, { count: totalAvisos }] = await Promise.all([
+      sb.from('usuarios').select('*', { count: 'exact', head: true }),
+      sb.from('posts').select('*, usuarios!posts_autor_id_fkey(nome)').order('criado_em', { ascending: false }).limit(5),
+      sb.from('biblioteca').select('*', { count: 'exact', head: true }),
+      sb.from('avisos').select('*', { count: 'exact', head: true }),
+    ]);
+    const { count: posts24h } = await sb.from('posts').select('*', { count: 'exact', head: true }).gt('criado_em', new Date(Date.now() - 86400e3).toISOString());
+
+    const stats = [
+      { n: totalUsuarios || 0, l: 'Usuários cadastrados' },
+      { n: posts24h || 0, l: 'Posts nas últimas 24h' },
+      { n: totalDocs || 0, l: 'Documentos na Biblioteca' },
+      { n: totalAvisos || 0, l: 'Avisos publicados' },
+    ];
+    pageEl.innerHTML = shellHtml(`
+      <div class="grid grid-4" style="margin-bottom:20px">${stats.map(s => `<div class="card stat-card"><div class="num">${s.n}</div><div class="lbl">${s.l}</div></div>`).join('')}</div>
+      <div class="card"><h3 style="margin-bottom:14px">Atividade recente</h3>
+        ${(postsRecentes || []).map(p => { const au = p.usuarios || { nome: 'Colaborador' }; return `<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><b>${au.nome}</b> publicou · <span style="color:var(--muted)">${FASA.timeAgo(new Date(p.criado_em).getTime())}</span></div>`; }).join('') || `<div class="empty">Nenhuma atividade ainda.</div>`}
+      </div>`);
+    bindTabs();
+  }
+
+  async function paintUsuarios() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando usuários...</div>`);
+    const { data: usuarios, error } = await sb.from('usuarios').select('*').order('nome');
+    if (error) { FASA.toast('Erro ao carregar usuários: ' + error.message); }
+
+    pageEl.innerHTML = shellHtml(`
+      <div class="card" style="margin-bottom:18px;color:var(--muted);font-size:13px">
+        Pra adicionar alguém novo, convide pelo <b>Supabase → Authentication → Users → Invite user</b>.
+        O perfil aparece aqui automaticamente — é só editar matrícula, cargo e setor.
+      </div>
+      <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Setor</th><th>Perfil</th><th></th></tr></thead><tbody>
+        ${(usuarios || []).map(u => `<tr data-id="${u.id}">
+          <td><input class="ed-nome" value="${u.nome || ''}" style="border:none;background:none;width:100px;font:inherit"></td>
+          <td><input class="ed-matricula" value="${u.matricula || ''}" style="border:none;background:none;width:80px;font:inherit"></td>
+          <td><input class="ed-cargo" value="${u.cargo || ''}" style="border:none;background:none;width:110px;font:inherit"></td>
+          <td><input class="ed-setor" value="${u.setor || ''}" style="border:none;background:none;width:100px;font:inherit"></td>
+          <td><label class="checkline"><input type="checkbox" class="ed-admin" ${u.admin ? 'checked' : ''}> <span class="badge ${u.admin ? 'ok' : 'off'}">${u.admin ? 'Admin' : 'Colaborador'}</span></label></td>
+          <td style="display:flex;gap:6px"><button class="icon-action salvar-user" title="Salvar">💾</button><button class="icon-action del-user" title="Excluir perfil">🗑</button></td>
+        </tr>`).join('')}
+      </tbody></table></div>`);
+    bindTabs();
+
+    pageEl.querySelectorAll('tr[data-id]').forEach(tr => {
+      const id = tr.dataset.id;
+      tr.querySelector('.salvar-user').addEventListener('click', async () => {
+        const nome = tr.querySelector('.ed-nome').value.trim();
+        const matricula = tr.querySelector('.ed-matricula').value.trim();
+        const cargo = tr.querySelector('.ed-cargo').value.trim();
+        const setor = tr.querySelector('.ed-setor').value.trim();
+        const admin = tr.querySelector('.ed-admin').checked;
+        const { error: updError } = await sb.from('usuarios').update({ nome, matricula, cargo, setor, admin }).eq('id', id);
+        if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
+        FASA.toast('Usuário atualizado!');
+        paintUsuarios();
+      });
+      tr.querySelector('.del-user').addEventListener('click', async () => {
+        if (id === user.id) { FASA.toast('Você não pode excluir seu próprio perfil.'); return; }
+        if (!confirm('Excluir o perfil deste usuário? Isso não remove o login dele, só os dados no FASA.')) return;
+        const { error: delError } = await sb.from('usuarios').delete().eq('id', id);
+        if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+        paintUsuarios();
+      });
+    });
+  }
+
+  async function paintAvisos() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando avisos...</div>`);
+    const { data: avisos, error } = await sb.from('avisos').select('*').order('criado_em', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar avisos: ' + error.message); }
+
+    pageEl.innerHTML = shellHtml(`
+      <div class="card" style="margin-bottom:18px"><h3 style="margin-bottom:12px">Criar aviso</h3>
+        <div class="field"><input id="aa-titulo" placeholder="Título"></div>
+        <div class="field"><textarea id="aa-texto" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit" placeholder="Texto do aviso"></textarea></div>
+        <button class="btn btn-primary" id="aa-submit">Publicar</button></div>
+      <div class="card">${(avisos || []).map(a => `<div class="aviso" style="margin-bottom:16px;display:flex;justify-content:space-between;gap:10px"><div><h3>${a.titulo}</h3><p>${a.texto}</p></div><button class="icon-action del-aviso" data-id="${a.id}">🗑</button></div>`).join('') || `<div class="empty">Nenhum aviso ainda.</div>`}</div>`);
+    bindTabs();
+    document.getElementById('aa-submit').addEventListener('click', async () => {
+      const titulo = document.getElementById('aa-titulo').value.trim(), texto = document.getElementById('aa-texto').value.trim();
+      if (!titulo || !texto) return;
+      const { error: insError } = await sb.from('avisos').insert({ autor_id: user.id, titulo, texto });
+      if (insError) { FASA.toast('Erro ao publicar: ' + insError.message); return; }
+      FASA.toast('Aviso criado!'); paintAvisos();
+    });
+    pageEl.querySelectorAll('.del-aviso').forEach(btn => btn.addEventListener('click', async () => {
+      const { error: delError } = await sb.from('avisos').delete().eq('id', btn.dataset.id);
+      if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+      paintAvisos();
+    }));
+  }
+
+  async function paintComunidades() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando comunidades...</div>`);
+    const { data: comunidades, error: e1 } = await sb.from('comunidades').select('*').order('nome');
+    const { data: membros, error: e2 } = await sb.from('comunidade_membros').select('comunidade_id');
+    if (e1 || e2) { FASA.toast('Erro ao carregar comunidades'); }
+    const contagem = {};
+    (membros || []).forEach(m => { contagem[m.comunidade_id] = (contagem[m.comunidade_id] || 0) + 1; });
+
+    pageEl.innerHTML = shellHtml(`
+      <div class="card"><h3 style="margin-bottom:12px">Comunidades ativas</h3>
+        <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px">Edite a descrição das comunidades exibidas para a equipe.</p>
+        <div class="table-wrap"><table><thead><tr><th>Comunidade</th><th>Descrição</th><th>Membros</th><th></th></tr></thead><tbody>
+          ${(comunidades || []).map(c => `<tr data-id="${c.id}"><td><b>${c.nome}</b></td><td><input class="ed-desc" value="${c.descricao || ''}" style="border:none;background:none;width:100%;font:inherit"></td><td>${contagem[c.id] || 0}</td><td><button class="icon-action salvar-com" title="Salvar">💾</button></td></tr>`).join('')}
+        </tbody></table></div></div>`);
+    bindTabs();
+    pageEl.querySelectorAll('tr[data-id]').forEach(tr => {
+      tr.querySelector('.salvar-com').addEventListener('click', async () => {
+        const descricao = tr.querySelector('.ed-desc').value.trim();
+        const { error: updError } = await sb.from('comunidades').update({ descricao }).eq('id', tr.dataset.id);
+        if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
+        FASA.toast('Comunidade atualizada!');
+      });
+    });
+  }
+
+  async function paintDocumentos() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando biblioteca...</div>`);
+    const { data: docs, error } = await sb.from('biblioteca').select('*').order('atualizado_em', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar biblioteca: ' + error.message); }
+
+    pageEl.innerHTML = shellHtml(`
+      <div class="card" style="margin-bottom:18px"><h3 style="margin-bottom:12px">Liberar novo documento</h3>
+        <div class="grid grid-3">
+          <div class="field"><input id="nd-nome" placeholder="Nome do documento"></div>
+          <div class="field"><select id="nd-categoria"><option>POPs</option><option>Protocolos</option><option>Manuais</option><option>Vídeos</option></select></div>
+          <div class="field"><select id="nd-tipo"><option>PDF</option><option>Vídeo</option></select></div>
+        </div><button class="btn btn-primary" id="nd-submit">Adicionar à Biblioteca</button></div>
+      <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Categoria</th><th>Tipo</th><th></th></tr></thead><tbody>
+        ${(docs || []).map(doc => `<tr data-id="${doc.id}"><td>${doc.nome}</td><td>${doc.categoria}</td><td>${doc.tipo}</td><td><button class="icon-action del-doc">🗑</button></td></tr>`).join('') || ''}
+      </tbody></table></div>`);
+    bindTabs();
+    document.getElementById('nd-submit').addEventListener('click', async () => {
+      const nome = document.getElementById('nd-nome').value.trim();
+      if (!nome) return;
+      const categoria = document.getElementById('nd-categoria').value, tipo = document.getElementById('nd-tipo').value;
+      const { error: insError } = await sb.from('biblioteca').insert({ nome, categoria, tipo });
+      if (insError) { FASA.toast('Erro ao adicionar: ' + insError.message); return; }
+      FASA.toast('Documento liberado!'); paintDocumentos();
+    });
+    pageEl.querySelectorAll('.del-doc').forEach(btn => btn.addEventListener('click', async (e) => {
+      const id = e.target.closest('tr').dataset.id;
+      const { error: delError } = await sb.from('biblioteca').delete().eq('id', id);
+      if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+      paintDocumentos();
+    }));
+  }
+
+  function render() { ({ painel: paintPainel, usuarios: paintUsuarios, avisos: paintAvisos, comunidades: paintComunidades, documentos: paintDocumentos })[tab](); }
+  render();
+}
+
+/* ---------------- Router ---------------- */
+const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin };
+
+function router() {
+  const route = location.hash.replace('#/', '') || '';
+  const user = FASA.currentUser();
+
+  if (route === 'login') { renderLogin(); return; }
+  if (route === 'cadastro') { renderCadastro(); return; }
+
+  if (!user) { FASA.go('login'); return; }
+
+  const fn = ROUTES[route] || ROUTES.feed;
+  fn();
+}
+
+FASA.seed();
+window.addEventListener('hashchange', router);
+window.addEventListener('DOMContentLoaded', router);
+router();
 </script>
 </body>
 </html>
