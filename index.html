@@ -5,302 +5,210 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FASA · App</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-:root{--ink:#16241F;--ink-soft:#3B4A44;--muted:#64766F;--paper:#F3F7F3;--paper-2:#EAF1EC;--card:#FFF;--line:#DCE6DF;--primary:#1F6F5C;--primary-dk:#164F41;--primary-lt:#E4F1EC;--accent:#E8873A;--accent-dk:#C96A22;--accent-lt:#FBE7D4;--danger:#C24545;--gold:#B8933B;--radius:14px;--radius-sm:9px;--radius-pill:999px;--shadow:0 4px 12px rgba(22,36,31,.08);--f-display:'Fraunces',serif;--f-body:'Inter',sans-serif;--f-mono:'JetBrains Mono',monospace}
-*{box-sizing:border-box}body{margin:0;font-family:var(--f-body);background:var(--paper);color:var(--ink)}button{font-family:inherit;cursor:pointer}h1,h2,h3{font-family:var(--f-display);margin:0}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px;padding:11px 20px;border-radius:var(--radius-pill);border:1px solid transparent;transition:.15s}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dk)}.btn-ghost{background:transparent;color:var(--primary);border-color:var(--line)}.btn-ghost:hover{background:var(--primary-lt)}.btn-danger{background:transparent;color:var(--danger);border-color:var(--line)}.btn-danger:hover{background:#FBEAEA}.btn-block{width:100%}.btn-sm{padding:7px 14px;font-size:13px}
-.auth-shell{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}@media(max-width:860px){.auth-shell{grid-template-columns:1fr}}
-.auth-art{background:linear-gradient(160deg,var(--primary-dk),var(--primary));color:#fff;padding:48px}@media(max-width:860px){.auth-art{display:none}}
-.auth-brand{font-family:var(--f-display);font-size:22px;margin-bottom:20px}
-.auth-form-wrap{display:flex;align-items:center;justify-content:center;padding:32px}
-.auth-form{width:100%;max-width:380px}
-.auth-form h1{font-size:30px;margin-bottom:6px}
-.auth-form .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
-.field{margin-bottom:16px}
-.field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
-.field input,.field select,.field textarea{width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--line);font-size:14px;font-family:var(--f-body)}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);outline:none}
-.field-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:14px 0 22px}
-.checkline{display:flex;align-items:center;gap:8px;color:var(--ink-soft)}
-.checkline input{width:16px;height:16px;accent-color:var(--primary)}
-.link{color:var(--primary);font-weight:600}
-.err{background:#FBEAEA;color:var(--danger);padding:10px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:16px;display:none}
-.err.show{display:block}
-.app-shell{display:flex;min-height:100vh}
-.sidebar{width:240px;background:var(--card);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:20px;position:sticky;top:0;height:100vh}
-.brand{font-family:var(--f-display);font-size:20px;color:var(--primary-dk);padding:0 8px}
-.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;color:var(--muted);cursor:pointer}
-.nav-item:hover{background:var(--paper-2)}
-.nav-item.active{background:var(--primary-lt);color:var(--primary-dk);font-weight:700}
-.sidebar-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:var(--radius-sm)}
-.avatar{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
-.avatar.sm{width:32px;height:32px}
-.avatar.lg{width:64px;height:64px;font-size:22px}
-.sidebar-user .who{min-width:0}
-.sidebar-user .name{font-size:13px;font-weight:700}
-.sidebar-user .role{font-size:11px;color:var(--muted)}
-.logout-btn{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px}
-.logout-btn:hover{color:var(--danger)}
-.main{flex:1}
-.topbar{position:sticky;top:0;z-index:5;background:rgba(243,247,243,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;gap:16px}
-.topbar h2{font-size:20px;flex:1}
-.menu-btn{display:none;background:none;border:none;font-size:20px;cursor:pointer}
-.page{padding:24px 28px;max-width:900px}
-@media(max-width:900px){.sidebar{position:fixed;left:-260px;z-index:20;transition:.2s}.sidebar.open{left:0}.menu-btn{display:block}.page{padding:16px}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
-.card h3{font-size:16px;margin-bottom:12px}
-.composer{display:flex;gap:12px;align-items:flex-start}
-.composer textarea{flex:1;resize:none;border:none;background:var(--paper-2);border-radius:var(--radius-sm);padding:12px;font-size:14px;min-height:60px;font-family:var(--f-body)}
-.composer textarea:focus{outline:2px solid var(--primary)}
-.composer-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px}
-.tool-btn{background:none;border:1px solid var(--line);border-radius:var(--radius-pill);padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer}
-.tool-btn:hover{background:var(--paper-2)}
-.post{margin-bottom:16px}
-.post-head{display:flex;gap:10px;align-items:center;margin-bottom:10px;justify-content:space-between}
-.post-head .meta .name{font-weight:700;font-size:14px}
-.post-head .meta .sub{font-size:12px;color:var(--muted)}
-.post-body{font-size:14.5px;line-height:1.55;margin-bottom:12px;white-space:pre-wrap}
-.post-actions{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:10px}
-.post-actions button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:none;border:none;border-radius:var(--radius-sm);padding:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
-.post-actions button:hover{background:var(--paper-2)}
-.post-actions button.liked{color:var(--danger)}
-.delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px}
-.delete-btn:hover{color:var(--danger)}
-.comment-box{display:none;margin-top:10px;gap:8px}
-.comment-box.open{display:flex}
-.comment-box input{flex:1;border:1px solid var(--line);border-radius:var(--radius-pill);padding:8px 14px;font-size:13px}
-.comments-list{margin-top:10px;display:flex;flex-direction:column;gap:8px}
-.comment-item{background:var(--paper-2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px}
-.comment-item b{font-size:12.5px}
-.grid{display:grid;gap:16px}
-.grid-2{grid-template-columns:repeat(2,1fr)}
-.grid-3{grid-template-columns:repeat(3,1fr)}
-@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
-.poll-opt{position:relative;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;cursor:pointer;overflow:hidden;background:#fff}
-.poll-opt .fill{position:absolute;inset:0;background:var(--primary-lt);z-index:0;transition:.4s}
-.poll-opt .txt{position:relative;z-index:1;display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
-.poll-opt.voted{border-color:var(--primary)}
-.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
-.tab{padding:8px 16px;border-radius:var(--radius-pill);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff}
-.tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
-.escala-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
-.escala-card .turno{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;color:var(--primary);margin-bottom:6px}
-.escala-card .periodo{font-size:14px;font-weight:700;margin-bottom:4px}
-.escala-card .detalhe{font-size:13px;color:var(--muted)}
-.doc-card{display:flex;gap:12px;align-items:flex-start}
-.doc-ic{width:42px;height:42px;border-radius:var(--radius-sm);background:var(--primary-lt);color:var(--primary-dk);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
-.doc-card h3{font-size:14px;margin-bottom:2px}
-.doc-card .meta{font-size:11.5px;color:var(--muted)}
-.upload-area{border:2px dashed var(--line);border-radius:var(--radius);padding:30px;text-align:center;color:var(--muted);cursor:pointer;transition:.2s}
-.upload-area:hover{border-color:var(--primary);background:var(--primary-lt)}
-.upload-area input{display:none}
-.aviso{border-left:4px solid var(--accent);padding-left:14px}
-.aviso h3{font-size:15px;margin-bottom:4px}
-.aviso .sub{font-size:12px;color:var(--muted);margin-bottom:8px}
-.chat-shell{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 62px)}
-@media(max-width:760px){.chat-shell{grid-template-columns:1fr}}
-.chat-list{border-right:1px solid var(--line);overflow-y:auto;padding:12px}
-.chat-conv{display:flex;gap:10px;align-items:center;padding:10px;border-radius:var(--radius-sm);cursor:pointer}
-.chat-conv:hover,.chat-conv.active{background:var(--paper-2)}
-.chat-conv .t{min-width:0;flex:1}
-.chat-conv .n{font-size:13.5px;font-weight:700}
-.chat-conv .m{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-main{display:flex;flex-direction:column}
-.chat-head{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;justify-content:space-between}
-.chat-msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:70%;padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.4;position:relative}
-.msg.in{background:var(--paper-2);align-self:flex-start}
-.msg.out{background:var(--primary);color:#fff;align-self:flex-end}
-.msg .time{display:block;font-size:10px;opacity:.65;margin-top:4px}
-.msg .del-msg{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:none}
-.msg:hover .del-msg{display:block}
-.chat-input{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
-.chat-input input{flex:1;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;font-size:13.5px}
-.rank-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.rank-row:last-child{border-bottom:none}
-.rank-pos{width:26px;text-align:center;font-family:var(--f-mono);font-weight:700;color:var(--muted)}
-.rank-pos.top{color:var(--gold)}
-.rank-row .pts{margin-left:auto;font-family:var(--f-mono);font-weight:700;color:var(--primary-dk)}
-.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--radius-pill)}
-.badge.ok{background:#E3F3E7;color:#2C7A45}
-.badge.warn{background:var(--accent-lt);color:var(--accent-dk)}
-.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;padding:4px 12px;border-radius:var(--radius-pill);background:var(--primary-lt);color:var(--primary-dk)}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:100}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.overlay-bg{position:fixed;inset:0;background:rgba(22,36,31,.4);z-index:15;display:none}
-.overlay-bg.show{display:block}
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty .big{font-size:32px;margin-bottom:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f5}
+.btn{background:#1F6F5C;color:#fff;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;font-size:16px}
+.btn:active{background:#164F41}
+.card{background:#fff;padding:20px;border-radius:12px;margin:16px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+input,textarea{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;font-size:16px}
+.nav-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
+.nav-item:active{background:#e0e0e0}
+.avatar{width:40px;height:40px;border-radius:50%;background:#1F6F5C;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold}
+.auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#1F6F5C,#164F41)}
+.auth h1{color:#fff;margin-bottom:10px}
+.auth p{color:#fff;opacity:.8;margin-bottom:30px}
+.auth-box{background:#fff;padding:30px;border-radius:16px;width:100%;max-width:400px}
+.error{color:red;background:#fee;padding:10px;border-radius:8px;margin-bottom:16px;display:none}
+.error.show{display:block}
+.topbar{background:#1F6F5C;color:#fff;padding:16px;display:flex;align-items:center;gap:12px}
+.menu-btn{background:none;border:none;color:#fff;font-size:24px;cursor:pointer}
+.sidebar{position:fixed;left:0;top:0;width:280px;height:100vh;background:#fff;box-shadow:2px 0 8px rgba(0,0,0,.1);transform:translateX(-100%);transition:.3s;z-index:1000}
+.sidebar.open{transform:translateX(0)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:999}
+.overlay.show{display:block}
+.post{background:#fff;padding:16px;margin:16px;border-radius:12px}
+.post-header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.post-actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #eee}
+.post-actions button{flex:1;padding:8px;background:none;border:1px solid #ddd;border-radius:8px;cursor:pointer}
+.badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;background:#e0f0ec;color:#1F6F5C}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<div class="toast" id="toast"></div>
-<div class="overlay-bg" id="overlay"></div>
+<div id="app"></div>
 
 <script>
-const FASA = (() => {
-  let _db = null;
-  let _session = null;
-  let currentView = 'feed';
-  let currentEscalaTab = '12x36-noturno';
-  let currentChatId = null;
+let currentUser = null;
+let currentView = 'feed';
+let db = JSON.parse(localStorage.getItem('fasa_db')) || null;
 
-  const NAV_ITEMS = [
-    { id: 'feed', icon: '', label: 'Início' },
-    { id: 'perfil', icon: '👤', label: 'Meu Perfil' },
-    { id: 'chat', icon: '', label: 'Chat' },
-    { id: 'avisos', icon: '📢', label: 'Avisos' },
-    { id: 'escala', icon: '📅', label: 'Escalas' },
-    { id: 'biblioteca', icon: '📚', label: 'Biblioteca' },
-    { id: 'enquetes', icon: '📊', label: 'Enquetes' },
-    { id: 'sugestoes', icon: '', label: 'Sugestões' },
-    { id: 'ranking', icon: '', label: 'Reconhecimento' },
-    { id: 'admin', icon: '⚙️', label: 'Administração' }
-  ];
-
-  function seed() {
-    const now = Date.now();
-    _db = {
-      usuarios: [
-        { id: 'u1', nome: 'Alexandre', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'alexandre@fasa.local', senha: '123456', admin: true, pontos: 260 },
-        { id: 'u2', nome: 'Thais', cargo: 'Coordenadora', setor: 'Farmácia', email: 'thais@fasa.local', senha: '123456', admin: true, pontos: 480 },
-        { id: 'u3', nome: 'Camila', cargo: 'Farmacêutica', setor: 'Farmácia', email: 'camila@fasa.local', senha: '123456', admin: false, pontos: 400 }
+function initDB() {
+  if (!db) {
+    db = {
+      users: [
+        {id:'u1',nome:'Alexandre',cargo:'Técnico de Farmácia',setor:'Farmácia',email:'alexandre@fasa.local',senha:'123456',admin:true,pontos:260},
+        {id:'u2',nome:'Thais',cargo:'Coordenadora',setor:'Farmácia',email:'thais@fasa.local',senha:'123456',admin:true,pontos:480}
       ],
       posts: [
-        { id: 'p1', userId: 'u2', content: 'Bom dia, equipe! Lembrem-se de conferir as validades.', timestamp: now - 3600000, likes: ['u1'], comments: [] }
+        {id:'p1',userId:'u2',content:'Bom dia equipe! Lembrem-se de conferir as validades.',timestamp:Date.now()-3600000,likes:[],comments:[]}
       ],
       avisos: [
-        { id: 'a1', titulo: 'Feriado Escala', texto: 'A escala do feriado já está disponível.', timestamp: now - 86400000 }
+        {id:'a1',titulo:'Feriado',texto:'Escala disponível',timestamp:Date.now()-86400000}
       ],
-      enquetes: [
-        { id: 'e1', pergunta: 'Qual o melhor horário para reunião?', opcoes: [{ texto: '07:00', votos: 5 }, { texto: '13:00', votos: 8 }], votaram: ['u1','u2'], timestamp: now - 259200000 }
-      ],
-      sugestoes: [
-        { id: 's1', userId: 'u3', texto: 'Sugiro novos carrinhos de medicação.', status: 'Em análise', timestamp: now - 259200000 }
-      ],
-      escalas: [
-        { id: 'es1', userId: 'u1', tipo: '12x36-noturno', plantao: 'A', data: '2026-07-29', horas: 12 },
-        { id: 'es2', userId: 'u1', tipo: '12x36-noturno', plantao: 'B', data: '2026-07-31', horas: 12 }
-      ],
+      enquetes: [],
+      sugestoes: [],
+      escalas: [],
       biblioteca: [],
-      chats: [
-        { id: 'c1', participants: ['u1','u2'], messages: [{ from: 'u2', text: 'Oi Alexandre!', timestamp: now - 3600000 }] }
-      ],
-      adminDocs: []
+      chats: []
     };
-    localStorage.setItem('fasa_db', JSON.stringify(_db));
+    saveDB();
   }
+}
 
-  function getDB() {
-    if (!_db) {
-      const stored = localStorage.getItem('fasa_db');
-      _db = stored ? JSON.parse(stored) : (seed(), _db);
-    }
-    return _db;
-  }
+function saveDB() {
+  localStorage.setItem('fasa_db', JSON.stringify(db));
+}
 
-  function saveDB() { localStorage.setItem('fasa_db', JSON.stringify(_db)); }
-
-  function getSession() {
-    if (!_session) {
-      const stored = localStorage.getItem('fasa_session');
-      if (stored) _session = JSON.parse(stored);
-    }
-    return _session;
-  }
-
-  function login(email, senha) {
-    const db = getDB();
-    const user = db.usuarios.find(u => u.email === email && u.senha === senha);
-    if (user) {
-      _session = user;
-      localStorage.setItem('fasa_session', JSON.stringify(user));
-      return { success: true };
-    }
-    return { success: false, error: 'E-mail ou senha inválidos.' };
-  }
-
-  function logout() {
-    _session = null;
-    localStorage.removeItem('fasa_session');
+function login(email, senha) {
+  const user = db.users.find(u => u.email === email && u.senha === senha);
+  if (user) {
+    currentUser = user;
+    localStorage.setItem('fasa_user', JSON.stringify(user));
     render();
+  } else {
+    document.getElementById('loginError').classList.add('show');
   }
+}
 
-  function getUserInitials(nome) {
-    return nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('fasa_user');
+  render();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (!currentUser) {
+    app.innerHTML = renderLogin();
+  } else {
+    app.innerHTML = renderApp();
+    if (currentView === 'feed') renderFeed();
+    else if (currentView === 'perfil') renderPerfil();
+    else if (currentView === 'avisos') renderAvisos();
   }
+}
 
-  function getUserName(id) {
-    const db = getDB();
-    const u = db.usuarios.find(x => x.id === id);
-    return u ? u.nome : 'Desconhecido';
-  }
+function renderLogin() {
+  return `<div class="auth">
+    <h1>💊 FASA</h1>
+    <p>Bem-vindo de volta</p>
+    <div class="auth-box">
+      <div id="loginError" class="error">E-mail ou senha inválidos</div>
+      <input type="email" id="email" placeholder="E-mail" value="alexandre@fasa.local">
+      <input type="password" id="senha" placeholder="Senha" value="123456">
+      <button class="btn" onclick="login(document.getElementById('email').value,document.getElementById('senha').value)" style="width:100%;margin-top:16px">Entrar</button>
+    </div>
+  </div>`;
+}
 
-  function formatDate(ts) {
-    const d = new Date(ts);
-    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  }
+function renderApp() {
+  return `<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+    <div class="sidebar" id="sidebar">
+      <div style="padding:20px;border-bottom:1px solid #eee">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="avatar">${currentUser.nome.charAt(0)}</div>
+          <div><b>${currentUser.nome}</b><div style="font-size:12px;color:#666">${currentUser.cargo}</div></div>
+        </div>
+      </div>
+      <div class="nav-item" onclick="setView('feed')">🏠 Início</div>
+      <div class="nav-item" onclick="setView('perfil')">👤 Meu Perfil</div>
+      <div class="nav-item" onclick="setView('avisos')"> Avisos</div>
+      <div class="nav-item" onclick="setView('enquetes')"> Enquetes</div>
+      <div class="nav-item" onclick="setView('escalas')">📅 Escalas</div>
+      <div class="nav-item" onclick="logout()" style="color:red">🚪 Sair</div>
+    </div>
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleMenu()">☰</button>
+      <h2>${currentView === 'feed' ? 'Início' : currentView === 'perfil' ? 'Meu Perfil' : 'Avisos'}</h2>
+    </div>
+    <div id="content"></div>`;
+}
 
-  function timeAgo(ts) {
-    const s = Math.floor((Date.now() - ts) / 1000);
-    if (s < 60) return 'agora';
-    const m = Math.floor(s / 60);
-    if (m < 60) return `${m}min`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `há ${h}h`;
-    return `há ${Math.floor(h / 24)}d`;
-  }
+function toggleMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
 
-  function toast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
-  }
+function setView(view) {
+  currentView = view;
+  toggleMenu();
+  render();
+}
 
-  function render() {
-    const root = document.getElementById('root');
-    const session = getSession();
-    if (!session) {
-      root.innerHTML = renderLogin();
-      setupLoginEvents();
-    } else {
-      root.innerHTML = renderAppShell(session);
-      setupAppEvents();
-      renderView(currentView);
-    }
-  }
+function renderFeed() {
+  const content = document.getElementById('content');
+  const posts = db.posts.map(p => {
+    const user = db.users.find(u => u.id === p.userId);
+    return `<div class="post">
+      <div class="post-header">
+        <div class="avatar">${user.nome.charAt(0)}</div>
+        <div><b>${user.nome}</b><div style="font-size:12px;color:#666">${user.cargo}</div></div>
+      </div>
+      <div>${p.content}</div>
+      <div class="post-actions">
+        <button>❤️ Curtir</button>
+        <button>💬 Comentar</button>
+      </div>
+    </div>`;
+  }).join('');
+  
+  content.innerHTML = `<div class="card">
+    <textarea id="newPost" placeholder="No que você está pensando?"></textarea>
+    <button class="btn" onclick="addPost()" style="margin-top:8px">Publicar</button>
+  </div>${posts}`;
+}
 
-  function renderLogin() {
-    return `<div class="auth-shell"><div class="auth-art"><div class="auth-brand">💊 FASA</div><div style="font-size:28px;font-family:var(--f-display)">Bem-vindo de volta</div><div style="margin-top:10px;opacity:.8">Entre com seu e-mail para acessar o FASA.</div></div><div class="auth-form-wrap"><div class="auth-form"><h1>Bem-vindo de volta</h1><p class="sub">Entre com seu e-mail para acessar o FASA.</p><div id="login-err" class="err"></div><form id="login-form"><div class="field"><label>E-mail</label><input type="email" id="email" value="alexandre@fasa.local" required></div><div class="field"><label>Senha</label><input type="password" id="senha" value="123456" required></div><div class="field-row"><label class="checkline"><input type="checkbox"> Lembrar acesso</label><a href="#" class="link">Esqueci minha senha</a></div><button type="submit" class="btn btn-primary btn-block">Entrar</button></form><div class="form-foot" style="margin-top:22px;text-align:center;font-size:13px;color:var(--muted)">Não tem conta? <a href="#" class="link">Como pedir acesso</a></div></div></div></div>`;
-  }
+function renderPerfil() {
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="card">
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px">
+      <div class="avatar" style="width:64px;height:64px;font-size:28px">${currentUser.nome.charAt(0)}</div>
+      <div><h2>${currentUser.nome}</h2><div style="color:#666">${currentUser.cargo}</div><span class="badge">⭐ ${currentUser.pontos} pontos</span></div>
+    </div>
+    <h3>Conquistas</h3>
+    <div style="margin-top:16px">
+      <div style="padding:12px;background:#f9f9f9;border-radius:8px;margin-bottom:8px">🥇 Colaborador do mês</div>
+      <div style="padding:12px;background:#f9f9f9;border-radius:8px;margin-bottom:8px">📚 Trilha concluída</div>
+    </div>
+  </div>`;
+}
 
-  function setupLoginEvents() {
-    document.getElementById('login-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const res = login(document.getElementById('email').value, document.getElementById('senha').value);
-      if (res.success) render();
-      else { const err = document.getElementById('login-err'); err.textContent = res.error; err.classList.add('show'); }
+function renderAvisos() {
+  const content = document.getElementById('content');
+  const avisos = db.avisos.map(a => `<div class="card"><h3>${a.titulo}</h3><p>${a.texto}</p></div>`).join('');
+  content.innerHTML = avisos || '<div class="card">Nenhum aviso</div>';
+}
+
+function addPost() {
+  const content = document.getElementById('newPost').value;
+  if (content) {
+    db.posts.unshift({
+      id: 'p' + Date.now(),
+      userId: currentUser.id,
+      content: content,
+      timestamp: Date.now(),
+      likes: [],
+      comments: []
     });
+    saveDB();
+    renderFeed();
   }
+}
 
-  function renderAppShell(user) {
-    return `<div class="app-shell"><aside class="sidebar" id="sidebar"><div class="brand"><span style="font-size:22px">💊</span> FASA</div><nav class="nav-group">${NAV_ITEMS.map(item => `<div class="nav-item ${currentView === item.id ? 'active' : ''}" data-view="${item.id}"><span style="width:20px;text-align:center">${item.icon}</span> ${item.label}</div>`).join('')}</nav><div class="sidebar-user"><div class="avatar">${getUserInitials(user.nome)}</div><div class="who"><div class="name">${user.nome}</div><div class="role">${user.cargo}</div></div><button class="logout-btn" id="logout-btn" title="Sair">🚪</button></div></aside><main class="main"><header class="topbar"><button class="menu-btn" id="menu-btn"></button><h2 id="page-title">Início</h2></header><div class="page" id="page-content"></div></main></div>`;
-  }
-
-  function setupAppEvents() {
-    document.getElementById('logout-btn').addEventListener('click', logout);
-    document.getElementById('menu-btn').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.toggle('open');
-      document.getElementById('overlay').classList.toggle('show');
-    });
-    document.getElementById('overlay').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('overlay').classList.remove('show');
-    });
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => {
-        currentView = item.dataset.view;
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        renderView(cu
+// Inicializa
+initDB();
+const savedUser = localStorage.getItem('fasa_user');
+if (savedUser) currentUser = JSON.parse(savedUser);
+render();
+</script>
+</body>
+</html>
