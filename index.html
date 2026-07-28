@@ -519,6 +519,7 @@ function renderCadastro() {
 /* ---------------- Feed ---------------- */
 function renderFeed() {
   const { user, pageEl } = renderShell('feed', 'Início');
+  let arquivoSelecionado = null;
 
   async function fetchPosts() {
     const { data, error } = await sb
@@ -527,6 +528,14 @@ function renderFeed() {
       .order('criado_em', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar posts: ' + error.message); return []; }
     return data;
+  }
+
+  function anexoHtml(p) {
+    if (!p.arquivo_url) return '';
+    if ((p.arquivo_tipo || '').startsWith('image/')) {
+      return `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:10px;margin-bottom:12px;display:block">`;
+    }
+    return `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;color:var(--primary-dk)">📎 ${p.arquivo_nome || 'Anexo'}</a>`;
   }
 
   function postsHtml(list) {
@@ -543,6 +552,7 @@ function renderFeed() {
           ${souAutor ? '<button class="icon-btn del-post-btn" title="Excluir publicação">🗑</button>' : ''}
         </div>
         <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
+        ${anexoHtml(p)}
         <div class="post-actions">
           <button class="like-btn ${liked ? 'liked' : ''}">${liked ? '❤️' : '🤍'} Curtir ${likes.length ? `(${likes.length})` : ''}</button>
           <button class="comment-btn">💬 Comentar ${comentarios.length ? `(${comentarios.length})` : ''}</button>
@@ -566,26 +576,60 @@ function renderFeed() {
     </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="escala">Ver escala completa</a></div>`;
   }
 
+  function paintPreview() {
+    const wrap = document.getElementById('anexo-preview-wrap');
+    if (!arquivoSelecionado) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = `<div style="display:flex;align-items:center;gap:8px;background:var(--paper-2);border-radius:var(--radius-sm);padding:6px 12px;font-size:12.5px;margin-top:8px">
+      📎 ${arquivoSelecionado.name} <button id="anexo-remover" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px">✕</button></div>`;
+    document.getElementById('anexo-remover').addEventListener('click', () => { arquivoSelecionado = null; paintPreview(); });
+  }
+
   async function paint() {
     pageEl.innerHTML = `<div class="two-col"><div>
       <div class="card composer">${FASA.avatarHtml(user)}
         <div style="flex:1"><textarea id="post-text" placeholder="No que você está pensando, ${user.nome.split(' ')[0]}?"></textarea>
-        <div class="composer-actions"><div class="composer-tools"><button class="tool-btn">📷 Foto</button><button class="tool-btn">📎 Anexo</button></div>
+        <div id="anexo-preview-wrap"></div>
+        <input type="file" id="foto-input-composer" accept="image/*" style="display:none">
+        <input type="file" id="anexo-input-composer" style="display:none">
+        <div class="composer-actions"><div class="composer-tools"><button class="tool-btn" id="foto-btn-composer">📷 Foto</button><button class="tool-btn" id="anexo-btn-composer">📎 Anexo</button></div>
         <button class="btn btn-primary btn-sm" id="post-submit">Publicar</button></div></div></div>
       <div id="posts-list"><div class="empty">Carregando publicações...</div></div>
     </div><div>${side()}</div></div>`;
 
     pageEl.querySelectorAll('[data-route]').forEach(a => a.addEventListener('click', () => FASA.go(a.dataset.route)));
 
+    const fotoInput = document.getElementById('foto-input-composer');
+    const anexoInput = document.getElementById('anexo-input-composer');
+    document.getElementById('foto-btn-composer').addEventListener('click', () => fotoInput.click());
+    document.getElementById('anexo-btn-composer').addEventListener('click', () => anexoInput.click());
+    fotoInput.addEventListener('change', () => { if (fotoInput.files[0]) { arquivoSelecionado = fotoInput.files[0]; paintPreview(); } });
+    anexoInput.addEventListener('change', () => { if (anexoInput.files[0]) { arquivoSelecionado = anexoInput.files[0]; paintPreview(); } });
+
     document.getElementById('post-submit').addEventListener('click', async () => {
       const ta = document.getElementById('post-text'), texto = ta.value.trim();
-      if (!texto) return;
+      if (!texto && !arquivoSelecionado) return;
       const btn = document.getElementById('post-submit');
       btn.disabled = true;
-      const { error } = await sb.from('posts').insert({ autor_id: user.id, texto });
+      btn.textContent = 'Publicando...';
+
+      let payload = { autor_id: user.id, texto };
+      if (arquivoSelecionado) {
+        const path = `${user.id}/${Date.now()}-${arquivoSelecionado.name}`;
+        const { error: upError } = await sb.storage.from('posts-media').upload(path, arquivoSelecionado);
+        if (upError) { FASA.toast('Erro ao enviar arquivo: ' + upError.message); btn.disabled = false; btn.textContent = 'Publicar'; return; }
+        const { data: pub } = sb.storage.from('posts-media').getPublicUrl(path);
+        payload.arquivo_url = pub.publicUrl;
+        payload.arquivo_tipo = arquivoSelecionado.type;
+        payload.arquivo_nome = arquivoSelecionado.name;
+      }
+
+      const { error } = await sb.from('posts').insert(payload);
       btn.disabled = false;
+      btn.textContent = 'Publicar';
       if (error) { FASA.toast('Erro ao publicar: ' + error.message); return; }
       ta.value = '';
+      arquivoSelecionado = null;
+      paintPreview();
       FASA.toast('Publicação criada!');
       refresh();
     });
@@ -924,6 +968,45 @@ function renderBiblioteca() {
 /* ---------------- Enquetes ---------------- */
 function renderEnquetes() {
   const { user, pageEl } = renderShell('enquetes', 'Enquetes');
+  let numOpcoes = 2;
+
+  function formHtml() {
+    if (!user.admin) return '';
+    let campos = '';
+    for (let i = 0; i < numOpcoes; i++) {
+      campos += `<div class="field"><input class="eq-opcao" placeholder="Opção ${i + 1}"></div>`;
+    }
+    return `<div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:12px">Criar enquete</h3>
+      <div class="field"><input id="eq-pergunta" placeholder="Qual é a pergunta?"></div>
+      <div id="eq-opcoes-wrap">${campos}</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <button class="btn btn-ghost btn-sm" id="eq-add-opcao" type="button">+ Adicionar opção</button>
+      </div>
+      <button class="btn btn-accent" id="eq-submit">Criar enquete</button>
+    </div>`;
+  }
+
+  function bindForm() {
+    if (!user.admin) return;
+    document.getElementById('eq-add-opcao').addEventListener('click', () => {
+      if (numOpcoes >= 10) { FASA.toast('Máximo de 10 opções.'); return; }
+      numOpcoes++;
+      document.getElementById('eq-opcoes-wrap').innerHTML = Array.from({ length: numOpcoes }).map((_, i) => `<div class="field"><input class="eq-opcao" placeholder="Opção ${i + 1}"></div>`).join('');
+    });
+    document.getElementById('eq-submit').addEventListener('click', async () => {
+      const pergunta = document.getElementById('eq-pergunta').value.trim();
+      const opcoes = [...pageEl.querySelectorAll('.eq-opcao')].map(i => i.value.trim()).filter(Boolean);
+      if (!pergunta || opcoes.length < 2) { FASA.toast('Escreva a pergunta e pelo menos 2 opções.'); return; }
+      const { data: enq, error: e1 } = await sb.from('enquetes').insert({ pergunta }).select().single();
+      if (e1) { FASA.toast('Erro ao criar enquete: ' + e1.message); return; }
+      const { error: e2 } = await sb.from('enquete_opcoes').insert(opcoes.map(texto => ({ enquete_id: enq.id, texto })));
+      if (e2) { FASA.toast('Erro ao criar opções: ' + e2.message); return; }
+      FASA.toast('Enquete criada!');
+      numOpcoes = 2;
+      paint();
+    });
+  }
 
   async function paint() {
     pageEl.innerHTML = `<div class="empty">Carregando enquetes...</div>`;
@@ -933,15 +1016,16 @@ function renderEnquetes() {
     const votosMap = {};
     (meusVotos || []).forEach(v => { votosMap[v.enquete_id] = v.opcao_id; });
 
-    pageEl.innerHTML = `<div class="grid grid-2">${(enquetes || []).map(e => {
+    pageEl.innerHTML = `${formHtml()}<div class="grid grid-2">${(enquetes || []).map(e => {
       const opcoes = e.enquete_opcoes || [];
       const total = opcoes.reduce((s, o) => s + o.votos, 0) || 1;
       const voted = !!votosMap[e.id];
       return `<div class="card" data-id="${e.id}"><h3 style="font-size:15px;margin-bottom:14px">${e.pergunta}</h3>
         ${opcoes.map(o => { const pct = Math.round((o.votos / total) * 100); return `<div class="poll-opt ${voted ? 'voted' : ''}" data-opcao="${o.id}">${voted ? `<div class="fill" style="width:${pct}%"></div>` : ''}<div class="txt"><span>${o.texto}</span><span>${voted ? pct + '%' : ''}</span></div></div>`; }).join('')}
         <div style="font-size:11.5px;color:var(--muted);margin-top:8px">${total} voto(s) ${voted ? '· você já votou' : '· toque em uma opção para votar'}</div></div>`;
-    }).join('') || `<div class="empty">Nenhuma enquete no momento.</div>`}</div>`;
+    }).join('') || `<div class="empty">Nenhuma enquete no momento.${user.admin ? '' : ' Peça pra liderança criar uma!'}</div>`}</div>`;
 
+    bindForm();
     pageEl.querySelectorAll('.card[data-id]').forEach(card => {
       const eid = card.dataset.id;
       card.querySelectorAll('.poll-opt').forEach(opt => opt.addEventListener('click', async () => {
@@ -1026,7 +1110,7 @@ async function renderChat() {
   const { user, pageEl } = renderShell('chat', 'Chat');
   pageEl.classList.add('wide');
   pageEl.innerHTML = `<div class="empty">Carregando conversas...</div>`;
-  const EMOJIS = ['😀','😂','👍','🙏','❤️','🎉','😮','👏','🔥','✅'];
+  const EMOJIS = ['😀','😁','😂','🤣','😊','😇','🙂','😉','😍','🥰','😘','😋','😜','🤔','😐','😴','😪','😢','😭','😱','😡','🤬','🥳','😎','🤩','😷','🤒','🙏','👍','👎','👏','🙌','🤝','💪','👋','✌️','🤞','❤️','🧡','💚','💙','💜','🖤','🔥','✨','🎉','🎂','👏','🙏','✅','❌','❗','❓','💡','📌','📎','⏰','😴','🤯'];
 
   let outros = [];
   let grupos = [];
@@ -1108,7 +1192,7 @@ async function renderChat() {
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
         <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${(userById(m.remetente_id) || {}).nome || ''}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
-        <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:6px;flex-wrap:wrap;width:220px">
+        <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
         </div>
         <div class="chat-input">
