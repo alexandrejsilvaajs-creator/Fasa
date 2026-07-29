@@ -686,10 +686,13 @@ async function renderPerfil() {
   const { user, pageEl } = renderShell('perfil', 'Meu Perfil');
   pageEl.innerHTML = `<div class="empty">Carregando perfil...</div>`;
 
+  const { data: authData } = await sb.auth.getUser();
+  const meuId = (authData && authData.user) ? authData.user.id : user.id;
+
   const { data: meusPosts, error } = await sb
     .from('posts')
     .select('*, post_likes(usuario_id)')
-    .eq('autor_id', user.id)
+    .eq('autor_id', meuId)
     .order('criado_em', { ascending: false });
 
   if (error) { FASA.toast('Erro ao carregar perfil: ' + error.message); }
@@ -825,11 +828,12 @@ async function renderPerfil() {
     <div class="card" style="margin-bottom:20px"><h3 style="margin-bottom:14px">Conquistas</h3><div class="grid grid-3">
       ${conquistas.map(c => `<div style="text-align:center;padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm)"><div style="font-size:26px;margin-bottom:6px">${c.ic}</div><div style="font-weight:700;font-size:13px">${c.t}</div><div style="font-size:11.5px;color:var(--muted)">${c.d}</div></div>`).join('')}
     </div></div>
-    <div class="card"><h3 style="margin-bottom:14px">Minhas publicações</h3>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3>Minhas publicações</h3><button class="btn btn-ghost btn-sm" id="perfil-refresh-btn">↻ Atualizar</button></div>
       ${posts.length ? posts.map(p => `<div style="padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>${FASA.escapeHtml(p.texto)}</div>`).join('') : `<div class="empty">Você ainda não publicou nada.</div>`}
     </div>`;
 
   bindHeaderEvents();
+  document.getElementById('perfil-refresh-btn').addEventListener('click', () => renderPerfil());
 }
 
 /* ---------------- Comunidades ---------------- */
@@ -1214,13 +1218,32 @@ async function renderChat() {
       if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
       input.value = '';
       await carregarMensagens();
-      paintMain(); paintList();
+      renderMessagesOnly();
+      paintList();
     }
     document.getElementById('chat-send-btn').addEventListener('click', () => send(input.value));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(input.value); });
     const emojiBtn = document.getElementById('emoji-btn'), emojiPop = document.getElementById('emoji-pop');
     emojiBtn.addEventListener('click', () => { emojiPop.style.display = emojiPop.style.display === 'none' ? 'flex' : 'none'; });
     emojiPop.querySelectorAll('.emoji-choice').forEach(e => e.addEventListener('click', () => { input.value += e.textContent; emojiPop.style.display = 'none'; input.focus(); }));
+  }
+
+  // Atualiza só a lista de mensagens (sem recriar o input/emoji), pra não
+  // fechar o seletor de emoji nem apagar o que a pessoa está digitando
+  // quando a conversa atualiza sozinha em segundo plano.
+  function renderMessagesOnly() {
+    const msgsWrap = document.getElementById('chat-msgs');
+    if (!msgsWrap || !activeId) return;
+    const isGroup = activeType === 'group';
+    const info = isGroup ? grupos.find(g => g.id === activeId) : outros.find(u => u.id === activeId);
+    if (!info) return;
+    const msgs = isGroup
+      ? allMsgs.filter(m => m.grupo_id === activeId)
+      : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
+    const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
+    msgsWrap.innerHTML = msgs.map(m => `
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${(userById(m.remetente_id) || {}).nome || ''}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+    if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
   await carregarBase();
@@ -1235,7 +1258,8 @@ async function renderChat() {
   if (_chatPollInterval) clearInterval(_chatPollInterval);
   _chatPollInterval = setInterval(async () => {
     await carregarMensagens();
-    paintMain(); paintList();
+    renderMessagesOnly();
+    paintList();
   }, 4000);
 }
 
