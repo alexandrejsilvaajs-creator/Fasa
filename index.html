@@ -708,18 +708,18 @@ async function renderPerfil() {
   let editMode = false;
 
   function headerHtml() {
-    const capaStyle = user.capa_url
-      ? `background:url('${user.capa_url}') center/cover no-repeat`
-      : `background:linear-gradient(135deg,var(--primary),var(--accent))`;
+    const capaFallback = `background:linear-gradient(135deg,var(--primary),var(--accent))`;
 
     if (!editMode) {
       return `
       <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
-        <div style="height:130px;position:relative;${capaStyle}">
-          <button id="capa-btn" title="Alterar capa" style="position:absolute;bottom:10px;right:10px;background:rgba(22,36,31,.55);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">📷 Capa</button>
+        <div style="position:relative;${user.capa_url ? '' : `height:130px;${capaFallback}`}">
+          ${user.capa_url ? `<img src="${user.capa_url}" style="width:100%;display:block">` : ''}
+          <button id="capa-btn" title="Alterar capa" style="position:absolute;bottom:10px;right:${user.capa_url ? '96px' : '10px'};background:rgba(22,36,31,.55);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">📷 Capa</button>
+          ${user.capa_url ? `<button id="capa-remover-btn" title="Excluir capa" style="position:absolute;bottom:10px;right:10px;background:rgba(194,69,69,.75);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">🗑 Excluir</button>` : ''}
           <input type="file" id="capa-input" accept="image/*" style="display:none">
         </div>
-        <div style="padding:0 20px 24px;text-align:center;margin-top:-40px">
+        <div style="padding:0 20px 24px;text-align:center;margin-top:${user.capa_url ? '-40px' : '-40px'}">
           <div style="position:relative;width:80px;margin:0 auto 12px">
             ${FASA.avatarHtml(user, 'lg')}
             <button id="foto-btn" title="Alterar foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">📷</button>
@@ -739,7 +739,9 @@ async function renderPerfil() {
 
     return `
       <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
-        <div style="height:130px;position:relative;${capaStyle}"></div>
+        <div style="${user.capa_url ? '' : `height:130px;${capaFallback}`}">
+          ${user.capa_url ? `<img src="${user.capa_url}" style="width:100%;display:block">` : ''}
+        </div>
         <div style="padding:20px">
           <h3 style="margin-bottom:14px">Editar perfil</h3>
           <div class="field"><label>Cargo</label><input id="ep-cargo" value="${user.cargo || ''}"></div>
@@ -767,6 +769,20 @@ async function renderPerfil() {
       const capaInput = document.getElementById('capa-input');
       capaBtn.addEventListener('click', () => capaInput.click());
       capaInput.addEventListener('change', () => uploadImagem(capaInput.files[0], 'capa', 'capa_url', capaBtn));
+
+      const capaRemoverBtn = document.getElementById('capa-remover-btn');
+      if (capaRemoverBtn) capaRemoverBtn.addEventListener('click', async () => {
+        if (!confirm('Excluir a foto de capa?')) return;
+        const { error: updError } = await sb.from('usuarios').update({ capa_url: null }).eq('id', user.id);
+        if (updError) { FASA.toast('Erro ao excluir: ' + updError.message); return; }
+        user.capa_url = null;
+        const db = FASA.getDB();
+        const jaExiste = db.usuarios.find(u => u.id === user.id);
+        if (jaExiste) jaExiste.capa_url = null;
+        FASA.saveDB(db);
+        FASA.toast('Capa removida.');
+        paintHeader();
+      });
     } else {
       document.getElementById('ep-cancelar').addEventListener('click', () => { editMode = false; paintHeader(); });
       document.getElementById('ep-salvar').addEventListener('click', async () => {
@@ -829,7 +845,7 @@ async function renderPerfil() {
       ${conquistas.map(c => `<div style="text-align:center;padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm)"><div style="font-size:26px;margin-bottom:6px">${c.ic}</div><div style="font-weight:700;font-size:13px">${c.t}</div><div style="font-size:11.5px;color:var(--muted)">${c.d}</div></div>`).join('')}
     </div></div>
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3>Minhas publicações</h3><button class="btn btn-ghost btn-sm" id="perfil-refresh-btn">↻ Atualizar</button></div>
-      ${posts.length ? posts.map(p => `<div style="padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>${FASA.escapeHtml(p.texto)}</div>`).join('') : `<div class="empty">Você ainda não publicou nada.</div>`}
+      ${posts.length ? posts.map(p => `<div style="padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>${FASA.escapeHtml(p.texto)}${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${p.arquivo_nome || 'Anexo'}</a>`) : ''}</div>`).join('') : `<div class="empty">Você ainda não publicou nada.</div>`}
     </div>`;
 
   bindHeaderEvents();
@@ -1024,12 +1040,26 @@ function renderEnquetes() {
       const opcoes = e.enquete_opcoes || [];
       const total = opcoes.reduce((s, o) => s + o.votos, 0) || 1;
       const voted = !!votosMap[e.id];
-      return `<div class="card" data-id="${e.id}"><h3 style="font-size:15px;margin-bottom:14px">${e.pergunta}</h3>
+      return `<div class="card" data-id="${e.id}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">
+          <h3 style="font-size:15px">${e.pergunta}</h3>
+          ${user.admin ? '<button class="icon-btn del-enquete-btn" title="Excluir enquete">🗑</button>' : ''}
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">${FASA.timeAgo(new Date(e.criado_em).getTime())}</div>
         ${opcoes.map(o => { const pct = Math.round((o.votos / total) * 100); return `<div class="poll-opt ${voted ? 'voted' : ''}" data-opcao="${o.id}">${voted ? `<div class="fill" style="width:${pct}%"></div>` : ''}<div class="txt"><span>${o.texto}</span><span>${voted ? pct + '%' : ''}</span></div></div>`; }).join('')}
         <div style="font-size:11.5px;color:var(--muted);margin-top:8px">${total} voto(s) ${voted ? '· você já votou' : '· toque em uma opção para votar'}</div></div>`;
     }).join('') || `<div class="empty">Nenhuma enquete no momento.${user.admin ? '' : ' Peça pra liderança criar uma!'}</div>`}</div>`;
 
     bindForm();
+    pageEl.querySelectorAll('.del-enquete-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('Excluir esta enquete? Os votos também serão apagados.')) return;
+      const card = btn.closest('.card[data-id]');
+      const { error: delError } = await sb.from('enquetes').delete().eq('id', card.dataset.id);
+      if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+      FASA.toast('Enquete excluída.');
+      paint();
+    }));
     pageEl.querySelectorAll('.card[data-id]').forEach(card => {
       const eid = card.dataset.id;
       card.querySelectorAll('.poll-opt').forEach(opt => opt.addEventListener('click', async () => {
