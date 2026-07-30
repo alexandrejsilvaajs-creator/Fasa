@@ -215,7 +215,6 @@ const FASA = (() => {
     { id: 'feed', icon: '🏠', label: 'Início' },
     { id: 'perfil', icon: '👤', label: 'Meu Perfil' },
     { id: 'chat', icon: '💬', label: 'Chat' },
-    { id: 'comunidades', icon: '👥', label: 'Comunidades' },
     { id: 'avisos', icon: '📢', label: 'Avisos' },
     { id: 'escala', icon: '📅', label: 'Escalas' },
     { id: 'biblioteca', icon: '📚', label: 'Biblioteca' },
@@ -565,12 +564,8 @@ function renderFeed() {
   }
 
   function side() {
-    const comms = FASA.COMUNIDADES.slice(0, 4);
     const emPlantao = FASA.getDB().usuarios.slice(0, 3);
     return `
-    <div class="side-card card"><h3>Minhas comunidades</h3><div class="mini-list">
-      ${comms.map(c => `<div class="mini-item"><div class="avatar sm" style="background:var(--accent)">${c.nome[0]}</div><div class="t"><div class="n">${c.nome}</div><div class="s">${c.membros} membros</div></div></div>`).join('')}
-    </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="comunidades">Ver todas</a></div>
     <div class="side-card card"><h3>Quem está de plantão agora</h3><div class="mini-list">
       ${emPlantao.map(u => `<div class="mini-item"><div class="avatar sm">${FASA.initials(u.nome)}</div><div class="t"><div class="n">${FASA.escapeHtml(u.nome)}</div><div class="s">${FASA.escapeHtml(u.setor || '')}</div></div><span class="pill live">on</span></div>`).join('')}
     </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="escala">Ver escala completa</a></div>`;
@@ -912,8 +907,14 @@ function renderAvisos() {
         <button class="btn btn-accent" id="av-submit">Publicar aviso</button></div>`
         : `<div class="card" style="margin-bottom:20px;color:var(--muted);font-size:13px">Somente líderes podem publicar avisos. Você pode visualizar todos os comunicados abaixo.</div>`}
       <div class="card" style="display:flex;flex-direction:column;gap:20px">
-        ${(avisos || []).map(a => { const au = a.usuarios || { nome: 'Liderança' }; return `<div class="aviso"><h3>${FASA.escapeHtml(a.titulo)}</h3><div class="sub">${FASA.escapeHtml(au.nome)} · ${FASA.timeAgo(new Date(a.criado_em).getTime())}</div><p>${FASA.escapeHtml(a.texto)}</p></div>`; }).join('') || `<div class="empty">Nenhum aviso publicado ainda.</div>`}
+        ${(avisos || []).map(a => { const au = a.usuarios || { nome: 'Liderança' }; return `<div class="aviso" style="display:flex;justify-content:space-between;gap:10px"><div><h3>${FASA.escapeHtml(a.titulo)}</h3><div class="sub">${FASA.escapeHtml(au.nome)} · ${FASA.timeAgo(new Date(a.criado_em).getTime())}</div><p>${FASA.escapeHtml(a.texto)}</p></div>${podePublicar ? `<button class="icon-btn del-aviso-btn" data-id="${a.id}" title="Excluir aviso">🗑</button>` : ''}</div>`; }).join('') || `<div class="empty">Nenhum aviso publicado ainda.</div>`}
       </div>`;
+    pageEl.querySelectorAll('.del-aviso-btn').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Excluir este aviso?')) return;
+      const { error: delError } = await sb.from('avisos').delete().eq('id', b.dataset.id);
+      if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+      paint();
+    }));
     const btn = document.getElementById('av-submit');
     if (btn) btn.addEventListener('click', async () => {
       const titulo = document.getElementById('av-titulo').value.trim(), texto = document.getElementById('av-texto').value.trim();
@@ -931,36 +932,54 @@ async function renderEscala() {
   const { pageEl } = renderShell('escala', 'Escalas');
   pageEl.innerHTML = `<div class="empty">Carregando escala...</div>`;
 
+  const ABAS = [
+    { id: '12x36-180', label: '12x36 (180h)' },
+    { id: '12x36-220', label: '12x36 (220h)' },
+    { id: 'plantao-noturno', label: 'Plantão A/B (Noturno)' },
+    { id: 'plantao-diurno', label: 'Plantão Diurno (Manhã/Tarde)' },
+  ];
+  let abaAtiva = '12x36-180';
+
   const { data: rows, error } = await sb
     .from('escalas')
-    .select('dia, turno, usuarios!escalas_usuario_id_fkey(nome)');
+    .select('dia, turno, aba, periodo, usuarios!escalas_usuario_id_fkey(nome)');
   if (error) { FASA.toast('Erro ao carregar escala: ' + error.message); }
 
   const ordemDias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-  const grupos = {};
-  (rows || []).forEach(r => {
-    const chave = r.dia + '|' + r.turno;
-    if (!grupos[chave]) grupos[chave] = { dia: r.dia, turno: r.turno, equipe: [] };
-    grupos[chave].equipe.push((r.usuarios || {}).nome || '—');
-  });
-  const escala = Object.values(grupos).sort((a, b) => {
-    const d = ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia);
-    return d !== 0 ? d : a.turno.localeCompare(b.turno);
-  });
 
-  pageEl.innerHTML = `
-    <div class="card table-wrap"><table><thead><tr><th>Dia</th><th>Turno</th><th>Equipe escalada</th></tr></thead><tbody>
-      ${escala.map(e => `<tr><td><b>${e.dia}</b></td><td><span class="pill ${e.turno === 'Manhã' ? '' : e.turno === 'Tarde' ? 'accent' : 'muted'}">${e.turno}</span></td><td>${e.equipe.join(', ')}</td></tr>`).join('') || `<tr><td colspan="3"><div class="empty">Nenhuma escala cadastrada ainda.</div></td></tr>`}
-    </tbody></table></div>
-    <p style="color:var(--muted);font-size:12.5px;margin-top:14px">A escala é definida pela liderança de cada setor e pode ser ajustada pela Administração.</p>`;
+  function paint() {
+    const linhas = (rows || []).filter(r => (r.aba || '12x36-180') === abaAtiva);
+    const grupos = {};
+    linhas.forEach(r => {
+      const chave = r.dia + '|' + (r.periodo || '') + '|' + r.turno;
+      if (!grupos[chave]) grupos[chave] = { dia: r.dia, periodo: r.periodo, turno: r.turno, equipe: [] };
+      grupos[chave].equipe.push(FASA.escapeHtml((r.usuarios || {}).nome || '—'));
+    });
+    const escala = Object.values(grupos).sort((a, b) => {
+      const d = ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia);
+      return d !== 0 ? d : (a.turno || '').localeCompare(b.turno || '');
+    });
+
+    const mostraPeriodo = abaAtiva === '12x36-180' || abaAtiva === '12x36-220';
+
+    pageEl.innerHTML = `
+      <div class="tabs">${ABAS.map(a => `<div class="tab ${a.id === abaAtiva ? 'active' : ''}" data-aba="${a.id}">${a.label}</div>`).join('')}</div>
+      <div class="card table-wrap"><table><thead><tr><th>Dia</th>${mostraPeriodo ? '<th>Período</th>' : ''}<th>Turno / Plantão</th><th>Equipe escalada</th></tr></thead><tbody>
+        ${escala.map(e => `<tr><td><b>${e.dia}</b></td>${mostraPeriodo ? `<td><span class="pill ${e.periodo === 'Noturno' ? 'muted' : ''}">${e.periodo || '—'}</span></td>` : ''}<td><span class="pill accent">${e.turno}</span></td><td>${e.equipe.join(', ')}</td></tr>`).join('') || `<tr><td colspan="${mostraPeriodo ? 4 : 3}"><div class="empty">Nenhuma escala cadastrada nesta aba ainda.</div></td></tr>`}
+      </tbody></table></div>
+      <p style="color:var(--muted);font-size:12.5px;margin-top:14px">A escala é definida pela liderança de cada setor e pode ser ajustada pela Administração.</p>`;
+
+    pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { abaAtiva = t.dataset.aba; paint(); }));
+  }
+  paint();
 }
 
 /* ---------------- Biblioteca ---------------- */
 function renderBiblioteca() {
-  const { pageEl } = renderShell('biblioteca', 'Biblioteca');
-  const cats = ['Todos', 'POPs', 'Protocolos', 'Manuais', 'Vídeos', 'PDF'];
+  const { user, pageEl } = renderShell('biblioteca', 'Biblioteca');
+  const cats = ['Todos', 'POPs', 'Protocolos', 'Manuais', 'Vídeos', 'PDF', 'Fotos'];
   let activeCat = 'Todos';
-  const ICONS = { PDF: '📄', 'Vídeo': '🎬' };
+  const ICONS = { PDF: '📄', 'Vídeo': '🎬', Foto: '🖼️' };
   let todosDocs = [];
 
   async function carregar() {
@@ -970,16 +989,54 @@ function renderBiblioteca() {
     paint();
   }
 
+  async function enviarArquivo(file, categoriaPadrao) {
+    if (!file) return;
+    FASA.toast('Enviando...');
+    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const { error: upError } = await sb.storage.from('biblioteca-arquivos').upload(path, file);
+    if (upError) { FASA.toast('Erro ao enviar: ' + upError.message); return; }
+    const { data: pub } = sb.storage.from('biblioteca-arquivos').getPublicUrl(path);
+    const tipo = file.type.startsWith('image/') ? 'Foto' : (file.type === 'application/pdf' ? 'PDF' : 'Documento');
+    const { error: insError } = await sb.from('biblioteca').insert({
+      nome: file.name, categoria: categoriaPadrao, tipo, arquivo_url: pub.publicUrl, enviado_por: user.id,
+    });
+    if (insError) { FASA.toast('Erro ao salvar: ' + insError.message); return; }
+    FASA.toast('Documento enviado!');
+    carregar();
+  }
+
   function paint() {
     const docs = todosDocs.filter(d => activeCat === 'Todos' || d.categoria === activeCat || d.tipo === activeCat);
     pageEl.innerHTML = `
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="margin-bottom:12px">Compartilhar documento ou foto</h3>
+        <div class="grid grid-2" style="margin-bottom:12px">
+          <div class="field"><label>Categoria</label><select id="bib-categoria"><option>POPs</option><option>Protocolos</option><option>Manuais</option><option>Vídeos</option></select></div>
+        </div>
+        <div class="composer-tools">
+          <button class="tool-btn" id="bib-doc-btn">📎 Anexar documento</button>
+          <button class="tool-btn" id="bib-foto-btn">📷 Tirar/enviar foto</button>
+        </div>
+        <input type="file" id="bib-doc-input" style="display:none">
+        <input type="file" id="bib-foto-input" accept="image/*" capture="environment" style="display:none">
+      </div>
       <div class="tabs">${cats.map(c => `<div class="tab ${c === activeCat ? 'active' : ''}" data-cat="${c}">${c}</div>`).join('')}</div>
       <div class="grid grid-2">${docs.map(d => `
         <div class="card doc-card"><div class="doc-ic">${ICONS[d.tipo] || '📁'}</div>
         <div style="flex:1"><h3>${FASA.escapeHtml(d.nome)}</h3><div class="meta">${FASA.escapeHtml(d.categoria)} · ${FASA.escapeHtml(d.tipo)} · atualizado ${FASA.timeAgo(new Date(d.atualizado_em).getTime())}</div></div>
-        <button class="btn btn-ghost btn-sm abrir-doc">Abrir</button></div>`).join('') || `<div class="empty" style="grid-column:1/-1">Nenhum documento nesta categoria.</div>`}</div>`;
+        <button class="btn btn-ghost btn-sm abrir-doc" data-url="${d.arquivo_url || ''}">Abrir</button></div>`).join('') || `<div class="empty" style="grid-column:1/-1">Nenhum documento nesta categoria.</div>`}</div>`;
+
     pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { activeCat = t.dataset.cat; paint(); }));
-    pageEl.querySelectorAll('.abrir-doc').forEach(b => b.addEventListener('click', () => FASA.toast('Abrindo documento...')));
+    pageEl.querySelectorAll('.abrir-doc').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.url) window.open(b.dataset.url, '_blank'); else FASA.toast('Este documento ainda não tem arquivo anexado.');
+    }));
+
+    const docInput = document.getElementById('bib-doc-input');
+    const fotoInput = document.getElementById('bib-foto-input');
+    document.getElementById('bib-doc-btn').addEventListener('click', () => docInput.click());
+    document.getElementById('bib-foto-btn').addEventListener('click', () => fotoInput.click());
+    docInput.addEventListener('change', () => enviarArquivo(docInput.files[0], document.getElementById('bib-categoria').value));
+    fotoInput.addEventListener('change', () => enviarArquivo(fotoInput.files[0], 'Fotos'));
   }
   pageEl.innerHTML = `<div class="empty">Carregando biblioteca...</div>`;
   carregar();
@@ -1097,7 +1154,8 @@ function renderSugestoes() {
         const au = s.usuarios || { nome: 'Colaborador' };
         const apoios = s.sugestao_apoios || [];
         const apoiado = apoios.some(a => a.usuario_id === user.id);
-        return `<div class="card" data-id="${s.id}"><div class="post-head"><div class="avatar sm">${FASA.initials(au.nome)}</div><div class="meta"><div class="name">${FASA.escapeHtml(au.nome)}</div><div class="sub">${FASA.timeAgo(new Date(s.criado_em).getTime())}</div></div></div>
+        const souAutor = s.autor_id === user.id;
+        return `<div class="card" data-id="${s.id}"><div class="post-head"><div class="avatar sm">${FASA.initials(au.nome)}</div><div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(au.nome)}</div><div class="sub">${FASA.timeAgo(new Date(s.criado_em).getTime())}</div></div>${(souAutor || user.admin) ? '<button class="icon-btn del-sug-btn" title="Excluir sugestão">🗑</button>' : ''}</div>
         <p style="font-size:13.5px;color:var(--ink-soft);margin:10px 0">${FASA.escapeHtml(s.texto)}</p>
         <button class="btn btn-sm ${apoiado ? 'btn-primary' : 'btn-ghost'} apoiar-btn">👍 Apoiar (${apoios.length})</button></div>`;
       }).join('') || `<div class="empty">Nenhuma sugestão ainda. Seja o primeiro!</div>`}</div>`;
@@ -1109,6 +1167,13 @@ function renderSugestoes() {
       if (insError) { FASA.toast('Erro ao enviar: ' + insError.message); return; }
       FASA.toast('Sugestão enviada!'); paint();
     });
+    pageEl.querySelectorAll('.del-sug-btn').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Excluir esta sugestão?')) return;
+      const card = b.closest('.card[data-id]');
+      const { error: delError } = await sb.from('sugestoes').delete().eq('id', card.dataset.id);
+      if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+      paint();
+    }));
     pageEl.querySelectorAll('.card[data-id]').forEach(card => {
       card.querySelector('.apoiar-btn').addEventListener('click', async () => {
         const id = card.dataset.id;
@@ -1224,7 +1289,7 @@ async function renderChat() {
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
         <div><div style="font-weight:700;font-size:14px">${nome}</div><div style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
@@ -1238,6 +1303,16 @@ async function renderChat() {
 
     const msgsWrap = document.getElementById('chat-msgs');
     msgsWrap.scrollTop = msgsWrap.scrollHeight;
+    msgsWrap.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.msg-del-btn');
+      if (!btn) return;
+      if (!confirm('Excluir esta mensagem?')) return;
+      const { error: delError } = await sb.from('mensagens').delete().eq('id', btn.dataset.id);
+      if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+      await carregarMensagens();
+      renderMessagesOnly();
+      paintList();
+    });
     const input = document.getElementById('chat-text-input');
 
     async function send(texto) {
@@ -1272,7 +1347,7 @@ async function renderChat() {
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
@@ -1299,7 +1374,7 @@ function renderAdmin() {
   if (!user.admin) { pageEl.innerHTML = `<div class="empty"><div class="big">🔒</div>Esta área é restrita à liderança.</div>`; return; }
 
   let tab = 'painel';
-  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }];
+  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'escalas', label: 'Escalas' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }];
   function shellHtml(inner) { return `<div class="tabs">${TABS.map(t => `<div class="tab ${t.id === tab ? 'active' : ''}" data-tab="${t.id}">${t.label}</div>`).join('')}</div>${inner}`; }
   function bindTabs() { pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { tab = t.dataset.tab; render(); })); }
 
@@ -1372,6 +1447,91 @@ function renderAdmin() {
     });
   }
 
+  async function paintEscalas() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando escalas...</div>`);
+    const ABAS = [
+      { id: '12x36-180', label: '12x36 (180h)' },
+      { id: '12x36-220', label: '12x36 (220h)' },
+      { id: 'plantao-noturno', label: 'Plantão A/B (Noturno)' },
+      { id: 'plantao-diurno', label: 'Plantão Diurno (Manhã/Tarde)' },
+    ];
+    const DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+    const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
+    const { data: rows, error } = await sb
+      .from('escalas')
+      .select('id, dia, turno, aba, periodo, usuario_id, usuarios!escalas_usuario_id_fkey(nome)')
+      .order('dia');
+    if (error) { FASA.toast('Erro ao carregar escalas: ' + error.message); }
+
+    function turnoOptions(aba) {
+      if (aba === 'plantao-noturno') return ['Plantão A', 'Plantão B'];
+      if (aba === 'plantao-diurno') return ['Manhã', 'Tarde'];
+      return ['Manhã', 'Tarde', 'Noite'];
+    }
+
+    pageEl.innerHTML = shellHtml(`
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="margin-bottom:12px">Adicionar à escala</h3>
+        <div class="grid grid-3">
+          <div class="field"><label>Aba</label><select id="es-aba">${ABAS.map(a => `<option value="${a.id}">${a.label}</option>`).join('')}</select></div>
+          <div class="field" id="es-periodo-wrap"><label>Período</label><select id="es-periodo"><option>Diurno</option><option>Noturno</option></select></div>
+          <div class="field"><label>Turno / Plantão</label><select id="es-turno">${turnoOptions('12x36-180').map(t => `<option>${t}</option>`).join('')}</select></div>
+          <div class="field"><label>Dia</label><select id="es-dia">${DIAS.map(d => `<option>${d}</option>`).join('')}</select></div>
+          <div class="field"><label>Colaborador</label><select id="es-usuario">${(usuarios || []).map(u => `<option value="${u.id}">${FASA.escapeHtml(u.nome)}</option>`).join('')}</select></div>
+        </div>
+        <button class="btn btn-primary" id="es-submit">Adicionar</button>
+      </div>
+      <div class="tabs">${ABAS.map((a, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-aba-filtro="${a.id}">${a.label}</div>`).join('')}</div>
+      <div class="card table-wrap" id="es-lista-wrap"></div>`);
+    bindTabs();
+
+    const abaSelect = document.getElementById('es-aba');
+    const periodoWrap = document.getElementById('es-periodo-wrap');
+    const turnoSelect = document.getElementById('es-turno');
+    function atualizarCampos() {
+      const aba = abaSelect.value;
+      periodoWrap.style.display = (aba === '12x36-180' || aba === '12x36-220') ? '' : 'none';
+      turnoSelect.innerHTML = turnoOptions(aba).map(t => `<option>${t}</option>`).join('');
+    }
+    abaSelect.addEventListener('change', atualizarCampos);
+    atualizarCampos();
+
+    let filtroAtivo = ABAS[0].id;
+    function pintarLista() {
+      const linhas = (rows || []).filter(r => (r.aba || '12x36-180') === filtroAtivo);
+      document.getElementById('es-lista-wrap').innerHTML = `
+        <table><thead><tr><th>Dia</th><th>Período</th><th>Turno/Plantão</th><th>Colaborador</th><th></th></tr></thead><tbody>
+          ${linhas.map(r => `<tr><td>${r.dia}</td><td>${r.periodo || '—'}</td><td>${r.turno}</td><td>${FASA.escapeHtml((r.usuarios || {}).nome || '—')}</td><td><button class="icon-action del-escala" data-id="${r.id}">🗑</button></td></tr>`).join('') || `<tr><td colspan="5"><div class="empty">Nenhuma escala nesta aba.</div></td></tr>`}
+        </tbody></table>`;
+      document.querySelectorAll('.del-escala').forEach(btn => btn.addEventListener('click', async () => {
+        const { error: delError } = await sb.from('escalas').delete().eq('id', btn.dataset.id);
+        if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+        paintEscalas();
+      }));
+    }
+    pageEl.querySelectorAll('[data-aba-filtro]').forEach(t => t.addEventListener('click', () => {
+      pageEl.querySelectorAll('[data-aba-filtro]').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      filtroAtivo = t.dataset.abaFiltro;
+      pintarLista();
+    }));
+    pintarLista();
+
+    document.getElementById('es-submit').addEventListener('click', async () => {
+      const aba = abaSelect.value;
+      const periodo = (aba === '12x36-180' || aba === '12x36-220') ? document.getElementById('es-periodo').value : null;
+      const turno = turnoSelect.value;
+      const dia = document.getElementById('es-dia').value;
+      const usuario_id = document.getElementById('es-usuario').value;
+      if (!usuario_id) { FASA.toast('Selecione um colaborador.'); return; }
+      const { error: insError } = await sb.from('escalas').insert({ aba, periodo, turno, dia, usuario_id });
+      if (insError) { FASA.toast('Erro ao adicionar: ' + insError.message); return; }
+      FASA.toast('Adicionado à escala!');
+      paintEscalas();
+    });
+  }
+
   async function paintAvisos() {
     pageEl.innerHTML = shellHtml(`<div class="empty">Carregando avisos...</div>`);
     const { data: avisos, error } = await sb.from('avisos').select('*').order('criado_em', { ascending: false });
@@ -1431,19 +1591,34 @@ function renderAdmin() {
     pageEl.innerHTML = shellHtml(`
       <div class="card" style="margin-bottom:18px"><h3 style="margin-bottom:12px">Liberar novo documento</h3>
         <div class="grid grid-3">
-          <div class="field"><input id="nd-nome" placeholder="Nome do documento"></div>
+          <div class="field"><input id="nd-nome" placeholder="Nome do documento (opcional se anexar arquivo)"></div>
           <div class="field"><select id="nd-categoria"><option>POPs</option><option>Protocolos</option><option>Manuais</option><option>Vídeos</option></select></div>
           <div class="field"><select id="nd-tipo"><option>PDF</option><option>Vídeo</option></select></div>
-        </div><button class="btn btn-primary" id="nd-submit">Adicionar à Biblioteca</button></div>
+        </div>
+        <div class="field"><label>Anexar arquivo (opcional)</label><input type="file" id="nd-arquivo"></div>
+        <button class="btn btn-primary" id="nd-submit">Adicionar à Biblioteca</button></div>
       <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Categoria</th><th>Tipo</th><th></th></tr></thead><tbody>
-        ${(docs || []).map(doc => `<tr data-id="${doc.id}"><td>${FASA.escapeHtml(doc.nome)}</td><td>${FASA.escapeHtml(doc.categoria)}</td><td>${FASA.escapeHtml(doc.tipo)}</td><td><button class="icon-action del-doc">🗑</button></td></tr>`).join('') || ''}
+        ${(docs || []).map(doc => `<tr data-id="${doc.id}"><td>${FASA.escapeHtml(doc.nome)}${doc.arquivo_url ? ' 📎' : ''}</td><td>${FASA.escapeHtml(doc.categoria)}</td><td>${FASA.escapeHtml(doc.tipo)}</td><td><button class="icon-action del-doc">🗑</button></td></tr>`).join('') || ''}
       </tbody></table></div>`);
     bindTabs();
     document.getElementById('nd-submit').addEventListener('click', async () => {
-      const nome = document.getElementById('nd-nome').value.trim();
-      if (!nome) return;
+      const nomeDigitado = document.getElementById('nd-nome').value.trim();
       const categoria = document.getElementById('nd-categoria').value, tipo = document.getElementById('nd-tipo').value;
-      const { error: insError } = await sb.from('biblioteca').insert({ nome, categoria, tipo });
+      const arquivo = document.getElementById('nd-arquivo').files[0];
+      if (!nomeDigitado && !arquivo) { FASA.toast('Escreva um nome ou anexe um arquivo.'); return; }
+
+      let arquivo_url = null;
+      if (arquivo) {
+        const path = `${user.id}/${Date.now()}-${arquivo.name}`;
+        const { error: upError } = await sb.storage.from('biblioteca-arquivos').upload(path, arquivo);
+        if (upError) { FASA.toast('Erro ao enviar arquivo: ' + upError.message); return; }
+        const { data: pub } = sb.storage.from('biblioteca-arquivos').getPublicUrl(path);
+        arquivo_url = pub.publicUrl;
+      }
+
+      const { error: insError } = await sb.from('biblioteca').insert({
+        nome: nomeDigitado || arquivo.name, categoria, tipo, arquivo_url, enviado_por: user.id,
+      });
       if (insError) { FASA.toast('Erro ao adicionar: ' + insError.message); return; }
       FASA.toast('Documento liberado!'); paintDocumentos();
     });
@@ -1455,7 +1630,7 @@ function renderAdmin() {
     }));
   }
 
-  function render() { ({ painel: paintPainel, usuarios: paintUsuarios, avisos: paintAvisos, comunidades: paintComunidades, documentos: paintDocumentos })[tab](); }
+  function render() { ({ painel: paintPainel, usuarios: paintUsuarios, escalas: paintEscalas, avisos: paintAvisos, comunidades: paintComunidades, documentos: paintDocumentos })[tab](); }
   render();
 }
 
