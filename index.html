@@ -333,7 +333,7 @@ const FASA = (() => {
     if (d < 30) return `há ${d}d`;
     return `há ${Math.floor(d / 30)} mês(es)`;
   }
-  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function logoMark(size) {
     size = size || 30;
     return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -370,7 +370,7 @@ function renderShell(activeId, title) {
         <nav class="nav-group" id="fasa-nav"></nav>
         <div class="sidebar-user">
           ${FASA.avatarHtml(user, 'sm')}
-          <div class="who"><div class="name">${user.nome}</div><div class="role">${user.cargo}</div></div>
+          <div class="who"><div class="name">${FASA.escapeHtml(user.nome)}</div><div class="role">${FASA.escapeHtml(user.cargo)}</div></div>
           <button class="logout-btn" id="fasa-logout" title="Sair">⏻</button>
         </div>
       </aside>
@@ -535,7 +535,7 @@ function renderFeed() {
     if ((p.arquivo_tipo || '').startsWith('image/')) {
       return `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:10px;margin-bottom:12px;display:block">`;
     }
-    return `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;color:var(--primary-dk)">📎 ${p.arquivo_nome || 'Anexo'}</a>`;
+    return `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`;
   }
 
   function postsHtml(list) {
@@ -548,7 +548,7 @@ function renderFeed() {
       return `
       <div class="card post" data-id="${p.id}">
         <div class="post-head">${FASA.avatarHtml(autor)}
-          <div class="meta" style="flex:1"><div class="name">${autor.nome}</div><div class="sub">${autor.cargo || ''} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
+          <div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(autor.nome)}</div><div class="sub">${FASA.escapeHtml(autor.cargo || '')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
           ${souAutor ? '<button class="icon-btn del-post-btn" title="Excluir publicação">🗑</button>' : ''}
         </div>
         <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
@@ -558,7 +558,7 @@ function renderFeed() {
           <button class="comment-btn">💬 Comentar ${comentarios.length ? `(${comentarios.length})` : ''}</button>
           <button class="share-btn">↗ Compartilhar</button>
         </div>
-        <div class="comments-list">${comentarios.map(c => `<div class="comment-item"><b>${(c.usuarios || {}).nome || 'Colaborador'}</b><br>${FASA.escapeHtml(c.texto)}</div>`).join('')}</div>
+        <div class="comments-list">${comentarios.map(c => `<div class="comment-item"><b>${FASA.escapeHtml((c.usuarios || {}).nome || 'Colaborador')}</b><br>${FASA.escapeHtml(c.texto)}</div>`).join('')}</div>
         <div class="comment-box"><input type="text" placeholder="Escreva um comentário..."><button class="btn btn-sm btn-primary send-comment">Enviar</button></div>
       </div>`;
     }).join('') || `<div class="empty"><div class="big">📭</div>Ainda não há publicações. Seja o primeiro a postar!</div>`;
@@ -572,7 +572,7 @@ function renderFeed() {
       ${comms.map(c => `<div class="mini-item"><div class="avatar sm" style="background:var(--accent)">${c.nome[0]}</div><div class="t"><div class="n">${c.nome}</div><div class="s">${c.membros} membros</div></div></div>`).join('')}
     </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="comunidades">Ver todas</a></div>
     <div class="side-card card"><h3>Quem está de plantão agora</h3><div class="mini-list">
-      ${emPlantao.map(u => `<div class="mini-item"><div class="avatar sm">${FASA.initials(u.nome)}</div><div class="t"><div class="n">${u.nome}</div><div class="s">${u.setor}</div></div><span class="pill live">on</span></div>`).join('')}
+      ${emPlantao.map(u => `<div class="mini-item"><div class="avatar sm">${FASA.initials(u.nome)}</div><div class="t"><div class="n">${FASA.escapeHtml(u.nome)}</div><div class="s">${FASA.escapeHtml(u.setor || '')}</div></div><span class="pill live">on</span></div>`).join('')}
     </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="escala">Ver escala completa</a></div>`;
   }
 
@@ -725,11 +725,11 @@ async function renderPerfil() {
             <button id="foto-btn" title="Alterar foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">📷</button>
             <input type="file" id="foto-input" accept="image/*" style="display:none">
           </div>
-          <h1 style="font-size:22px">${user.nome}</h1>
-          <p style="color:var(--muted);font-size:13.5px;margin:4px 0 12px">${user.cargo || ''} · ${user.setor || ''}</p>
+          <h1 style="font-size:22px">${FASA.escapeHtml(user.nome)}</h1>
+          <p style="color:var(--muted);font-size:13.5px;margin:4px 0 12px">${FASA.escapeHtml(user.cargo || '')} · ${FASA.escapeHtml(user.setor || '')}</p>
           ${user.bio ? `<p style="font-size:13.5px;color:var(--ink-soft);max-width:420px;margin:0 auto 14px">${FASA.escapeHtml(user.bio)}</p>` : ''}
           <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-            <span class="pill">Matrícula ${user.matricula}</span><span class="pill accent">${user.tempo_empresa || 'A definir'} de empresa</span>
+            <span class="pill">Matrícula ${FASA.escapeHtml(user.matricula)}</span><span class="pill accent">${FASA.escapeHtml(user.tempo_empresa || 'A definir')} de empresa</span>
             ${user.admin ? '<span class="pill muted">Administrador</span>' : ''}
           </div>
           <button class="btn btn-ghost btn-sm" id="edit-perfil-btn">✎ Editar perfil</button>
@@ -744,10 +744,10 @@ async function renderPerfil() {
         </div>
         <div style="padding:20px">
           <h3 style="margin-bottom:14px">Editar perfil</h3>
-          <div class="field"><label>Cargo</label><input id="ep-cargo" value="${user.cargo || ''}"></div>
-          <div class="field"><label>Setor</label><input id="ep-setor" value="${user.setor || ''}"></div>
-          <div class="field"><label>Tempo de empresa</label><input id="ep-tempo" value="${user.tempo_empresa || ''}"></div>
-          <div class="field"><label>Bio (uma frase sobre você)</label><textarea id="ep-bio" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit">${user.bio || ''}</textarea></div>
+          <div class="field"><label>Cargo</label><input id="ep-cargo" value="${FASA.escapeHtml(user.cargo || '')}"></div>
+          <div class="field"><label>Setor</label><input id="ep-setor" value="${FASA.escapeHtml(user.setor || '')}"></div>
+          <div class="field"><label>Tempo de empresa</label><input id="ep-tempo" value="${FASA.escapeHtml(user.tempo_empresa || '')}"></div>
+          <div class="field"><label>Bio (uma frase sobre você)</label><textarea id="ep-bio" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit">${FASA.escapeHtml(user.bio || '')}</textarea></div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-primary" id="ep-salvar">Salvar</button>
             <button class="btn btn-ghost" id="ep-cancelar">Cancelar</button>
@@ -845,7 +845,7 @@ async function renderPerfil() {
       ${conquistas.map(c => `<div style="text-align:center;padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm)"><div style="font-size:26px;margin-bottom:6px">${c.ic}</div><div style="font-weight:700;font-size:13px">${c.t}</div><div style="font-size:11.5px;color:var(--muted)">${c.d}</div></div>`).join('')}
     </div></div>
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3>Minhas publicações</h3><button class="btn btn-ghost btn-sm" id="perfil-refresh-btn">↻ Atualizar</button></div>
-      ${posts.length ? posts.map(p => `<div style="padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>${FASA.escapeHtml(p.texto)}${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${p.arquivo_nome || 'Anexo'}</a>`) : ''}</div>`).join('') : `<div class="empty">Você ainda não publicou nada.</div>`}
+      ${posts.length ? posts.map(p => `<div style="padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>${FASA.escapeHtml(p.texto)}${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : ''}</div>`).join('') : `<div class="empty">Você ainda não publicou nada.</div>`}
     </div>`;
 
   bindHeaderEvents();
@@ -872,7 +872,7 @@ async function renderComunidades() {
       <div class="grid grid-3">
         ${(comunidades || []).map(c => {
           const isIn = joined.has(c.id);
-          return `<div class="card comm-card" data-id="${c.id}"><div class="comm-banner"></div><h3>${c.nome}</h3><div class="desc">${c.descricao || ''}</div>
+          return `<div class="card comm-card" data-id="${c.id}"><div class="comm-banner"></div><h3>${FASA.escapeHtml(c.nome)}</h3><div class="desc">${FASA.escapeHtml(c.descricao || '')}</div>
           <div class="foot"><span class="pill muted">${contagem[c.id] || 0} membros</span><button class="btn btn-sm ${isIn ? 'btn-ghost' : 'btn-primary'} join-btn">${isIn ? 'Participando' : 'Participar'}</button></div></div>`;
         }).join('')}
       </div>`;
@@ -912,7 +912,7 @@ function renderAvisos() {
         <button class="btn btn-accent" id="av-submit">Publicar aviso</button></div>`
         : `<div class="card" style="margin-bottom:20px;color:var(--muted);font-size:13px">Somente líderes podem publicar avisos. Você pode visualizar todos os comunicados abaixo.</div>`}
       <div class="card" style="display:flex;flex-direction:column;gap:20px">
-        ${(avisos || []).map(a => { const au = a.usuarios || { nome: 'Liderança' }; return `<div class="aviso"><h3>${a.titulo}</h3><div class="sub">${au.nome} · ${FASA.timeAgo(new Date(a.criado_em).getTime())}</div><p>${a.texto}</p></div>`; }).join('') || `<div class="empty">Nenhum aviso publicado ainda.</div>`}
+        ${(avisos || []).map(a => { const au = a.usuarios || { nome: 'Liderança' }; return `<div class="aviso"><h3>${FASA.escapeHtml(a.titulo)}</h3><div class="sub">${FASA.escapeHtml(au.nome)} · ${FASA.timeAgo(new Date(a.criado_em).getTime())}</div><p>${FASA.escapeHtml(a.texto)}</p></div>`; }).join('') || `<div class="empty">Nenhum aviso publicado ainda.</div>`}
       </div>`;
     const btn = document.getElementById('av-submit');
     if (btn) btn.addEventListener('click', async () => {
@@ -976,7 +976,7 @@ function renderBiblioteca() {
       <div class="tabs">${cats.map(c => `<div class="tab ${c === activeCat ? 'active' : ''}" data-cat="${c}">${c}</div>`).join('')}</div>
       <div class="grid grid-2">${docs.map(d => `
         <div class="card doc-card"><div class="doc-ic">${ICONS[d.tipo] || '📁'}</div>
-        <div style="flex:1"><h3>${d.nome}</h3><div class="meta">${d.categoria} · ${d.tipo} · atualizado ${FASA.timeAgo(new Date(d.atualizado_em).getTime())}</div></div>
+        <div style="flex:1"><h3>${FASA.escapeHtml(d.nome)}</h3><div class="meta">${FASA.escapeHtml(d.categoria)} · ${FASA.escapeHtml(d.tipo)} · atualizado ${FASA.timeAgo(new Date(d.atualizado_em).getTime())}</div></div>
         <button class="btn btn-ghost btn-sm abrir-doc">Abrir</button></div>`).join('') || `<div class="empty" style="grid-column:1/-1">Nenhum documento nesta categoria.</div>`}</div>`;
     pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { activeCat = t.dataset.cat; paint(); }));
     pageEl.querySelectorAll('.abrir-doc').forEach(b => b.addEventListener('click', () => FASA.toast('Abrindo documento...')));
@@ -1042,11 +1042,11 @@ function renderEnquetes() {
       const voted = !!votosMap[e.id];
       return `<div class="card" data-id="${e.id}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">
-          <h3 style="font-size:15px">${e.pergunta}</h3>
+          <h3 style="font-size:15px">${FASA.escapeHtml(e.pergunta)}</h3>
           ${user.admin ? '<button class="icon-btn del-enquete-btn" title="Excluir enquete">🗑</button>' : ''}
         </div>
         <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">${FASA.timeAgo(new Date(e.criado_em).getTime())}</div>
-        ${opcoes.map(o => { const pct = Math.round((o.votos / total) * 100); return `<div class="poll-opt ${voted ? 'voted' : ''}" data-opcao="${o.id}">${voted ? `<div class="fill" style="width:${pct}%"></div>` : ''}<div class="txt"><span>${o.texto}</span><span>${voted ? pct + '%' : ''}</span></div></div>`; }).join('')}
+        ${opcoes.map(o => { const pct = Math.round((o.votos / total) * 100); return `<div class="poll-opt ${voted ? 'voted' : ''}" data-opcao="${o.id}">${voted ? `<div class="fill" style="width:${pct}%"></div>` : ''}<div class="txt"><span>${FASA.escapeHtml(o.texto)}</span><span>${voted ? pct + '%' : ''}</span></div></div>`; }).join('')}
         <div style="font-size:11.5px;color:var(--muted);margin-top:8px">${total} voto(s) ${voted ? '· você já votou' : '· toque em uma opção para votar'}</div></div>`;
     }).join('') || `<div class="empty">Nenhuma enquete no momento.${user.admin ? '' : ' Peça pra liderança criar uma!'}</div>`}</div>`;
 
@@ -1097,7 +1097,7 @@ function renderSugestoes() {
         const au = s.usuarios || { nome: 'Colaborador' };
         const apoios = s.sugestao_apoios || [];
         const apoiado = apoios.some(a => a.usuario_id === user.id);
-        return `<div class="card" data-id="${s.id}"><div class="post-head"><div class="avatar sm">${FASA.initials(au.nome)}</div><div class="meta"><div class="name">${au.nome}</div><div class="sub">${FASA.timeAgo(new Date(s.criado_em).getTime())}</div></div></div>
+        return `<div class="card" data-id="${s.id}"><div class="post-head"><div class="avatar sm">${FASA.initials(au.nome)}</div><div class="meta"><div class="name">${FASA.escapeHtml(au.nome)}</div><div class="sub">${FASA.timeAgo(new Date(s.criado_em).getTime())}</div></div></div>
         <p style="font-size:13.5px;color:var(--ink-soft);margin:10px 0">${FASA.escapeHtml(s.texto)}</p>
         <button class="btn btn-sm ${apoiado ? 'btn-primary' : 'btn-ghost'} apoiar-btn">👍 Apoiar (${apoios.length})</button></div>`;
       }).join('') || `<div class="empty">Nenhuma sugestão ainda. Seja o primeiro!</div>`}</div>`;
@@ -1135,7 +1135,7 @@ async function renderRanking() {
     <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Pontos são acumulados por participação: publicações, ajuda em comunidades, sugestões implementadas e treinamentos concluídos.</p>
     <div class="card">${(ranking || []).map((u, i) => `
       <div class="rank-row"><div class="rank-pos ${i < 3 ? 'top' : ''}">${i + 1}º</div><div class="avatar sm">${FASA.initials(u.nome)}</div>
-      <div><div style="font-weight:700;font-size:13.5px">${u.nome}</div><div style="font-size:11.5px;color:var(--muted)">${u.setor}</div></div><div class="pts">${u.pontos} pts</div></div>`).join('')}
+      <div><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(u.nome)}</div><div style="font-size:11.5px;color:var(--muted)">${FASA.escapeHtml(u.setor || '')}</div></div><div class="pts">${u.pontos} pts</div></div>`).join('')}
     </div>`;
 }
 
@@ -1204,7 +1204,7 @@ async function renderChat() {
     pageEl.querySelector('#chat-list-inner').innerHTML = list.map(c => `
       <div class="chat-conv ${c.type === activeType && c.id === activeId ? 'active' : ''}" data-type="${c.type}" data-id="${c.id}">
         ${c.type === 'group' ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(c.pessoa, 'sm')}
-        <div class="t"><div class="n">${c.nome}</div><div class="m">${c.lastMsg}</div></div></div>`).join('') || `<div class="empty" style="padding:20px 10px">Nenhuma conversa encontrada.</div>`;
+        <div class="t"><div class="n">${FASA.escapeHtml(c.nome)}</div><div class="m">${FASA.escapeHtml(c.lastMsg)}</div></div></div>`).join('') || `<div class="empty" style="padding:20px 10px">Nenhuma conversa encontrada.</div>`;
     pageEl.querySelectorAll('.chat-conv').forEach(el => el.addEventListener('click', () => { activeType = el.dataset.type; activeId = el.dataset.id; paintList(); paintMain(); }));
   }
 
@@ -1214,8 +1214,8 @@ async function renderChat() {
     const isGroup = activeType === 'group';
     const info = isGroup ? grupos.find(g => g.id === activeId) : outros.find(u => u.id === activeId);
     if (!info) { mainWrap.innerHTML = `<div class="empty" style="margin:auto">Conversa não encontrada.</div>`; return; }
-    const nome = info.nome;
-    const sub = isGroup ? 'Grupo' : `${info.cargo || ''} · ${info.setor || ''}`;
+    const nome = FASA.escapeHtml(info.nome);
+    const sub = isGroup ? 'Grupo' : `${FASA.escapeHtml(info.cargo || '')} · ${FASA.escapeHtml(info.setor || '')}`;
     const msgs = isGroup
       ? allMsgs.filter(m => m.grupo_id === activeId)
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
@@ -1224,7 +1224,7 @@ async function renderChat() {
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
         <div><div style="font-weight:700;font-size:14px">${nome}</div><div style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${(userById(m.remetente_id) || {}).nome || ''}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
@@ -1272,7 +1272,7 @@ async function renderChat() {
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${(userById(m.remetente_id) || {}).nome || ''}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
@@ -1322,7 +1322,7 @@ function renderAdmin() {
     pageEl.innerHTML = shellHtml(`
       <div class="grid grid-4" style="margin-bottom:20px">${stats.map(s => `<div class="card stat-card"><div class="num">${s.n}</div><div class="lbl">${s.l}</div></div>`).join('')}</div>
       <div class="card"><h3 style="margin-bottom:14px">Atividade recente</h3>
-        ${(postsRecentes || []).map(p => { const au = p.usuarios || { nome: 'Colaborador' }; return `<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><b>${au.nome}</b> publicou · <span style="color:var(--muted)">${FASA.timeAgo(new Date(p.criado_em).getTime())}</span></div>`; }).join('') || `<div class="empty">Nenhuma atividade ainda.</div>`}
+        ${(postsRecentes || []).map(p => { const au = p.usuarios || { nome: 'Colaborador' }; return `<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><b>${FASA.escapeHtml(au.nome)}</b> publicou · <span style="color:var(--muted)">${FASA.timeAgo(new Date(p.criado_em).getTime())}</span></div>`; }).join('') || `<div class="empty">Nenhuma atividade ainda.</div>`}
       </div>`);
     bindTabs();
   }
@@ -1339,10 +1339,10 @@ function renderAdmin() {
       </div>
       <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Setor</th><th>Perfil</th><th></th></tr></thead><tbody>
         ${(usuarios || []).map(u => `<tr data-id="${u.id}">
-          <td><input class="ed-nome" value="${u.nome || ''}" style="border:none;background:none;width:100px;font:inherit"></td>
-          <td><input class="ed-matricula" value="${u.matricula || ''}" style="border:none;background:none;width:80px;font:inherit"></td>
-          <td><input class="ed-cargo" value="${u.cargo || ''}" style="border:none;background:none;width:110px;font:inherit"></td>
-          <td><input class="ed-setor" value="${u.setor || ''}" style="border:none;background:none;width:100px;font:inherit"></td>
+          <td><input class="ed-nome" value="${FASA.escapeHtml(u.nome || '')}" style="border:none;background:none;width:100px;font:inherit"></td>
+          <td><input class="ed-matricula" value="${FASA.escapeHtml(u.matricula || '')}" style="border:none;background:none;width:80px;font:inherit"></td>
+          <td><input class="ed-cargo" value="${FASA.escapeHtml(u.cargo || '')}" style="border:none;background:none;width:110px;font:inherit"></td>
+          <td><input class="ed-setor" value="${FASA.escapeHtml(u.setor || '')}" style="border:none;background:none;width:100px;font:inherit"></td>
           <td><label class="checkline"><input type="checkbox" class="ed-admin" ${u.admin ? 'checked' : ''}> <span class="badge ${u.admin ? 'ok' : 'off'}">${u.admin ? 'Admin' : 'Colaborador'}</span></label></td>
           <td style="display:flex;gap:6px"><button class="icon-action salvar-user" title="Salvar">💾</button><button class="icon-action del-user" title="Excluir perfil">🗑</button></td>
         </tr>`).join('')}
@@ -1382,7 +1382,7 @@ function renderAdmin() {
         <div class="field"><input id="aa-titulo" placeholder="Título"></div>
         <div class="field"><textarea id="aa-texto" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit" placeholder="Texto do aviso"></textarea></div>
         <button class="btn btn-primary" id="aa-submit">Publicar</button></div>
-      <div class="card">${(avisos || []).map(a => `<div class="aviso" style="margin-bottom:16px;display:flex;justify-content:space-between;gap:10px"><div><h3>${a.titulo}</h3><p>${a.texto}</p></div><button class="icon-action del-aviso" data-id="${a.id}">🗑</button></div>`).join('') || `<div class="empty">Nenhum aviso ainda.</div>`}</div>`);
+      <div class="card">${(avisos || []).map(a => `<div class="aviso" style="margin-bottom:16px;display:flex;justify-content:space-between;gap:10px"><div><h3>${FASA.escapeHtml(a.titulo)}</h3><p>${FASA.escapeHtml(a.texto)}</p></div><button class="icon-action del-aviso" data-id="${a.id}">🗑</button></div>`).join('') || `<div class="empty">Nenhum aviso ainda.</div>`}</div>`);
     bindTabs();
     document.getElementById('aa-submit').addEventListener('click', async () => {
       const titulo = document.getElementById('aa-titulo').value.trim(), texto = document.getElementById('aa-texto').value.trim();
@@ -1410,7 +1410,7 @@ function renderAdmin() {
       <div class="card"><h3 style="margin-bottom:12px">Comunidades ativas</h3>
         <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px">Edite a descrição das comunidades exibidas para a equipe.</p>
         <div class="table-wrap"><table><thead><tr><th>Comunidade</th><th>Descrição</th><th>Membros</th><th></th></tr></thead><tbody>
-          ${(comunidades || []).map(c => `<tr data-id="${c.id}"><td><b>${c.nome}</b></td><td><input class="ed-desc" value="${c.descricao || ''}" style="border:none;background:none;width:100%;font:inherit"></td><td>${contagem[c.id] || 0}</td><td><button class="icon-action salvar-com" title="Salvar">💾</button></td></tr>`).join('')}
+          ${(comunidades || []).map(c => `<tr data-id="${c.id}"><td><b>${FASA.escapeHtml(c.nome)}</b></td><td><input class="ed-desc" value="${FASA.escapeHtml(c.descricao || '')}" style="border:none;background:none;width:100%;font:inherit"></td><td>${contagem[c.id] || 0}</td><td><button class="icon-action salvar-com" title="Salvar">💾</button></td></tr>`).join('')}
         </tbody></table></div></div>`);
     bindTabs();
     pageEl.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -1436,7 +1436,7 @@ function renderAdmin() {
           <div class="field"><select id="nd-tipo"><option>PDF</option><option>Vídeo</option></select></div>
         </div><button class="btn btn-primary" id="nd-submit">Adicionar à Biblioteca</button></div>
       <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Categoria</th><th>Tipo</th><th></th></tr></thead><tbody>
-        ${(docs || []).map(doc => `<tr data-id="${doc.id}"><td>${doc.nome}</td><td>${doc.categoria}</td><td>${doc.tipo}</td><td><button class="icon-action del-doc">🗑</button></td></tr>`).join('') || ''}
+        ${(docs || []).map(doc => `<tr data-id="${doc.id}"><td>${FASA.escapeHtml(doc.nome)}</td><td>${FASA.escapeHtml(doc.categoria)}</td><td>${FASA.escapeHtml(doc.tipo)}</td><td><button class="icon-action del-doc">🗑</button></td></tr>`).join('') || ''}
       </tbody></table></div>`);
     bindTabs();
     document.getElementById('nd-submit').addEventListener('click', async () => {
