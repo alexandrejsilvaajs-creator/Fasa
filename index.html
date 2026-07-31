@@ -929,47 +929,125 @@ function renderAvisos() {
 
 /* ---------------- Escala ---------------- */
 async function renderEscala() {
-  const { pageEl } = renderShell('escala', 'Escalas');
+  const { user, pageEl } = renderShell('escala', 'Escalas');
   pageEl.innerHTML = `<div class="empty">Carregando escala...</div>`;
 
   const ABAS = [
-    { id: '12x36-180', label: '12x36 (180h)' },
-    { id: '12x36-220', label: '12x36 (220h)' },
-    { id: 'plantao-noturno', label: 'Plantão A/B (Noturno)' },
-    { id: 'plantao-diurno', label: 'Plantão Diurno (Manhã/Tarde)' },
+    { id: '12x36-180', label: 'Noturno A', sub: '12x36 · 180h' },
+    { id: '12x36-220', label: 'Noturno B', sub: '12x36 · 220h' },
+    { id: 'plantao-noturno', label: 'Plantão A/B', sub: 'Noturno' },
+    { id: 'plantao-diurno', label: 'Plantão Diurno', sub: 'Manhã/Tarde' },
   ];
   let abaAtiva = '12x36-180';
+  let busca = '';
 
   const { data: rows, error } = await sb
     .from('escalas')
-    .select('dia, turno, aba, periodo, usuarios!escalas_usuario_id_fkey(nome)');
+    .select('id, dia, turno, aba, periodo, usuario_id, usuarios!escalas_usuario_id_fkey(nome,cargo,foto_url)');
   if (error) { FASA.toast('Erro ao carregar escala: ' + error.message); }
 
   const ordemDias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const diaParaJS = { 'Domingo': 0, 'Segunda': 1, 'Terça': 2, 'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6 };
+
+  function proximaOcorrencia(diaLabel) {
+    const alvo = diaParaJS[diaLabel];
+    if (alvo === undefined) return null;
+    const hoje = new Date();
+    const diff = (alvo - hoje.getDay() + 7) % 7;
+    const data = new Date(hoje);
+    data.setDate(hoje.getDate() + diff);
+    return { data, diasRestantes: diff };
+  }
+
+  function contagemLabel(dias) {
+    if (dias === 0) return 'Hoje';
+    if (dias === 1) return 'Amanhã';
+    return `Em ${dias} dias`;
+  }
 
   function paint() {
-    const linhas = (rows || []).filter(r => (r.aba || '12x36-180') === abaAtiva);
+    const linhasAba = (rows || []).filter(r => (r.aba || '12x36-180') === abaAtiva);
+
+    // Próximo plantão do usuário logado, na aba ativa
+    const minhas = linhasAba.filter(r => r.usuario_id === user.id).map(r => ({ ...r, ...proximaOcorrencia(r.dia) })).filter(r => r.data);
+    minhas.sort((a, b) => a.diasRestantes - b.diasRestantes);
+    const proximo = minhas[0];
+    const equipeDoProximo = proximo ? linhasAba.filter(r => r.dia === proximo.dia && r.turno === proximo.turno).map(r => (r.usuarios || {}).nome).filter(Boolean) : [];
+
+    // Agrupar por dia+período+turno pra listar
     const grupos = {};
-    linhas.forEach(r => {
+    linhasAba.forEach(r => {
       const chave = r.dia + '|' + (r.periodo || '') + '|' + r.turno;
-      if (!grupos[chave]) grupos[chave] = { dia: r.dia, periodo: r.periodo, turno: r.turno, equipe: [] };
-      grupos[chave].equipe.push(FASA.escapeHtml((r.usuarios || {}).nome || '—'));
+      if (!grupos[chave]) grupos[chave] = { dia: r.dia, periodo: r.periodo, turno: r.turno, pessoas: [] };
+      grupos[chave].pessoas.push(r.usuarios || { nome: '—' });
     });
-    const escala = Object.values(grupos).sort((a, b) => {
+    let listaGrupos = Object.values(grupos).sort((a, b) => {
       const d = ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia);
       return d !== 0 ? d : (a.turno || '').localeCompare(b.turno || '');
     });
+    if (busca.trim()) {
+      const termo = busca.trim().toLowerCase();
+      listaGrupos = listaGrupos.map(g => ({ ...g, pessoas: g.pessoas.filter(p => (p.nome || '').toLowerCase().includes(termo)) })).filter(g => g.pessoas.length);
+    }
 
-    const mostraPeriodo = abaAtiva === '12x36-180' || abaAtiva === '12x36-220';
+    const abaObj = ABAS.find(a => a.id === abaAtiva);
+    const totalTurnos = linhasAba.length;
+    const colaboradoresUnicos = new Set(linhasAba.map(r => r.usuario_id)).size;
+    const diasCobertos = new Set(linhasAba.map(r => r.dia)).size;
 
     pageEl.innerHTML = `
+      <!-- Cabeçalho do colaborador -->
+      <div class="card" style="display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap">
+        ${FASA.avatarHtml(user, 'lg')}
+        <div style="flex:1;min-width:180px">
+          <h1 style="font-size:19px">${FASA.escapeHtml(user.nome)}</h1>
+          <p style="color:var(--muted);font-size:13px;margin:2px 0 8px">${FASA.escapeHtml(user.cargo || '')} · ${FASA.escapeHtml(user.setor || '')}</p>
+          <span class="pill accent">${abaObj.label} · ${abaObj.sub}</span>
+        </div>
+      </div>
+
+      <!-- Próximo plantão -->
+      <div class="card" style="background:linear-gradient(135deg,var(--primary-dk),var(--primary));color:#fff;margin-bottom:18px;border:none">
+        <div class="eyebrow" style="color:rgba(255,255,255,.75)">Próximo plantão</div>
+        ${proximo ? `
+          <h2 style="color:#fff;font-size:24px;margin:8px 0 4px">${proximo.dia} · ${FASA.escapeHtml(proximo.turno)}</h2>
+          <p style="opacity:.9;font-size:13.5px;margin-bottom:14px">${contagemLabel(proximo.diasRestantes)} · ${proximo.periodo ? proximo.periodo + ' · ' : ''}${equipeDoProximo.length} na equipe</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${equipeDoProximo.slice(0, 5).map(n => `<span class="pill" style="background:rgba(255,255,255,.18);color:#fff">${FASA.escapeHtml(n)}</span>`).join('')}</div>
+        ` : `<p style="opacity:.9;font-size:14px;margin-top:8px">Você não está escalado(a) nesta aba no momento.</p>`}
+      </div>
+
+      <!-- Abas -->
       <div class="tabs">${ABAS.map(a => `<div class="tab ${a.id === abaAtiva ? 'active' : ''}" data-aba="${a.id}">${a.label}</div>`).join('')}</div>
-      <div class="card table-wrap"><table><thead><tr><th>Dia</th>${mostraPeriodo ? '<th>Período</th>' : ''}<th>Turno / Plantão</th><th>Equipe escalada</th></tr></thead><tbody>
-        ${escala.map(e => `<tr><td><b>${e.dia}</b></td>${mostraPeriodo ? `<td><span class="pill ${e.periodo === 'Noturno' ? 'muted' : ''}">${e.periodo || '—'}</span></td>` : ''}<td><span class="pill accent">${e.turno}</span></td><td>${e.equipe.join(', ')}</td></tr>`).join('') || `<tr><td colspan="${mostraPeriodo ? 4 : 3}"><div class="empty">Nenhuma escala cadastrada nesta aba ainda.</div></td></tr>`}
-      </tbody></table></div>
+
+      <!-- Estatísticas -->
+      <div class="grid grid-3" style="margin-bottom:18px">
+        <div class="card stat-card"><div class="num">${totalTurnos}</div><div class="lbl">Turnos nesta aba</div></div>
+        <div class="card stat-card"><div class="num">${colaboradoresUnicos}</div><div class="lbl">Colaboradores</div></div>
+        <div class="card stat-card"><div class="num">${diasCobertos}</div><div class="lbl">Dias cobertos</div></div>
+      </div>
+
+      <!-- Busca -->
+      <div class="topbar-search" style="margin-bottom:14px;max-width:none"><input id="escala-busca" placeholder="🔍 Buscar colaborador na escala..." value="${FASA.escapeHtml(busca)}"></div>
+
+      <!-- Lista de equipe por dia -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${listaGrupos.map(g => `
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div><b>${g.dia}</b> ${g.periodo ? `<span class="pill muted" style="margin-left:6px">${g.periodo}</span>` : ''} <span class="pill accent" style="margin-left:6px">${FASA.escapeHtml(g.turno)}</span></div>
+            </div>
+            <div class="mini-list">
+              ${g.pessoas.map(p => `<div class="mini-item">${FASA.avatarHtml(p, 'sm')}<div class="t"><div class="n">${FASA.escapeHtml(p.nome || '—')}</div><div class="s">${FASA.escapeHtml(p.cargo || '')}</div></div></div>`).join('')}
+            </div>
+          </div>`).join('') || `<div class="card"><div class="empty">Nenhuma escala encontrada.</div></div>`}
+      </div>
       <p style="color:var(--muted);font-size:12.5px;margin-top:14px">A escala é definida pela liderança de cada setor e pode ser ajustada pela Administração.</p>`;
 
     pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { abaAtiva = t.dataset.aba; paint(); }));
+    const buscaInput = document.getElementById('escala-busca');
+    buscaInput.addEventListener('input', (e) => { busca = e.target.value; paint(); });
+    buscaInput.focus();
+    buscaInput.setSelectionRange(busca.length, busca.length);
   }
   paint();
 }
