@@ -934,8 +934,11 @@ async function renderEscala() {
 
   const ABAS = [
     { id: 'todas', label: 'Todas' },
-    { id: '12x36-180', label: '12x36' },
-    { id: 'plantao-noturno', label: 'Plantão A/B' },
+    { id: 'noturno-a', label: 'Noturno A' },
+    { id: 'noturno-b', label: 'Noturno B' },
+    { id: 'diurno', label: 'Diurno' },
+    { id: 'diurno-a', label: 'Diurno A' },
+    { id: 'diurno-b', label: 'Diurno B' },
     { id: 'plantao-diurno', label: 'Plantão Diurno' },
   ];
   const CORES_AUSENCIA = { 'Folga': 'ok', 'Férias': 'muted', 'Afastamento': 'warn', 'Banco de Horas': 'off' };
@@ -951,7 +954,7 @@ async function renderEscala() {
   const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
   const [{ data: escalas, error: e1 }, { data: ausencias, error: e2 }] = await Promise.all([
-    sb.from('escalas').select('id, data, turno, aba, periodo, usuario_id, usuarios!escalas_usuario_id_fkey(nome,cargo,foto_url)').not('data', 'is', null),
+    sb.from('escalas').select('id, data, turno, aba, usuario_id, usuarios!escalas_usuario_id_fkey(nome,cargo,foto_url)').not('data', 'is', null),
     sb.from('ausencias').select('id, tipo, status, data_inicio, data_fim, observacao, usuario_id, usuarios!ausencias_usuario_id_fkey(nome,cargo,foto_url)'),
   ]);
   if (e1 || e2) FASA.toast('Erro ao carregar escala/ausências');
@@ -966,7 +969,7 @@ async function renderEscala() {
 
   function escalasDoDia(dataISO) {
     let linhas = (escalas || []).filter(r => r.data === dataISO);
-    if (abaFiltro !== 'todas') linhas = linhas.filter(r => (r.aba || '12x36-180') === abaFiltro);
+    if (abaFiltro !== 'todas') linhas = linhas.filter(r => r.aba === abaFiltro);
     if (busca.trim()) { const t = busca.trim().toLowerCase(); linhas = linhas.filter(r => ((r.usuarios || {}).nome || '').toLowerCase().includes(t)); }
     return linhas;
   }
@@ -1007,7 +1010,6 @@ async function renderEscala() {
         <div class="eyebrow" style="color:rgba(255,255,255,.75)">Próximo plantão</div>
         ${proximo ? `
           <h2 style="color:#fff;font-size:22px;margin:8px 0 4px">${new Date(proximo.data + 'T00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })} · ${FASA.escapeHtml(proximo.turno)}</h2>
-          <p style="opacity:.9;font-size:13.5px">${proximo.periodo ? proximo.periodo : ''}</p>
         ` : `<p style="opacity:.9;font-size:14px;margin-top:8px">Nenhum plantão futuro cadastrado pra você ainda.</p>`}
       </div>
 
@@ -1692,22 +1694,25 @@ function renderAdmin() {
   async function paintEscalas() {
     pageEl.innerHTML = shellHtml(`<div class="empty">Carregando escalas...</div>`);
     const ABAS = [
-      { id: '12x36-180', label: '12x36' },
-      { id: 'plantao-noturno', label: 'Plantão A/B (Noturno)' },
+      { id: 'noturno-a', label: 'Noturno A' },
+      { id: 'noturno-b', label: 'Noturno B' },
+      { id: 'diurno', label: 'Diurno' },
+      { id: 'diurno-a', label: 'Diurno A' },
+      { id: 'diurno-b', label: 'Diurno B' },
       { id: 'plantao-diurno', label: 'Plantão Diurno (Manhã/Tarde)' },
     ];
 
     const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
     const { data: rows, error } = await sb
       .from('escalas')
-      .select('id, data, turno, aba, periodo, usuario_id, usuarios!escalas_usuario_id_fkey(nome)')
+      .select('id, data, turno, aba, usuario_id, usuarios!escalas_usuario_id_fkey(nome)')
       .order('data');
     if (error) { FASA.toast('Erro ao carregar escalas: ' + error.message); }
 
     function turnoOptions(aba) {
       if (aba === 'plantao-noturno') return ['Plantão A', 'Plantão B'];
       if (aba === 'plantao-diurno') return ['Manhã', 'Tarde'];
-      return ['Noturno A', 'Noturno B', 'Diurno', 'Diurno A', 'Diurno B'];
+      return null; // sem escolha — o turno é o próprio nome da aba
     }
     const hojeISO = new Date().toISOString().slice(0, 10);
 
@@ -1715,9 +1720,8 @@ function renderAdmin() {
       <div class="card" style="margin-bottom:18px">
         <h3 style="margin-bottom:12px">Adicionar à escala</h3>
         <div class="grid grid-3">
-          <div class="field"><label>Aba</label><select id="es-aba">${ABAS.map(a => `<option value="${a.id}">${a.label}</option>`).join('')}</select></div>
-          <div class="field" id="es-periodo-wrap"><label>Período</label><select id="es-periodo"><option>Diurno</option><option>Noturno</option></select></div>
-          <div class="field"><label>Turno / Plantão</label><select id="es-turno">${turnoOptions('12x36-180').map(t => `<option>${t}</option>`).join('')}</select></div>
+          <div class="field"><label>Escala</label><select id="es-aba">${ABAS.map(a => `<option value="${a.id}">${a.label}</option>`).join('')}</select></div>
+          <div class="field" id="es-turno-wrap"><label>Turno / Plantão</label><select id="es-turno"></select></div>
           <div class="field"><label>Data</label><input type="date" id="es-data" value="${hojeISO}"></div>
           <div class="field"><label>Colaborador</label><select id="es-usuario">${(usuarios || []).map(u => `<option value="${u.id}">${FASA.escapeHtml(u.nome)}</option>`).join('')}</select></div>
         </div>
@@ -1728,22 +1732,22 @@ function renderAdmin() {
     bindTabs();
 
     const abaSelect = document.getElementById('es-aba');
-    const periodoWrap = document.getElementById('es-periodo-wrap');
+    const turnoWrap = document.getElementById('es-turno-wrap');
     const turnoSelect = document.getElementById('es-turno');
     function atualizarCampos() {
-      const aba = abaSelect.value;
-      periodoWrap.style.display = (aba === '12x36-180') ? '' : 'none';
-      turnoSelect.innerHTML = turnoOptions(aba).map(t => `<option>${t}</option>`).join('');
+      const opcoes = turnoOptions(abaSelect.value);
+      if (opcoes) { turnoWrap.style.display = ''; turnoSelect.innerHTML = opcoes.map(t => `<option>${t}</option>`).join(''); }
+      else { turnoWrap.style.display = 'none'; }
     }
     abaSelect.addEventListener('change', atualizarCampos);
     atualizarCampos();
 
     let filtroAtivo = ABAS[0].id;
     function pintarLista() {
-      const linhas = (rows || []).filter(r => (r.aba || '12x36-180') === filtroAtivo);
+      const linhas = (rows || []).filter(r => r.aba === filtroAtivo);
       document.getElementById('es-lista-wrap').innerHTML = `
-        <table><thead><tr><th>Data</th><th>Período</th><th>Turno/Plantão</th><th>Colaborador</th><th></th></tr></thead><tbody>
-          ${linhas.map(r => `<tr><td>${r.data ? new Date(r.data + 'T00:00').toLocaleDateString('pt-BR') : '—'}</td><td>${r.periodo || '—'}</td><td>${r.turno}</td><td>${FASA.escapeHtml((r.usuarios || {}).nome || '—')}</td><td><button class="icon-action del-escala" data-id="${r.id}">🗑</button></td></tr>`).join('') || `<tr><td colspan="5"><div class="empty">Nenhuma escala nesta aba.</div></td></tr>`}
+        <table><thead><tr><th>Data</th><th>Turno/Plantão</th><th>Colaborador</th><th></th></tr></thead><tbody>
+          ${linhas.map(r => `<tr><td>${r.data ? new Date(r.data + 'T00:00').toLocaleDateString('pt-BR') : '—'}</td><td>${FASA.escapeHtml(r.turno)}</td><td>${FASA.escapeHtml((r.usuarios || {}).nome || '—')}</td><td><button class="icon-action del-escala" data-id="${r.id}">🗑</button></td></tr>`).join('') || `<tr><td colspan="4"><div class="empty">Nenhuma escala nesta aba.</div></td></tr>`}
         </tbody></table>`;
       document.querySelectorAll('.del-escala').forEach(btn => btn.addEventListener('click', async () => {
         const { error: delError } = await sb.from('escalas').delete().eq('id', btn.dataset.id);
@@ -1762,14 +1766,14 @@ function renderAdmin() {
     const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     document.getElementById('es-submit').addEventListener('click', async () => {
       const aba = abaSelect.value;
-      const periodo = (aba === '12x36-180') ? document.getElementById('es-periodo').value : null;
-      const turno = turnoSelect.value;
+      const opcoes = turnoOptions(aba);
+      const turno = opcoes ? turnoSelect.value : ABAS.find(a => a.id === aba).label;
       const data = document.getElementById('es-data').value;
       const usuario_id = document.getElementById('es-usuario').value;
       if (!usuario_id) { FASA.toast('Selecione um colaborador.'); return; }
       if (!data) { FASA.toast('Selecione uma data.'); return; }
       const dia = DIAS_SEMANA[new Date(data + 'T00:00').getDay()];
-      const { error: insError } = await sb.from('escalas').insert({ aba, periodo, turno, dia, data, usuario_id });
+      const { error: insError } = await sb.from('escalas').insert({ aba, turno, dia, data, usuario_id });
       if (insError) { FASA.toast('Erro ao adicionar: ' + insError.message); return; }
       FASA.toast('Adicionado à escala!');
       paintEscalas();
