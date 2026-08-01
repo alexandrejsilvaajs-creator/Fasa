@@ -943,6 +943,7 @@ async function renderEscala() {
   let abaFiltro = 'todas';
   let selecionado = new Date();
   let busca = '';
+  let subview = 'calendario';
 
   function iso(d) { return d.toISOString().slice(0, 10); }
   function addDias(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
@@ -955,6 +956,14 @@ async function renderEscala() {
     sb.from('ausencias').select('id, tipo, data_inicio, data_fim, observacao, usuario_id, usuarios!ausencias_usuario_id_fkey(nome,cargo,foto_url)'),
   ]);
   if (e1 || e2) FASA.toast('Erro ao carregar escala/ausências');
+
+  function subNavHtml() {
+    const itens = [{ id: 'calendario', ic: '📅', label: 'Calendário' }, { id: 'negociacoes', ic: '🔄', label: 'Negociações' }];
+    return `<div class="tabs" style="margin-bottom:18px">${itens.map(i => `<div class="tab ${i.id === subview ? 'active' : ''}" data-subview="${i.id}">${i.ic} ${i.label}</div>`).join('')}</div>`;
+  }
+  function bindSubNav() {
+    pageEl.querySelectorAll('[data-subview]').forEach(t => t.addEventListener('click', () => { subview = t.dataset.subview; renderSub(); }));
+  }
 
   function escalasDoDia(dataISO) {
     let linhas = (escalas || []).filter(r => r.data === dataISO);
@@ -975,7 +984,7 @@ async function renderEscala() {
     return minhas[0] || null;
   }
 
-  function paint() {
+  function paintCalendario() {
     const dataISO = iso(selecionado);
     const semanaInicio = inicioSemana(selecionado);
     const dias = Array.from({ length: 7 }, (_, i) => addDias(semanaInicio, i));
@@ -984,7 +993,7 @@ async function renderEscala() {
     const ausentes = ausenciasDoDia(dataISO);
     const proximo = proximoPlantao();
 
-    pageEl.innerHTML = `
+    pageEl.innerHTML = subNavHtml() + `
       <!-- Cabeçalho -->
       <div class="card" style="display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap">
         ${FASA.avatarHtml(user, 'lg')}
@@ -1047,16 +1056,101 @@ async function renderEscala() {
       </div>
       <p style="color:var(--muted);font-size:12.5px;margin-top:14px">A escala é definida pela liderança de cada setor e pode ser ajustada pela Administração.</p>`;
 
-    pageEl.querySelectorAll('.cal-dia').forEach(el => el.addEventListener('click', () => { selecionado = new Date(el.dataset.data + 'T00:00'); paint(); }));
-    document.getElementById('semana-anterior').addEventListener('click', () => { selecionado = addDias(selecionado, -7); paint(); });
-    document.getElementById('semana-proxima').addEventListener('click', () => { selecionado = addDias(selecionado, 7); paint(); });
-    pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { abaFiltro = t.dataset.aba; paint(); }));
+    bindSubNav();
+    pageEl.querySelectorAll('.cal-dia').forEach(el => el.addEventListener('click', () => { selecionado = new Date(el.dataset.data + 'T00:00'); paintCalendario(); }));
+    document.getElementById('semana-anterior').addEventListener('click', () => { selecionado = addDias(selecionado, -7); paintCalendario(); });
+    document.getElementById('semana-proxima').addEventListener('click', () => { selecionado = addDias(selecionado, 7); paintCalendario(); });
+    pageEl.querySelectorAll('.tab[data-aba]').forEach(t => t.addEventListener('click', () => { abaFiltro = t.dataset.aba; paintCalendario(); }));
     const buscaInput = document.getElementById('escala-busca');
-    buscaInput.addEventListener('input', (e) => { busca = e.target.value; paint(); });
+    buscaInput.addEventListener('input', (e) => { busca = e.target.value; paintCalendario(); });
     buscaInput.focus();
     buscaInput.setSelectionRange(busca.length, busca.length);
   }
-  paint();
+
+  async function paintNegociacoes() {
+    pageEl.innerHTML = subNavHtml() + `<div class="empty">Carregando negociações...</div>`;
+    const { data: trocas, error: e3 } = await sb
+      .from('trocas_plantao')
+      .select('id, motivo, status, criado_em, solicitante_id, escala_id, colega_id, usuarios!trocas_plantao_solicitante_id_fkey(nome), colega:usuarios!trocas_plantao_colega_id_fkey(nome), escalas(data, turno)')
+      .order('criado_em', { ascending: false });
+    if (e3) FASA.toast('Erro ao carregar negociações: ' + e3.message);
+
+    const minhasEscalasFuturas = (escalas || []).filter(r => r.usuario_id === user.id && r.data >= iso(new Date()));
+    const colegasMap = new Map((escalas || []).filter(r => r.usuario_id !== user.id).map(r => [r.usuario_id, r.usuarios]));
+    const colegas = [...colegasMap.entries()].filter(([, v]) => v);
+
+    const STATUS_COR = { Pendente: 'warn', Aprovada: 'ok', Recusada: 'off', Cancelada: 'off' };
+
+    pageEl.innerHTML = subNavHtml() + `
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="margin-bottom:12px">Solicitar troca de plantão</h3>
+        ${minhasEscalasFuturas.length ? `
+          <div class="grid grid-2" style="margin-bottom:0">
+            <div class="field"><label>Qual plantão seu</label><select id="ng-escala">${minhasEscalasFuturas.map(r => `<option value="${r.id}">${new Date(r.data + 'T00:00').toLocaleDateString('pt-BR')} · ${FASA.escapeHtml(r.turno)}</option>`).join('')}</select></div>
+            <div class="field"><label>Trocar com (opcional)</label><select id="ng-colega"><option value="">Qualquer colega</option>${colegas.map(([id, v]) => `<option value="${id}">${FASA.escapeHtml(v.nome || '')}</option>`).join('')}</select></div>
+          </div>
+          <div class="field"><label>Motivo (opcional)</label><input id="ng-motivo" placeholder="Ex: compromisso pessoal"></div>
+          <button class="btn btn-accent" id="ng-submit">Solicitar troca</button>
+        ` : `<div class="empty">Você não tem plantões futuros nesta lista pra trocar.</div>`}
+      </div>
+      <h3 style="font-size:15px;margin-bottom:12px">${user.admin ? 'Todas as solicitações' : 'Minhas solicitações'}</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${(trocas || []).filter(t => user.admin || t.solicitante_id === user.id).map(t => `
+          <div class="card" data-id="${t.id}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div>
+                <b>${FASA.escapeHtml((t.usuarios || {}).nome || '—')}</b>
+                <div style="font-size:12.5px;color:var(--muted)">${t.escalas ? new Date(t.escalas.data + 'T00:00').toLocaleDateString('pt-BR') + ' · ' + FASA.escapeHtml(t.escalas.turno) : ''}</div>
+                ${t.colega_id ? `<div style="font-size:12px;color:var(--muted)">Proposto: ${FASA.escapeHtml((t.colega || {}).nome || '—')}</div>` : ''}
+                ${t.motivo ? `<p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0">${FASA.escapeHtml(t.motivo)}</p>` : ''}
+              </div>
+              <span class="badge ${STATUS_COR[t.status] || 'off'}">${FASA.escapeHtml(t.status)}</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              ${user.admin && t.status === 'Pendente' ? `<button class="btn btn-sm btn-primary ng-aprovar">Aprovar</button><button class="btn btn-sm btn-ghost ng-recusar">Recusar</button>` : ''}
+              ${(t.solicitante_id === user.id && t.status === 'Pendente') ? `<button class="btn btn-sm btn-ghost ng-cancelar">Cancelar solicitação</button>` : ''}
+            </div>
+          </div>`).join('') || `<div class="card"><div class="empty">Nenhuma solicitação ainda.</div></div>`}
+      </div>`;
+
+    bindSubNav();
+    const submitBtn = document.getElementById('ng-submit');
+    if (submitBtn) submitBtn.addEventListener('click', async () => {
+      const escala_id = document.getElementById('ng-escala').value;
+      const colega_id = document.getElementById('ng-colega').value || null;
+      const motivo = document.getElementById('ng-motivo').value.trim();
+      const { error: insError } = await sb.from('trocas_plantao').insert({ solicitante_id: user.id, escala_id, colega_id, motivo });
+      if (insError) { FASA.toast('Erro ao solicitar: ' + insError.message); return; }
+      FASA.toast('Solicitação enviada!');
+      paintNegociacoes();
+    });
+    pageEl.querySelectorAll('.card[data-id]').forEach(card => {
+      const id = card.dataset.id;
+      const aprovar = card.querySelector('.ng-aprovar');
+      if (aprovar) aprovar.addEventListener('click', async () => {
+        const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Aprovada', respondido_em: new Date().toISOString() }).eq('id', id);
+        if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+        FASA.toast('Troca aprovada! Ajuste a escala em Administração se necessário.');
+        paintNegociacoes();
+      });
+      const recusar = card.querySelector('.ng-recusar');
+      if (recusar) recusar.addEventListener('click', async () => {
+        const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Recusada', respondido_em: new Date().toISOString() }).eq('id', id);
+        if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+        FASA.toast('Troca recusada.');
+        paintNegociacoes();
+      });
+      const cancelar = card.querySelector('.ng-cancelar');
+      if (cancelar) cancelar.addEventListener('click', async () => {
+        const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Cancelada' }).eq('id', id);
+        if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+        paintNegociacoes();
+      });
+    });
+  }
+
+  function renderSub() { if (subview === 'negociacoes') paintNegociacoes(); else paintCalendario(); }
+  renderSub();
 }
 
 /* ---------------- Biblioteca ---------------- */
