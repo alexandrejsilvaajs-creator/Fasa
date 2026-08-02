@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FASA · Demo</title>
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-   
 <style>
 /* ============================================================
    FASA — Design System (versão demo single-file)
@@ -936,11 +934,14 @@ async function renderEscala() {
 
   const ABAS = [
     { id: 'todas', label: 'Todas' },
-    { id: '12x36-180', label: '12x36' },
-    { id: 'plantao-noturno', label: 'Plantão A/B' },
+    { id: 'noturno-a', label: 'Noturno A' },
+    { id: 'noturno-b', label: 'Noturno B' },
+    { id: 'diurno', label: 'Diurno' },
+    { id: 'diurno-a', label: 'Diurno A' },
+    { id: 'diurno-b', label: 'Diurno B' },
     { id: 'plantao-diurno', label: 'Plantão Diurno' },
   ];
-  const CORES_AUSENCIA = { 'Folga': 'ok', 'Férias': 'muted', 'Afastamento': 'warn', 'Banco de Horas': 'off' };
+  const CORES_AUSENCIA = { 'Folga': 'ok', 'Férias': 'muted', 'Afastamento': 'warn', 'Descanso': 'ok', 'Banco de Horas': 'off' };
   let abaFiltro = 'todas';
   let selecionado = new Date();
   let busca = '';
@@ -953,22 +954,23 @@ async function renderEscala() {
   const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
   const [{ data: escalas, error: e1 }, { data: ausencias, error: e2 }] = await Promise.all([
-    sb.from('escalas').select('id, data, turno, aba, periodo, usuario_id, usuarios!escalas_usuario_id_fkey(nome,cargo,foto_url)').not('data', 'is', null),
+    sb.from('escalas').select('id, data, turno, aba, usuario_id, usuarios!escalas_usuario_id_fkey(nome,cargo,foto_url)').not('data', 'is', null),
     sb.from('ausencias').select('id, tipo, status, data_inicio, data_fim, observacao, usuario_id, usuarios!ausencias_usuario_id_fkey(nome,cargo,foto_url)'),
   ]);
   if (e1 || e2) FASA.toast('Erro ao carregar escala/ausências');
 
   function subNavHtml() {
-    const itens = [{ id: 'calendario', ic: '📅', label: 'Calendário' }, { id: 'negociacoes', ic: '🔄', label: 'Negociações' }, { id: 'ausencias', ic: '🌴', label: 'Folga/Férias' }];
+    const itens = [{ id: 'calendario', ic: '📅', label: 'Calendário' }, { id: 'negociacoes', ic: '🔄', label: 'Negociações' }, { id: 'banco', ic: '🕐', label: 'Banco de Horas' }];
     return `<div class="tabs" style="margin-bottom:18px">${itens.map(i => `<div class="tab ${i.id === subview ? 'active' : ''}" data-subview="${i.id}">${i.ic} ${i.label}</div>`).join('')}</div>`;
   }
   function bindSubNav() {
-    pageEl.querySelectorAll('[data-subview]').forEach(t => t.addEventListener('click', () => { subview = t.dataset.subview; renderSub(); }));
+    pageEl.querySelectorAll('[data-subview]').forEach(t => t.addEventListener('click', () => { subview = t.dataset.subview; negSubview = null; renderSub(); }));
   }
+  let negSubview = null; // null = menu | 'turnos' | 'folgas' | 'descansos' | 'remanejamentos'
 
   function escalasDoDia(dataISO) {
     let linhas = (escalas || []).filter(r => r.data === dataISO);
-    if (abaFiltro !== 'todas') linhas = linhas.filter(r => (r.aba || '12x36-180') === abaFiltro);
+    if (abaFiltro !== 'todas') linhas = linhas.filter(r => r.aba === abaFiltro);
     if (busca.trim()) { const t = busca.trim().toLowerCase(); linhas = linhas.filter(r => ((r.usuarios || {}).nome || '').toLowerCase().includes(t)); }
     return linhas;
   }
@@ -1009,7 +1011,6 @@ async function renderEscala() {
         <div class="eyebrow" style="color:rgba(255,255,255,.75)">Próximo plantão</div>
         ${proximo ? `
           <h2 style="color:#fff;font-size:22px;margin:8px 0 4px">${new Date(proximo.data + 'T00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })} · ${FASA.escapeHtml(proximo.turno)}</h2>
-          <p style="opacity:.9;font-size:13.5px">${proximo.periodo ? proximo.periodo : ''}</p>
         ` : `<p style="opacity:.9;font-size:14px;margin-top:8px">Nenhum plantão futuro cadastrado pra você ainda.</p>`}
       </div>
 
@@ -1068,8 +1069,36 @@ async function renderEscala() {
     buscaInput.setSelectionRange(busca.length, busca.length);
   }
 
-  async function paintNegociacoes() {
-    pageEl.innerHTML = subNavHtml() + `<div class="empty">Carregando negociações...</div>`;
+  function voltarBtnHtml() {
+    return `<button class="btn btn-ghost btn-sm" id="neg-voltar" style="margin-bottom:14px">← Voltar</button>`;
+  }
+  function bindVoltar(fn) {
+    const btn = document.getElementById('neg-voltar');
+    if (btn) btn.addEventListener('click', () => { negSubview = null; fn(); });
+  }
+
+  function paintNegociacoesMenu() {
+    const itens = [
+      { id: 'turnos', ic: '🔄', label: 'Turnos', desc: 'Solicitar troca de plantão' },
+      { id: 'folgas', ic: '🌂', label: 'Folgas', desc: 'Folga, férias ou atestado' },
+      { id: 'descansos', ic: '🛌', label: 'Descansos', desc: 'Solicitar um descanso avulso' },
+      { id: 'remanejamentos', ic: '🔀', label: 'Remanejamentos', desc: 'Pedir mudança de turno/escala' },
+    ];
+    pageEl.innerHTML = subNavHtml() + `
+      <div class="card" style="padding:0">
+        ${itens.map((i, idx) => `
+          <div class="neg-menu-item" data-neg="${i.id}" style="display:flex;align-items:center;gap:14px;padding:16px;cursor:pointer;${idx < itens.length - 1 ? 'border-bottom:1px solid var(--line)' : ''}">
+            <div style="font-size:22px">${i.ic}</div>
+            <div style="flex:1"><div style="font-weight:700;font-size:14.5px">${i.label}</div><div style="font-size:12.5px;color:var(--muted)">${i.desc}</div></div>
+            <div style="color:var(--muted);font-size:18px">›</div>
+          </div>`).join('')}
+      </div>`;
+    bindSubNav();
+    pageEl.querySelectorAll('.neg-menu-item').forEach(el => el.addEventListener('click', () => { negSubview = el.dataset.neg; paintNegociacoes(); }));
+  }
+
+  async function paintNegTurnos() {
+    pageEl.innerHTML = subNavHtml() + voltarBtnHtml() + `<div class="empty">Carregando negociações...</div>`;
     const { data: trocas, error: e3 } = await sb
       .from('trocas_plantao')
       .select('id, motivo, status, criado_em, solicitante_id, escala_id, colega_id, usuarios!trocas_plantao_solicitante_id_fkey(nome), colega:usuarios!trocas_plantao_colega_id_fkey(nome), escalas(data, turno)')
@@ -1082,7 +1111,8 @@ async function renderEscala() {
 
     const STATUS_COR = { Pendente: 'warn', Aprovada: 'ok', Recusada: 'off', Cancelada: 'off' };
 
-    pageEl.innerHTML = subNavHtml() + `
+    pageEl.innerHTML = subNavHtml() + voltarBtnHtml() + `
+      <h2 style="font-size:18px;margin-bottom:14px">🔄 Turnos</h2>
       <div class="card" style="margin-bottom:18px">
         <h3 style="margin-bottom:12px">Solicitar troca de plantão</h3>
         ${minhasEscalasFuturas.length ? `
@@ -1115,6 +1145,7 @@ async function renderEscala() {
       </div>`;
 
     bindSubNav();
+    bindVoltar(paintNegociacoesMenu);
     const submitBtn = document.getElementById('ng-submit');
     if (submitBtn) submitBtn.addEventListener('click', async () => {
       const escala_id = document.getElementById('ng-escala').value;
@@ -1123,7 +1154,7 @@ async function renderEscala() {
       const { error: insError } = await sb.from('trocas_plantao').insert({ solicitante_id: user.id, escala_id, colega_id, motivo });
       if (insError) { FASA.toast('Erro ao solicitar: ' + insError.message); return; }
       FASA.toast('Solicitação enviada!');
-      paintNegociacoes();
+      paintNegTurnos();
     });
     pageEl.querySelectorAll('.card[data-id]').forEach(card => {
       const id = card.dataset.id;
@@ -1132,41 +1163,44 @@ async function renderEscala() {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Aprovada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
         FASA.toast('Troca aprovada! Ajuste a escala em Administração se necessário.');
-        paintNegociacoes();
+        paintNegTurnos();
       });
       const recusar = card.querySelector('.ng-recusar');
       if (recusar) recusar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Recusada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
         FASA.toast('Troca recusada.');
-        paintNegociacoes();
+        paintNegTurnos();
       });
       const cancelar = card.querySelector('.ng-cancelar');
       if (cancelar) cancelar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Cancelada' }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
-        paintNegociacoes();
+        paintNegTurnos();
       });
     });
   }
 
-  async function paintAusenciasColaborador() {
-    pageEl.innerHTML = subNavHtml() + `<div class="empty">Carregando...</div>`;
+  async function paintNegAusencia(config) {
+    // config = { tipos, tituloIcone, tituloTexto, subtitulo }
+    pageEl.innerHTML = subNavHtml() + voltarBtnHtml() + `<div class="empty">Carregando...</div>`;
     const { data: minhas, error: e4 } = await sb
       .from('ausencias')
       .select('id, tipo, status, data_inicio, data_fim, observacao')
       .eq('usuario_id', user.id)
+      .in('tipo', config.tipos)
       .order('data_inicio', { ascending: false });
     if (e4) FASA.toast('Erro ao carregar solicitações: ' + e4.message);
 
     const STATUS_COR = { Pendente: 'warn', Aprovada: 'ok', Recusada: 'off' };
     const hojeISO = iso(new Date());
 
-    pageEl.innerHTML = subNavHtml() + `
+    pageEl.innerHTML = subNavHtml() + voltarBtnHtml() + `
+      <h2 style="font-size:18px;margin-bottom:14px">${config.tituloIcone} ${config.tituloTexto}</h2>
       <div class="card" style="margin-bottom:18px">
-        <h3 style="margin-bottom:12px">Solicitar folga, férias ou atestado</h3>
+        <h3 style="margin-bottom:12px">${config.subtitulo}</h3>
         <div class="grid grid-2">
-          <div class="field"><label>Tipo</label><select id="au-tipo"><option>Folga</option><option>Férias</option><option>Afastamento</option></select></div>
+          ${config.tipos.length > 1 ? `<div class="field"><label>Tipo</label><select id="au-tipo">${config.tipos.map(t => `<option>${t}</option>`).join('')}</select></div>` : `<input type="hidden" id="au-tipo" value="${config.tipos[0]}">`}
           <div class="field"><label>Data início</label><input type="date" id="au-inicio" value="${hojeISO}"></div>
           <div class="field"><label>Data fim</label><input type="date" id="au-fim" value="${hojeISO}"></div>
         </div>
@@ -1190,6 +1224,7 @@ async function renderEscala() {
       </div>`;
 
     bindSubNav();
+    bindVoltar(paintNegociacoesMenu);
     document.getElementById('au-submit').addEventListener('click', async () => {
       const tipo = document.getElementById('au-tipo').value;
       const data_inicio = document.getElementById('au-inicio').value;
@@ -1200,19 +1235,151 @@ async function renderEscala() {
       const { error: insError } = await sb.from('ausencias').insert({ usuario_id: user.id, tipo, data_inicio, data_fim, observacao, status: 'Pendente' });
       if (insError) { FASA.toast('Erro ao enviar: ' + insError.message); return; }
       FASA.toast('Solicitação enviada! Aguarde a aprovação da liderança.');
-      paintAusenciasColaborador();
+      paintNegAusencia(config);
     });
     pageEl.querySelectorAll('.au-cancelar').forEach(btn => btn.addEventListener('click', async () => {
       const id = btn.closest('.card[data-id]').dataset.id;
       const { error: delError } = await sb.from('ausencias').delete().eq('id', id);
       if (delError) { FASA.toast('Erro ao cancelar: ' + delError.message); return; }
-      paintAusenciasColaborador();
+      paintNegAusencia(config);
+    }));
+  }
+
+  async function paintNegRemanejamentos() {
+    pageEl.innerHTML = subNavHtml() + voltarBtnHtml() + `<div class="empty">Carregando...</div>`;
+    const ESCALAS_NOMES = ['Noturno A', 'Noturno B', 'Diurno', 'Diurno A', 'Diurno B', 'Plantão Diurno'];
+    const minhaEscalaAtual = (escalas.find(r => r.usuario_id === user.id) || {}).turno || '';
+    const { data: minhas, error: e5 } = await sb
+      .from('remanejamentos')
+      .select('id, aba_atual, aba_desejada, motivo, status, criado_em')
+      .eq('solicitante_id', user.id)
+      .order('criado_em', { ascending: false });
+    if (e5) FASA.toast('Erro ao carregar remanejamentos: ' + e5.message);
+
+    const STATUS_COR = { Pendente: 'warn', Aprovado: 'ok', Recusado: 'off' };
+
+    pageEl.innerHTML = subNavHtml() + voltarBtnHtml() + `
+      <h2 style="font-size:18px;margin-bottom:14px">🔀 Remanejamentos</h2>
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="margin-bottom:12px">Pedir mudança de turno/escala</h3>
+        <div class="field"><label>Escala/turno desejado</label><select id="rm-desejada">${ESCALAS_NOMES.map(n => `<option>${n}</option>`).join('')}</select></div>
+        <div class="field"><label>Motivo (opcional)</label><input id="rm-motivo" placeholder="Ex: mudança de horário de estudo"></div>
+        <button class="btn btn-accent" id="rm-submit">Enviar pedido</button>
+      </div>
+      <h3 style="font-size:15px;margin-bottom:12px">Minhas solicitações</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${(minhas || []).map(r => `
+          <div class="card" data-id="${r.id}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div>
+                <b>${FASA.escapeHtml(r.aba_atual || 'Atual')} → ${FASA.escapeHtml(r.aba_desejada)}</b>
+                ${r.motivo ? `<p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0">${FASA.escapeHtml(r.motivo)}</p>` : ''}
+              </div>
+              <span class="badge ${STATUS_COR[r.status] || 'off'}">${FASA.escapeHtml(r.status)}</span>
+            </div>
+            ${r.status === 'Pendente' ? `<button class="btn btn-sm btn-ghost rm-cancelar" style="margin-top:10px">Cancelar</button>` : ''}
+          </div>`).join('') || `<div class="card"><div class="empty">Nenhum pedido ainda.</div></div>`}
+      </div>`;
+
+    bindSubNav();
+    bindVoltar(paintNegociacoesMenu);
+    document.getElementById('rm-submit').addEventListener('click', async () => {
+      const aba_desejada = document.getElementById('rm-desejada').value;
+      const motivo = document.getElementById('rm-motivo').value.trim();
+      const { error: insError } = await sb.from('remanejamentos').insert({ solicitante_id: user.id, aba_atual: minhaEscalaAtual, aba_desejada, motivo });
+      if (insError) { FASA.toast('Erro ao enviar: ' + insError.message); return; }
+      FASA.toast('Pedido enviado!');
+      paintNegRemanejamentos();
+    });
+    pageEl.querySelectorAll('.rm-cancelar').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.closest('.card[data-id]').dataset.id;
+      const { error: delError } = await sb.from('remanejamentos').delete().eq('id', id);
+      if (delError) { FASA.toast('Erro ao cancelar: ' + delError.message); return; }
+      paintNegRemanejamentos();
+    }));
+  }
+
+  function paintNegociacoes() {
+    if (negSubview === 'turnos') paintNegTurnos();
+    else if (negSubview === 'folgas') paintNegAusencia({ tipos: ['Folga', 'Férias', 'Afastamento'], tituloIcone: '🌂', tituloTexto: 'Folgas', subtitulo: 'Solicitar folga, férias ou atestado' });
+    else if (negSubview === 'descansos') paintNegAusencia({ tipos: ['Descanso'], tituloIcone: '🛌', tituloTexto: 'Descansos', subtitulo: 'Solicitar um descanso avulso' });
+    else if (negSubview === 'remanejamentos') paintNegRemanejamentos();
+    else paintNegociacoesMenu();
+  }
+
+  async function paintBancoHoras() {
+    pageEl.innerHTML = subNavHtml() + `<div class="empty">Carregando banco de horas...</div>`;
+    const { data: lancamentos, error: e6 } = await sb
+      .from('banco_horas')
+      .select('id, tipo, horas, data, aba, observacao, status')
+      .eq('usuario_id', user.id)
+      .order('data', { ascending: false });
+    if (e6) FASA.toast('Erro ao carregar banco de horas: ' + e6.message);
+
+    const aprovados = (lancamentos || []).filter(l => l.status === 'Aprovada');
+    const saldo = aprovados.reduce((s, l) => s + (l.tipo === 'Crédito' ? Number(l.horas) : -Number(l.horas)), 0);
+    const STATUS_COR = { Pendente: 'warn', Aprovada: 'ok', Recusada: 'off' };
+    const hojeISO = iso(new Date());
+
+    pageEl.innerHTML = subNavHtml() + `
+      <div class="card" style="background:linear-gradient(135deg,var(--primary-dk),var(--primary));color:#fff;margin-bottom:18px;border:none">
+        <div class="eyebrow" style="color:rgba(255,255,255,.75)">Seu saldo atual</div>
+        <h2 style="color:#fff;font-size:28px;margin:8px 0 0">${saldo >= 0 ? '+' : ''}${saldo.toFixed(1)}h</h2>
+      </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="margin-bottom:12px">Lançar horas</h3>
+        <div class="grid grid-2">
+          <div class="field"><label>Tipo</label><select id="bh-tipo"><option>Crédito</option><option>Débito</option></select></div>
+          <div class="field"><label>Quantidade (horas)</label><input type="number" id="bh-horas" min="0" step="0.5" placeholder="Ex: 4"></div>
+          <div class="field"><label>Data</label><input type="date" id="bh-data" value="${hojeISO}"></div>
+          <div class="field"><label>Escala (opcional)</label><select id="bh-aba"><option value="">—</option>${ABAS.filter(a => a.id !== 'todas').map(a => `<option value="${a.id}">${a.label}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>Observação (opcional)</label><input id="bh-obs" placeholder="Ex: hora extra do plantão de sábado"></div>
+        <button class="btn btn-accent" id="bh-submit">Enviar solicitação</button>
+      </div>
+
+      <h3 style="font-size:15px;margin-bottom:12px">Meu histórico</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${(lancamentos || []).map(l => `
+          <div class="card" data-id="${l.id}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div>
+                <b>${l.tipo === 'Crédito' ? '➕' : '➖'} ${l.tipo} · ${Number(l.horas).toFixed(1)}h</b>
+                <div style="font-size:12.5px;color:var(--muted)">${new Date(l.data + 'T00:00').toLocaleDateString('pt-BR')}${l.aba ? ' · ' + FASA.escapeHtml((ABAS.find(a => a.id === l.aba) || {}).label || l.aba) : ''}</div>
+                ${l.observacao ? `<p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0">${FASA.escapeHtml(l.observacao)}</p>` : ''}
+              </div>
+              <span class="badge ${STATUS_COR[l.status] || 'off'}">${FASA.escapeHtml(l.status)}</span>
+            </div>
+            ${l.status === 'Pendente' ? `<button class="btn btn-sm btn-ghost bh-cancelar" style="margin-top:10px">Cancelar solicitação</button>` : ''}
+          </div>`).join('') || `<div class="card"><div class="empty">Nenhum lançamento ainda.</div></div>`}
+      </div>`;
+
+    bindSubNav();
+    document.getElementById('bh-submit').addEventListener('click', async () => {
+      const tipo = document.getElementById('bh-tipo').value;
+      const horas = parseFloat(document.getElementById('bh-horas').value);
+      const data = document.getElementById('bh-data').value;
+      const aba = document.getElementById('bh-aba').value || null;
+      const observacao = document.getElementById('bh-obs').value.trim();
+      if (!horas || horas <= 0) { FASA.toast('Informe a quantidade de horas.'); return; }
+      if (!data) { FASA.toast('Selecione uma data.'); return; }
+      const { error: insError } = await sb.from('banco_horas').insert({ usuario_id: user.id, tipo, horas, data, aba, observacao, status: 'Pendente' });
+      if (insError) { FASA.toast('Erro ao enviar: ' + insError.message); return; }
+      FASA.toast('Solicitação enviada! Aguarde a aprovação da liderança.');
+      paintBancoHoras();
+    });
+    pageEl.querySelectorAll('.bh-cancelar').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.closest('.card[data-id]').dataset.id;
+      const { error: delError } = await sb.from('banco_horas').delete().eq('id', id);
+      if (delError) { FASA.toast('Erro ao cancelar: ' + delError.message); return; }
+      paintBancoHoras();
     }));
   }
 
   function renderSub() {
     if (subview === 'negociacoes') paintNegociacoes();
-    else if (subview === 'ausencias') paintAusenciasColaborador();
+    else if (subview === 'banco') paintBancoHoras();
     else paintCalendario();
   }
   renderSub();
@@ -1618,7 +1785,7 @@ function renderAdmin() {
   if (!user.admin) { pageEl.innerHTML = `<div class="empty"><div class="big">🔒</div>Esta área é restrita à liderança.</div>`; return; }
 
   let tab = 'painel';
-  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'escalas', label: 'Escalas' }, { id: 'ausencias', label: 'Ausências' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }];
+  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'escalas', label: 'Escalas' }, { id: 'ausencias', label: 'Ausências' }, { id: 'banco', label: 'Banco de Horas' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }];
   function shellHtml(inner) { return `<div class="tabs">${TABS.map(t => `<div class="tab ${t.id === tab ? 'active' : ''}" data-tab="${t.id}">${t.label}</div>`).join('')}</div>${inner}`; }
   function bindTabs() { pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { tab = t.dataset.tab; render(); })); }
 
@@ -1694,22 +1861,25 @@ function renderAdmin() {
   async function paintEscalas() {
     pageEl.innerHTML = shellHtml(`<div class="empty">Carregando escalas...</div>`);
     const ABAS = [
-      { id: '12x36-180', label: '12x36' },
-      { id: 'plantao-noturno', label: 'Plantão A/B (Noturno)' },
+      { id: 'noturno-a', label: 'Noturno A' },
+      { id: 'noturno-b', label: 'Noturno B' },
+      { id: 'diurno', label: 'Diurno' },
+      { id: 'diurno-a', label: 'Diurno A' },
+      { id: 'diurno-b', label: 'Diurno B' },
       { id: 'plantao-diurno', label: 'Plantão Diurno (Manhã/Tarde)' },
     ];
 
     const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
     const { data: rows, error } = await sb
       .from('escalas')
-      .select('id, data, turno, aba, periodo, usuario_id, usuarios!escalas_usuario_id_fkey(nome)')
+      .select('id, data, turno, aba, usuario_id, usuarios!escalas_usuario_id_fkey(nome)')
       .order('data');
     if (error) { FASA.toast('Erro ao carregar escalas: ' + error.message); }
 
     function turnoOptions(aba) {
       if (aba === 'plantao-noturno') return ['Plantão A', 'Plantão B'];
       if (aba === 'plantao-diurno') return ['Manhã', 'Tarde'];
-      return ['Noturno A', 'Noturno B', 'Diurno', 'Diurno A', 'Diurno B'];
+      return null; // sem escolha — o turno é o próprio nome da aba
     }
     const hojeISO = new Date().toISOString().slice(0, 10);
 
@@ -1717,9 +1887,8 @@ function renderAdmin() {
       <div class="card" style="margin-bottom:18px">
         <h3 style="margin-bottom:12px">Adicionar à escala</h3>
         <div class="grid grid-3">
-          <div class="field"><label>Aba</label><select id="es-aba">${ABAS.map(a => `<option value="${a.id}">${a.label}</option>`).join('')}</select></div>
-          <div class="field" id="es-periodo-wrap"><label>Período</label><select id="es-periodo"><option>Diurno</option><option>Noturno</option></select></div>
-          <div class="field"><label>Turno / Plantão</label><select id="es-turno">${turnoOptions('12x36-180').map(t => `<option>${t}</option>`).join('')}</select></div>
+          <div class="field"><label>Escala</label><select id="es-aba">${ABAS.map(a => `<option value="${a.id}">${a.label}</option>`).join('')}</select></div>
+          <div class="field" id="es-turno-wrap"><label>Turno / Plantão</label><select id="es-turno"></select></div>
           <div class="field"><label>Data</label><input type="date" id="es-data" value="${hojeISO}"></div>
           <div class="field"><label>Colaborador</label><select id="es-usuario">${(usuarios || []).map(u => `<option value="${u.id}">${FASA.escapeHtml(u.nome)}</option>`).join('')}</select></div>
         </div>
@@ -1730,22 +1899,22 @@ function renderAdmin() {
     bindTabs();
 
     const abaSelect = document.getElementById('es-aba');
-    const periodoWrap = document.getElementById('es-periodo-wrap');
+    const turnoWrap = document.getElementById('es-turno-wrap');
     const turnoSelect = document.getElementById('es-turno');
     function atualizarCampos() {
-      const aba = abaSelect.value;
-      periodoWrap.style.display = (aba === '12x36-180') ? '' : 'none';
-      turnoSelect.innerHTML = turnoOptions(aba).map(t => `<option>${t}</option>`).join('');
+      const opcoes = turnoOptions(abaSelect.value);
+      if (opcoes) { turnoWrap.style.display = ''; turnoSelect.innerHTML = opcoes.map(t => `<option>${t}</option>`).join(''); }
+      else { turnoWrap.style.display = 'none'; }
     }
     abaSelect.addEventListener('change', atualizarCampos);
     atualizarCampos();
 
     let filtroAtivo = ABAS[0].id;
     function pintarLista() {
-      const linhas = (rows || []).filter(r => (r.aba || '12x36-180') === filtroAtivo);
+      const linhas = (rows || []).filter(r => r.aba === filtroAtivo);
       document.getElementById('es-lista-wrap').innerHTML = `
-        <table><thead><tr><th>Data</th><th>Período</th><th>Turno/Plantão</th><th>Colaborador</th><th></th></tr></thead><tbody>
-          ${linhas.map(r => `<tr><td>${r.data ? new Date(r.data + 'T00:00').toLocaleDateString('pt-BR') : '—'}</td><td>${r.periodo || '—'}</td><td>${r.turno}</td><td>${FASA.escapeHtml((r.usuarios || {}).nome || '—')}</td><td><button class="icon-action del-escala" data-id="${r.id}">🗑</button></td></tr>`).join('') || `<tr><td colspan="5"><div class="empty">Nenhuma escala nesta aba.</div></td></tr>`}
+        <table><thead><tr><th>Data</th><th>Turno/Plantão</th><th>Colaborador</th><th></th></tr></thead><tbody>
+          ${linhas.map(r => `<tr><td>${r.data ? new Date(r.data + 'T00:00').toLocaleDateString('pt-BR') : '—'}</td><td>${FASA.escapeHtml(r.turno)}</td><td>${FASA.escapeHtml((r.usuarios || {}).nome || '—')}</td><td><button class="icon-action del-escala" data-id="${r.id}">🗑</button></td></tr>`).join('') || `<tr><td colspan="4"><div class="empty">Nenhuma escala nesta aba.</div></td></tr>`}
         </tbody></table>`;
       document.querySelectorAll('.del-escala').forEach(btn => btn.addEventListener('click', async () => {
         const { error: delError } = await sb.from('escalas').delete().eq('id', btn.dataset.id);
@@ -1764,14 +1933,14 @@ function renderAdmin() {
     const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     document.getElementById('es-submit').addEventListener('click', async () => {
       const aba = abaSelect.value;
-      const periodo = (aba === '12x36-180') ? document.getElementById('es-periodo').value : null;
-      const turno = turnoSelect.value;
+      const opcoes = turnoOptions(aba);
+      const turno = opcoes ? turnoSelect.value : ABAS.find(a => a.id === aba).label;
       const data = document.getElementById('es-data').value;
       const usuario_id = document.getElementById('es-usuario').value;
       if (!usuario_id) { FASA.toast('Selecione um colaborador.'); return; }
       if (!data) { FASA.toast('Selecione uma data.'); return; }
       const dia = DIAS_SEMANA[new Date(data + 'T00:00').getDay()];
-      const { error: insError } = await sb.from('escalas').insert({ aba, periodo, turno, dia, data, usuario_id });
+      const { error: insError } = await sb.from('escalas').insert({ aba, turno, dia, data, usuario_id });
       if (insError) { FASA.toast('Erro ao adicionar: ' + insError.message); return; }
       FASA.toast('Adicionado à escala!');
       paintEscalas();
@@ -1796,7 +1965,7 @@ function renderAdmin() {
         <h3 style="margin-bottom:12px">Registrar ausência diretamente</h3>
         <div class="grid grid-2" style="margin-bottom:0">
           <div class="field"><label>Colaborador</label><select id="au-usuario">${(usuarios || []).map(u => `<option value="${u.id}">${FASA.escapeHtml(u.nome)}</option>`).join('')}</select></div>
-          <div class="field"><label>Tipo</label><select id="au-tipo"><option>Folga</option><option>Férias</option><option>Afastamento</option><option>Banco de Horas</option></select></div>
+          <div class="field"><label>Tipo</label><select id="au-tipo"><option>Folga</option><option>Férias</option><option>Afastamento</option><option>Descanso</option><option>Banco de Horas</option></select></div>
           <div class="field"><label>Data início</label><input type="date" id="au-inicio" value="${hojeISO}"></div>
           <div class="field"><label>Data fim</label><input type="date" id="au-fim" value="${hojeISO}"></div>
         </div>
@@ -1857,6 +2026,86 @@ function renderAdmin() {
       const { error: delError } = await sb.from('ausencias').delete().eq('id', id);
       if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
       paintAusencias();
+    }));
+  }
+
+  async function paintBancoHorasAdmin() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando banco de horas...</div>`);
+    const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
+    const { data: lancamentos, error } = await sb
+      .from('banco_horas')
+      .select('id, tipo, horas, data, aba, observacao, status, usuarios!banco_horas_usuario_id_fkey(nome)')
+      .order('data', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar banco de horas: ' + error.message); }
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    const STATUS_COR = { Pendente: 'warn', Aprovada: 'ok', Recusada: 'off' };
+    const pendentes = (lancamentos || []).filter(l => l.status === 'Pendente');
+    const resto = (lancamentos || []).filter(l => l.status !== 'Pendente');
+
+    pageEl.innerHTML = shellHtml(`
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="margin-bottom:12px">Lançar horas diretamente</h3>
+        <div class="grid grid-2">
+          <div class="field"><label>Colaborador</label><select id="bh-usuario">${(usuarios || []).map(u => `<option value="${u.id}">${FASA.escapeHtml(u.nome)}</option>`).join('')}</select></div>
+          <div class="field"><label>Tipo</label><select id="bh-tipo"><option>Crédito</option><option>Débito</option></select></div>
+          <div class="field"><label>Horas</label><input type="number" id="bh-horas" min="0" step="0.5"></div>
+          <div class="field"><label>Data</label><input type="date" id="bh-data" value="${hojeISO}"></div>
+        </div>
+        <div class="field"><label>Observação (opcional)</label><input id="bh-obs" placeholder="Ex: hora extra aprovada previamente"></div>
+        <button class="btn btn-primary" id="bh-submit">Registrar (já aprovado)</button>
+      </div>
+      ${pendentes.length ? `
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="margin-bottom:12px">Solicitações pendentes</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${pendentes.map(l => `<div class="card" data-id="${l.id}" style="box-shadow:none;border:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div><b>${FASA.escapeHtml((l.usuarios || {}).nome || '—')}</b> · ${FASA.escapeHtml(l.tipo)} · ${Number(l.horas).toFixed(1)}h
+                <div style="font-size:12.5px;color:var(--muted)">${new Date(l.data + 'T00:00').toLocaleDateString('pt-BR')}</div>
+                ${l.observacao ? `<p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0">${FASA.escapeHtml(l.observacao)}</p>` : ''}
+              </div>
+              <span class="badge warn">Pendente</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-sm btn-primary bh-aprovar">Aprovar</button><button class="btn btn-sm btn-ghost bh-recusar">Recusar</button></div>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+      <div class="card table-wrap"><table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Horas</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>
+        ${resto.map(l => `<tr data-id="${l.id}"><td>${FASA.escapeHtml((l.usuarios || {}).nome || '—')}</td><td>${FASA.escapeHtml(l.tipo)}</td><td>${Number(l.horas).toFixed(1)}h</td><td>${new Date(l.data + 'T00:00').toLocaleDateString('pt-BR')}</td><td><span class="badge ${STATUS_COR[l.status] || 'ok'}">${FASA.escapeHtml(l.status)}</span></td><td><button class="icon-action del-banco">🗑</button></td></tr>`).join('') || `<tr><td colspan="6"><div class="empty">Nenhum lançamento registrado.</div></td></tr>`}
+      </tbody></table></div>`);
+    bindTabs();
+
+    pageEl.querySelectorAll('.bh-aprovar').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.closest('.card[data-id]').dataset.id;
+      const { error: updError } = await sb.from('banco_horas').update({ status: 'Aprovada' }).eq('id', id);
+      if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      FASA.toast('Lançamento aprovado!');
+      paintBancoHorasAdmin();
+    }));
+    pageEl.querySelectorAll('.bh-recusar').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.closest('.card[data-id]').dataset.id;
+      const { error: updError } = await sb.from('banco_horas').update({ status: 'Recusada' }).eq('id', id);
+      if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      FASA.toast('Solicitação recusada.');
+      paintBancoHorasAdmin();
+    }));
+    document.getElementById('bh-submit').addEventListener('click', async () => {
+      const usuario_id = document.getElementById('bh-usuario').value;
+      const tipo = document.getElementById('bh-tipo').value;
+      const horas = parseFloat(document.getElementById('bh-horas').value);
+      const data = document.getElementById('bh-data').value;
+      const observacao = document.getElementById('bh-obs').value.trim();
+      if (!usuario_id || !horas || horas <= 0 || !data) { FASA.toast('Preencha colaborador, horas e data.'); return; }
+      const { error: insError } = await sb.from('banco_horas').insert({ usuario_id, tipo, horas, data, observacao, status: 'Aprovada' });
+      if (insError) { FASA.toast('Erro ao registrar: ' + insError.message); return; }
+      FASA.toast('Lançamento registrado!');
+      paintBancoHorasAdmin();
+    });
+    pageEl.querySelectorAll('.del-banco').forEach(btn => btn.addEventListener('click', async (e) => {
+      const id = e.target.closest('tr').dataset.id;
+      const { error: delError } = await sb.from('banco_horas').delete().eq('id', id);
+      if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
+      paintBancoHorasAdmin();
     }));
   }
 
@@ -1958,7 +2207,7 @@ function renderAdmin() {
     }));
   }
 
-  function render() { ({ painel: paintPainel, usuarios: paintUsuarios, escalas: paintEscalas, ausencias: paintAusencias, avisos: paintAvisos, comunidades: paintComunidades, documentos: paintDocumentos })[tab](); }
+  function render() { ({ painel: paintPainel, usuarios: paintUsuarios, escalas: paintEscalas, ausencias: paintAusencias, banco: paintBancoHorasAdmin, avisos: paintAvisos, comunidades: paintComunidades, documentos: paintDocumentos })[tab](); }
   render();
 }
 
@@ -1982,16 +2231,6 @@ FASA.seed();
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
 router();
-       // ===== CONEXÃO COM O SUPABASE =====
-    const SUPABASE_URL = 'https://qhmjrdnxjkpqxijhxjuv.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_pdI7QD_wTeWcGO1vn1cETg_xnUXUDbz';
-
-    if (typeof supabase !== 'undefined') {
-      window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log("Supabase conectado com sucesso!");
-    }
-
-   
 </script>
 </body>
 </html>
