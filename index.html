@@ -1980,14 +1980,16 @@ FASA.seed();
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
 router();
-   // ===== CONEXÃO COM O SUPABASE =====
-const SUPABASE_URL = 'SUA_URL_DO_SUPABASE';
-const SUPABASE_KEY = 'SUA_CHAVE_ANON_DO_SUPABASE';
+       // ===== CONEXÃO COM O SUPABASE =====
+    const SUPABASE_URL = 'https://qhmjrdnxjkpqxijhxjuv.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_pdI7QD_wTeWcGO1vn1cETg_xnUXUDbz';
 
-if (typeof supabase !== 'undefined') {
-  window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  console.log("Supabase conectado com sucesso!");
-   }
+    if (typeof supabase !== 'undefined') {
+      window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      console.log("Supabase conectado com sucesso!");
+    }
+// ===== CONEXÃO COM O SUPABASE =====
+
    
 </script>
 </body>
