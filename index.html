@@ -1980,6 +1980,15 @@ FASA.seed();
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
 router();
+   // ===== CONEXÃO COM O SUPABASE =====
+const SUPABASE_URL = 'SUA_URL_DO_SUPABASE';
+const SUPABASE_KEY = 'SUA_CHAVE_ANON_DO_SUPABASE';
+
+if (typeof supabase !== 'undefined') {
+  window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  console.log("Supabase conectado com sucesso!");
+   }
+   
 </script>
 </body>
 </html>
