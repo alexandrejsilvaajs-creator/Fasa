@@ -943,11 +943,10 @@ async function renderPerfil() {
           await sb.from('comunidade_membros').insert({ comunidade_id: id, usuario_id: user.id });
         }
         load();
-      });
-    });
-  }
-  load();
+   });
+  });
 }
+
 
 /* ---------------- Avisos ---------------- */
 function renderAvisos() {
