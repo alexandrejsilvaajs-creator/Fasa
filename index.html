@@ -8,7 +8,7 @@
 
 <style>
 /* ============================================================
-   FASA — Design System (versão demo single-file)
+   FASA — Design System
    ============================================================ */
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -39,7 +39,6 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 .pill::before{content:"";width:8px;height:16px;border-radius:5px;background:var(--primary);flex:none}
 .pill.accent{background:var(--accent-lt);color:var(--accent-dk)}.pill.accent::before{background:var(--accent)}
 .pill.muted{background:var(--paper-2);color:var(--muted)}.pill.muted::before{background:var(--muted)}
-.pill.live::before{background:#3AA35C;box-shadow:0 0 0 3px rgba(58,163,92,.25)}
 .auth-shell{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
 @media (max-width:860px){.auth-shell{grid-template-columns:1fr}}
 .auth-art{background:linear-gradient(160deg,var(--primary-dk),var(--primary) 60%,#2F8A73);color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:48px}
@@ -51,18 +50,10 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 .auth-quote small{display:block;font-family:var(--f-mono);font-size:12px;opacity:.75;margin-top:14px;text-transform:uppercase;letter-spacing:.1em}
 .auth-form-wrap{display:flex;align-items:center;justify-content:center;padding:32px}
 .auth-form{width:100%;max-width:380px}
-.auth-form .mark-mobile{display:none}
-@media (max-width:860px){.auth-form .mark-mobile{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-family:var(--f-display);font-size:20px;color:var(--primary-dk)}}
-.auth-form h1{font-size:30px;margin-bottom:6px}
-.auth-form .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
 .field{margin-bottom:16px}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.01em}
 .field input,.field select,.field textarea{width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:#fff;font-size:14px;font-family:var(--f-body);color:var(--ink)}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);outline:none}
-.field-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:14px 0 22px}
-.checkline{display:flex;align-items:center;gap:8px;color:var(--ink-soft)}
-.checkline input{width:16px;height:16px;accent-color:var(--primary)}
-.link{color:var(--primary);font-weight:600}.link:hover{text-decoration:underline}
 .err{background:#FBEAEA;color:var(--danger);border:1px solid #F1C6C6;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
 .err.show{display:block}
 .app-shell{display:flex;min-height:100vh}
@@ -75,7 +66,7 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 .nav-item.active{background:var(--primary-lt);color:var(--primary-dk);font-weight:700}
 .sidebar-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--line)}
 .avatar{width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none;font-family:var(--f-display)}
-.avatar.sm{width:30px;height:30px;font-size:12px}.avatar.lg{width:64px;height:64px;font-size:22px}
+.avatar.sm{width:30px;height:30px;font-size:12px}.avatar.lg{width:80px;height:80px;font-size:28px;border:4px solid #fff;box-shadow:var(--shadow)}
 .sidebar-user .who{min-width:0}
 .sidebar-user .who .name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-user .who .role{font-size:11px;color:var(--muted)}
@@ -88,7 +79,6 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 .topbar-search input{border:none;outline:none;background:none;font-size:13px;width:100%;font-family:inherit}
 .menu-btn{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink)}
 .page{padding:24px 28px;max-width:1040px}
-.page.wide{max-width:none}
 @media (max-width:900px){.sidebar{position:fixed;left:-260px;z-index:20;transition:.2s;box-shadow:var(--shadow-lg)}.sidebar.open{left:0}.menu-btn{display:block}.page{padding:18px}.topbar{padding:12px 16px}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
 .composer{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px}
@@ -101,78 +91,30 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 .post-head .meta .sub{font-size:12px;color:var(--muted)}
 .post-body{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin-bottom:12px;white-space:pre-wrap}
 
-/* Reações com Emojis & Comentários */
+/* Estilo Facebook - Perfil Header e Reações */
+.profile-cover{height:160px;background:linear-gradient(135deg,var(--primary-dk),var(--primary),var(--accent));border-radius:var(--radius) var(--radius) 0 0;position:relative}
+.profile-header-card{padding:0;overflow:hidden;margin-bottom:20px}
+.profile-info-bar{padding:16px 24px 20px;display:flex;align-items:flex-end;gap:16px;margin-top:-40px;position:relative;z-index:2;flex-wrap:wrap}
+.profile-details{flex:1;min-width:200px}
+.profile-details h1{font-size:24px;margin-bottom:2px}
+.profile-details .bio{font-size:13.5px;color:var(--muted);margin-bottom:8px}
+
 .reactions-bar{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
 .reaction-btn{display:inline-flex;align-items:center;gap:4px;background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-pill);padding:5px 12px;font-size:13px;cursor:pointer;transition:.15s ease}
-.reaction-btn:hover{background:var(--primary-lt);border-color:var(--primary)}
-.reaction-btn.active{background:var(--primary-lt);border-color:var(--primary);font-weight:700;color:var(--primary-dk)}
+.reaction-btn:hover,.reaction-btn.active{background:var(--primary-lt);border-color:var(--primary);color:var(--primary-dk);font-weight:600}
 .toggle-comments-btn{margin-left:auto;background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;font-weight:600}
-.toggle-comments-btn:hover{color:var(--primary)}
 .comments-section{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .comment-item{background:var(--paper-2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:8px;font-size:13px}
 .comment-item .c-head{display:flex;justify-content:space-between;margin-bottom:4px}
 .comment-item .c-author{font-weight:700;color:var(--ink)}
 .comment-item .c-time{font-size:11px;color:var(--muted)}
-.comment-item .c-text{color:var(--ink-soft);line-height:1.4}
 .comment-input-box{display:flex;gap:8px;margin-top:10px}
 .comment-input-box input{flex:1;border:1px solid var(--line);border-radius:var(--radius-pill);padding:8px 14px;font-size:13px;outline:none}
-.comment-input-box input:focus{border-color:var(--primary)}
 
 .two-col{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
 @media (max-width:900px){.two-col{grid-template-columns:1fr}}
 .side-card+.side-card{margin-top:18px}
 .side-card h3{font-size:14px;margin-bottom:12px}
-.mini-list{display:flex;flex-direction:column;gap:10px}
-.mini-item{display:flex;align-items:center;gap:10px;font-size:13px}
-.mini-item .t{flex:1;min-width:0}
-.mini-item .t .n{font-weight:600;font-size:13px}
-.mini-item .t .s{font-size:11.5px;color:var(--muted)}
-.grid{display:grid;gap:16px}
-.grid-2{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-4{grid-template-columns:repeat(4,1fr)}
-@media (max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:560px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
-.comm-card{overflow:hidden}
-.comm-banner{height:84px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;margin:-18px -18px 14px;background:linear-gradient(135deg,var(--primary),var(--accent))}
-.comm-card h3{font-size:16px;margin-bottom:4px}
-.comm-card .desc{font-size:12.5px;color:var(--muted);margin-bottom:12px;min-height:32px}
-.comm-card .foot{display:flex;justify-content:space-between;align-items:center}
-.aviso{border-left:4px solid var(--accent);padding-left:14px}
-.aviso h3{font-size:15px;margin-bottom:4px}
-.aviso .sub{font-size:12px;color:var(--muted);margin-bottom:8px}
-.aviso p{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0}
-.doc-card{display:flex;gap:12px;align-items:flex-start}
-.doc-ic{width:42px;height:42px;border-radius:var(--radius-sm);background:var(--primary-lt);color:var(--primary-dk);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
-.doc-card h3{font-size:14px;margin-bottom:2px}
-.doc-card .meta{font-size:11.5px;color:var(--muted)}
-.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
-.tab{padding:8px 16px;border-radius:var(--radius-pill);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff}
-.tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
-.poll-opt{position:relative;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;cursor:pointer;overflow:hidden;background:#fff}
-.poll-opt .fill{position:absolute;inset:0;background:var(--primary-lt);z-index:0;transition:.4s}
-.poll-opt .txt{position:relative;z-index:1;display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
-.poll-opt.voted{border-color:var(--primary)}
-.rank-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.rank-row:last-child{border-bottom:none}
-.rank-pos{width:26px;text-align:center;font-family:var(--f-mono);font-weight:700;color:var(--muted)}
-.rank-pos.top{color:var(--gold)}
-.rank-row .pts{margin-left:auto;font-family:var(--f-mono);font-size:13px;color:var(--primary-dk);font-weight:700}
-.chat-shell{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 62px)}
-@media (max-width:760px){.chat-shell{grid-template-columns:1fr}}
-.chat-list{border-right:1px solid var(--line);overflow-y:auto;padding:12px}
-.chat-conv{display:flex;gap:10px;align-items:center;padding:10px;border-radius:var(--radius-sm);cursor:pointer}
-.chat-conv:hover,.chat-conv.active{background:var(--paper-2)}
-.chat-conv .t{min-width:0;flex:1}
-.chat-conv .t .n{font-size:13.5px;font-weight:700}
-.chat-conv .t .m{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-main{display:flex;flex-direction:column;min-width:0}
-.chat-head{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
-.chat-msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:60%;padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.4}
-.msg.in{background:var(--paper-2);align-self:flex-start;border-bottom-left-radius:4px}
-.msg.out{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.msg .time{display:block;font-size:10px;opacity:.65;margin-top:4px}
-.chat-input{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
-.chat-input input{flex:1;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;font-size:13.5px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:.25s;z-index:100}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .overlay-bg{position:fixed;inset:0;background:rgba(22,36,31,.4);z-index:15;display:none}
@@ -186,21 +128,13 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-/* ============================================================
-   Conexão Supabase
-   ============================================================ */
 const SUPABASE_URL = 'https://qhmjrdnxjkpqxijhxjuv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_pdI7QD_wTeWcGO1vn1cETg_xnUXUDbz';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ============================================================
-   Núcleo FASA
-   ============================================================ */
 const FASA = (() => {
   let _db = null;
   let _session = null;
-  const _joined = {};
-
   const EMOJIS = ['❤️', '👍', '👏', '💡', '🔥'];
 
   const NAV_ITEMS = [
@@ -215,59 +149,18 @@ const FASA = (() => {
     { id: 'ranking', icon: '🏆', label: 'Reconhecimento' },
   ];
 
-  const COMUNIDADES = [
-    { id: 'farmacia-clinica', nome: 'Farmácia Clínica', desc: 'Discussões clínicas, interações e acompanhamento farmacoterapêutico.', membros: 84 },
-    { id: 'centro-cirurgico', nome: 'Centro Cirúrgico', desc: 'Escalas, materiais e protocolos do centro cirúrgico.', membros: 52 },
-    { id: 'uti', nome: 'UTI', desc: 'Rotina, intercorrências e protocolos da unidade de terapia intensiva.', membros: 47 },
-    { id: 'oncologia', nome: 'Oncologia', desc: 'Quimioterápicos, manipulação e cuidados oncológicos.', membros: 36 },
-    { id: 'logistica', nome: 'Logística', desc: 'Estoque, recebimento e distribuição de medicamentos.', membros: 29 },
-    { id: 'treinamentos', nome: 'Treinamentos', desc: 'Capacitações, cursos internos e certificações.', membros: 61 },
-    { id: 'qualidade', nome: 'Qualidade', desc: 'Indicadores, auditorias e melhoria contínua.', membros: 33 },
-  ];
-
   function seed() {
     if (_db) return;
     const now = Date.now();
     _db = {
       usuarios: [
-        { id: 'u1', nome: 'Alexandre', matricula: '30001', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'alexandre.jsilva.ajs@gmail.com', senha: '123', admin: true, pontos: 260 },
-        { id: 'u2', nome: 'Thais', matricula: '30002', cargo: 'Coordenadora', setor: 'Farmácia', email: 'thais@fasa.local', senha: '123', admin: true, pontos: 480 },
-        { id: 'u3', nome: 'Camila', matricula: '30003', cargo: 'Farmacêutica', setor: 'Farmácia', email: 'camila@fasa.local', senha: '123', admin: false, pontos: 400 },
-        { id: 'u4', nome: 'Welton', matricula: '30004', cargo: 'Líder', setor: 'Farmácia', email: 'welton@fasa.local', senha: '123', admin: true, pontos: 440 },
-        { id: 'u5', nome: 'Antônio', matricula: '30005', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'antonio@fasa.local', senha: '123', admin: false, pontos: 210 },
+        { id: 'u1', nome: 'Alexandre', matricula: '30001', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'alexandre.jsilva.ajs@gmail.com', bio: 'Focado na excelência do atendimento e cuidados com o paciente. 💊', conexoes: 42, foto_url: '', pontos: 260 },
+        { id: 'u2', nome: 'Thais', matricula: '30002', cargo: 'Coordenadora', setor: 'Farmácia', email: 'thais@fasa.local', bio: 'Coordenando com paixão!', conexoes: 58, pontos: 480 },
+        { id: 'u3', nome: 'Camila', matricula: '30003', cargo: 'Farmacêutica', setor: 'Farmácia', email: 'camila@fasa.local', bio: 'Farmácia clínica e cuidados intensivos.', conexoes: 35, pontos: 400 },
       ],
       posts: [
-        { 
-          id: 'p1', autorId: 'u4', texto: 'Bom dia, equipe! Hoje às 15h teremos o treinamento sobre medicamentos termolábeis na sala 2. Presença confirmada para quem está na escala.', ts: now - 3600e3 * 2, 
-          reacoes: { '❤️': ['u1', 'u3'], '👍': ['u2'] }, 
-          comentarios: [{ autorId: 'u3', texto: 'Confirmado, já anotei!', ts: now - 3400e3 }] 
-        },
-        { 
-          id: 'p2', autorId: 'u1', texto: 'Alguém tem o contato atualizado do plantão de hoje? Preciso validar uma dispensação.', ts: now - 3600e3 * 5, 
-          reacoes: { '💡': ['u3'] }, 
-          comentarios: [{ autorId: 'u4', texto: 'Te mandei no privado, Alexandre!', ts: now - 3600e3 * 4 }] 
-        },
-      ],
-      avisos: [
-        { id: 'a1', autorId: 'u2', titulo: 'Atualização do protocolo de antibióticos', ts: now - 3600e3 * 8, texto: 'O protocolo de antibioticoterapia foi revisado pela CCIH. A nova versão já está disponível na Biblioteca.' },
-      ],
-      biblioteca: [
-        { id: 'd1', nome: 'POP — Dispensação de Antibióticos', tipo: 'PDF', categoria: 'POPs', atualizado: now - 3600e3 * 20 },
-        { id: 'd2', nome: 'Protocolo de Medicamentos Termolábeis', tipo: 'PDF', categoria: 'Protocolos', atualizado: now - 3600e3 * 8 },
-      ],
-      escala: [
-        { dia: 'Segunda', turno: 'Manhã', equipe: ['Alexandre', 'Vanessa'] },
-        { dia: 'Terça', turno: 'Manhã', equipe: ['Welton', 'Sheila'] },
-      ],
-      enquetes: [
-        { id: 'e1', pergunta: 'Qual tema você quer no próximo treinamento?', opcoes: [{ t: 'Medicamentos de alta vigilância', v: 8 }, { t: 'Boas práticas de manipulação', v: 5 }], votouIds: [] },
-      ],
-      sugestoes: [
-        { id: 's1', autorId: 'u1', texto: 'Sugiro criar um checklist rápido no app para conferência de materiais.', ts: now - 3600e3 * 12, apoios: ['u4'] },
-      ],
-      chats: {
-        'u1_u2': [{ de: 'u2', texto: 'Oi! Viu o aviso do treinamento?', ts: now - 3600e3 * 3 }]
-      }
+        { id: 'p1', autorId: 'u1', texto: 'Iniciando o turno com foco total na dispensação rápida e segura! Bom trabalho a todos.', ts: now - 3600e3 * 2, reacoes: { '❤️': ['u2', 'u3'] }, comentarios: [{ autorId: 'u2', texto: 'Bom turno, Alexandre!', ts: now - 3400e3 }] },
+      ]
     };
   }
 
@@ -278,12 +171,10 @@ const FASA = (() => {
   function clearSession() { _session = null; }
   function currentUser() {
     const s = getSession();
-    if (!s) return null;
-    return getDB().usuarios.find(u => u.id === s.userId) || null;
+    return s ? getDB().usuarios.find(u => u.id === s.userId) || null : null;
   }
   function initials(nome) { return (nome || '?').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase(); }
-  function avatarHtml(pessoa, sizeClass) {
-    sizeClass = sizeClass || '';
+  function avatarHtml(pessoa, sizeClass = '') {
     const cls = ('avatar ' + sizeClass).trim();
     if (pessoa && pessoa.foto_url) {
       return `<div class="${cls}" style="padding:0;overflow:hidden"><img src="${pessoa.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
@@ -291,36 +182,26 @@ const FASA = (() => {
     return `<div class="${cls}">${initials((pessoa && pessoa.nome) || '?')}</div>`;
   }
   function timeAgo(ts) {
-    const diff = Date.now() - ts, h = Math.floor(diff / 3600e3);
-    if (h < 1) return 'agora há pouco';
-    if (h < 24) return `há ${h}h`;
-    const d = Math.floor(h / 24);
-    return `há ${d}d`;
+    const h = Math.floor((Date.now() - ts) / 3600e3);
+    return h < 1 ? 'agora há pouco' : h < 24 ? `há ${h}h` : `há ${Math.floor(h / 24)}d`;
   }
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function logoMark(size = 30) {
-    return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="12" fill="#1F6F5C"/>
-      <rect x="9" y="17" width="22" height="10" rx="5" fill="#F3F7F3"/>
-      <rect x="9" y="17" width="11" height="10" rx="5" fill="#E8873A"/>
-    </svg>`;
+    return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="12" fill="#1F6F5C"/><rect x="9" y="17" width="22" height="10" rx="5" fill="#F3F7F3"/><rect x="9" y="17" width="11" height="10" rx="5" fill="#E8873A"/></svg>`;
   }
   function toast(msg) {
     let el = document.querySelector('.toast');
     if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(el._t);
-    el._t = setTimeout(() => el.classList.remove('show'), 2200);
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200);
   }
   function go(route) { location.hash = '#/' + route; }
 
-  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, escapeHtml, logoMark, toast, go, EMOJIS, COMUNIDADES, NAV_ITEMS };
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, escapeHtml, logoMark, toast, go, EMOJIS, NAV_ITEMS };
 })();
 
 const root = document.getElementById('root');
 
-/* ---------------- Shell ---------------- */
 function renderShell(activeId, title) {
   const user = FASA.currentUser();
   root.innerHTML = `
@@ -350,20 +231,13 @@ function renderShell(activeId, title) {
   const navEl = document.getElementById('fasa-nav');
   navEl.innerHTML = FASA.NAV_ITEMS.map(it => `
     <a class="nav-item ${it.id === activeId ? 'active' : ''}" data-route="${it.id}"><span class="ic">${it.icon}</span>${it.label}</a>
-  `).join('') + (user.admin ? `<a class="nav-item ${activeId === 'admin' ? 'active' : ''}" data-route="admin"><span class="ic">⚙</span>Administração</a>` : '');
+  `).join('');
 
   navEl.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => FASA.go(a.dataset.route)));
-
   document.getElementById('fasa-logout').addEventListener('click', async () => { await sb.auth.signOut(); FASA.clearSession(); FASA.go('login'); });
-  const sidebar = document.getElementById('fasa-sidebar');
-  const overlay = document.getElementById('fasa-overlay');
-  document.getElementById('fasa-menu-btn').addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('show'); });
-  overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
-
   return { user, pageEl: document.getElementById('fasa-page') };
 }
 
-/* ---------------- Render de Reações & Comentários do Post ---------------- */
 function renderPostCardHTML(post, user) {
   const db = FASA.getDB();
   const autor = db.usuarios.find(u => u.id === post.autorId) || { nome: 'Usuário', cargo: 'Equipe' };
@@ -371,9 +245,8 @@ function renderPostCardHTML(post, user) {
   if (!post.comentarios) post.comentarios = [];
 
   const emojisButtons = FASA.EMOJIS.map(emoji => {
-    const list = post.reacoes[emoji] || [];
-    const count = list.length;
-    const reacted = list.includes(user.id);
+    const count = (post.reacoes[emoji] || []).length;
+    const reacted = (post.reacoes[emoji] || []).includes(user.id);
     return `<button class="reaction-btn ${reacted ? 'active' : ''}" data-post="${post.id}" data-emoji="${emoji}">
       <span>${emoji}</span> ${count > 0 ? `<span>${count}</span>` : ''}
     </button>`;
@@ -382,133 +255,109 @@ function renderPostCardHTML(post, user) {
   const commentsListHTML = post.comentarios.map(c => {
     const cAutor = db.usuarios.find(u => u.id === c.autorId) || { nome: 'Usuário' };
     return `<div class="comment-item">
-      <div class="c-head">
-        <span class="c-author">${FASA.escapeHtml(cAutor.nome)}</span>
-        <span class="c-time">${FASA.timeAgo(c.ts)}</span>
-      </div>
-      <div class="c-text">${FASA.escapeHtml(c.texto)}</div>
+      <div class="c-head"><span class="c-author">${FASA.escapeHtml(cAutor.nome)}</span><span class="c-time">${FASA.timeAgo(c.ts)}</span></div>
+      <div>${FASA.escapeHtml(c.texto)}</div>
     </div>`;
   }).join('');
 
   return `
-    <div class="card post" id="post-${post.id}">
+    <div class="card post">
       <div class="post-head">
         ${FASA.avatarHtml(autor)}
-        <div class="meta">
-          <div class="name">${FASA.escapeHtml(autor.nome)}</div>
-          <div class="sub">${FASA.escapeHtml(autor.cargo)} · ${FASA.timeAgo(post.ts)}</div>
-        </div>
+        <div class="meta"><div class="name">${FASA.escapeHtml(autor.nome)}</div><div class="sub">${FASA.escapeHtml(autor.cargo)} · ${FASA.timeAgo(post.ts)}</div></div>
       </div>
       <div class="post-body">${FASA.escapeHtml(post.texto)}</div>
-      
-      <!-- Reações de Emojis -->
       <div class="reactions-bar">
         ${emojisButtons}
-        <button class="toggle-comments-btn" data-target="cbox-${post.id}">💬 ${post.comentarios.length} comentários</button>
+        <button class="toggle-comments-btn">💬 ${post.comentarios.length} comentários</button>
       </div>
-
-      <!-- Área de Comentários -->
-      <div class="comments-section" id="cbox-${post.id}">
+      <div class="comments-section">
         <div class="comments-list">${commentsListHTML}</div>
         <div class="comment-input-box">
           <input type="text" placeholder="Escreva um comentário..." id="cinput-${post.id}">
           <button class="btn btn-primary btn-sm" data-btn-comment="${post.id}">Enviar</button>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
-function bindPostEvents(container, refreshFn) {
-  const user = FASA.currentUser();
-  const db = FASA.getDB();
-
-  // Reação com Emojis
-  container.querySelectorAll('.reaction-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const postId = btn.dataset.post;
-      const emoji = btn.dataset.emoji;
-      const post = db.posts.find(p => p.id === postId);
-      if (!post) return;
-      if (!post.reacoes) post.reacoes = {};
-      if (!post.reacoes[emoji]) post.reacoes[emoji] = [];
-
-      const index = post.reacoes[emoji].indexOf(user.id);
-      if (index >= 0) {
-        post.reacoes[emoji].splice(index, 1);
-      } else {
-        post.reacoes[emoji].push(user.id);
-      }
-      FASA.saveDB(db);
-      refreshFn();
-    });
-  });
-
-  // Enviar Comentário
-  container.querySelectorAll('[data-btn-comment]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const postId = btn.dataset.btnComment;
-      const input = document.getElementById(`cinput-${postId}`);
-      const texto = (input.value || '').trim();
-      if (!texto) return;
-
-      const post = db.posts.find(p => p.id === postId);
-      if (!post) return;
-      if (!post.comentarios) post.comentarios = [];
-
-      post.comentarios.push({
-        autorId: user.id,
-        texto: texto,
-        ts: Date.now()
-      });
-      FASA.saveDB(db);
-      FASA.toast('Comentário publicado!');
-      refreshFn();
-    });
-  });
-}
-
-/* ---------------- Feed Page ---------------- */
-function renderFeed() {
-  const { user, pageEl } = renderShell('feed', 'Início');
+/* ---------------- MEU PERFIL (Estilo Facebook no Layout FASA) ---------------- */
+function renderPerfil() {
+  const { user, pageEl } = renderShell('perfil', 'Meu Perfil');
   const db = FASA.getDB();
 
   function draw() {
+    const meusPosts = db.posts.filter(p => p.autorId === user.id);
+
     pageEl.innerHTML = `
+      <!-- Banner de Capa + Foto de Perfil estilo Facebook -->
+      <div class="card profile-header-card">
+        <div class="profile-cover"></div>
+        <div class="profile-info-bar">
+          ${FASA.avatarHtml(user, 'lg')}
+          <div class="profile-details">
+            <h1>${FASA.escapeHtml(user.nome)}</h1>
+            <div class="bio">${FASA.escapeHtml(user.bio || 'Sem biografia definida.')}</div>
+            <div style="display:flex;gap:12px;font-size:12.5px;color:var(--muted)">
+              <span>💼 <b>${FASA.escapeHtml(user.cargo)}</b></span>
+              <span>🏢 <b>${FASA.escapeHtml(user.setor)}</b></span>
+              <span>👥 <b>${user.conexoes || 0} conexões</b></span>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btn-edit-perfil">✏️ Editar Perfil</button>
+        </div>
+      </div>
+
       <div class="two-col">
+        <!-- Coluna Principal: Feed do Usuário -->
         <div>
-          <!-- Criar Post -->
+          <!-- Publicar direto do Perfil -->
           <div class="card composer">
             ${FASA.avatarHtml(user)}
             <div style="flex:1">
-              <textarea id="feed-text" placeholder="O que você quer compartilhar com a equipe hoje?"></textarea>
+              <textarea id="perfil-text" placeholder="No que você está pensando, ${FASA.escapeHtml(user.nome)}?"></textarea>
               <div class="composer-actions">
-                <span class="eyebrow">📢 Comunicado / Atualização</span>
-                <button class="btn btn-primary btn-sm" id="btn-publish">Publicar</button>
+                <span class="eyebrow">Publicação no Perfil</span>
+                <button class="btn btn-primary btn-sm" id="btn-publish-perfil">Publicar</button>
               </div>
             </div>
           </div>
-          <!-- Feed de Posts -->
-          <div id="posts-list">${db.posts.map(p => renderPostCardHTML(p, user)).join('')}</div>
+
+          <div id="perfil-posts-list">
+            ${meusPosts.length > 0 ? meusPosts.map(p => renderPostCardHTML(p, user)).join('') : '<div class="card empty"><p>Nenhuma publicação ainda.</p></div>'}
+          </div>
         </div>
 
+        <!-- Coluna Lateral: Sobre / Informações -->
         <div>
           <div class="card side-card">
-            <h3>Comunidades ativas</h3>
-            <div class="mini-list">
-              ${FASA.COMUNIDADES.slice(0,4).map(c => `
-                <div class="mini-item">
-                  <div class="t"><div class="n">${FASA.escapeHtml(c.nome)}</div><div class="s">${c.membros} membros</div></div>
-                </div>
-              `).join('')}
-            </div>
+            <h3>Sobre</h3>
+            <p style="font-size:13px;color:var(--ink-soft);line-height:1.5">
+              <b>Matrícula:</b> ${FASA.escapeHtml(user.matricula)}<br>
+              <b>E-mail:</b> ${FASA.escapeHtml(user.email)}<br>
+              <b>Pontos:</b> 🏆 ${user.pontos || 0} pts
+            </p>
           </div>
         </div>
       </div>
     `;
 
-    document.getElementById('btn-publish').addEventListener('click', () => {
-      const txt = document.getElementById('feed-text').value.trim();
+    // Ação do Botão Editar Perfil
+    document.getElementById('btn-edit-perfil').addEventListener('click', () => {
+      const novaBio = prompt('Atualize sua Biografia:', user.bio || '');
+      const novaFoto = prompt('Cole a URL da sua Foto de Perfil:', user.foto_url || '');
+      
+      if (novaBio !== null) user.bio = novaBio.trim();
+      if (novaFoto !== null) user.foto_url = novaFoto.trim();
+      
+      FASA.saveDB(db);
+      FASA.toast('Perfil atualizado com sucesso!');
+      draw();
+    });
+
+    // Ação do Botão Publicar no Perfil
+    document.getElementById('btn-publish-perfil').addEventListener('click', () => {
+      const txt = document.getElementById('perfil-text').value.trim();
       if (!txt) return;
       db.posts.unshift({
         id: 'p_' + Date.now(),
@@ -519,154 +368,24 @@ function renderFeed() {
         comentarios: []
       });
       FASA.saveDB(db);
-      FASA.toast('Publicado no Feed!');
+      FASA.toast('Publicado!');
       draw();
     });
-
-    bindPostEvents(pageEl, draw);
   }
 
   draw();
 }
 
-/* ---------------- Perfil Page ---------------- */
-function renderPerfil() {
-  const { user, pageEl } = renderShell('perfil', 'Meu Perfil');
-  const db = FASA.getDB();
+function renderFeed() { renderPerfil(); } // Redirecionador temporário
 
-  function draw() {
-    const meusPosts = db.posts.filter(p => p.autorId === user.id);
-
-    pageEl.innerHTML = `
-      <div class="card" style="margin-bottom:20px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-        ${FASA.avatarHtml(user, 'lg')}
-        <div style="flex:1">
-          <h1 style="font-size:24px">${FASA.escapeHtml(user.nome)}</h1>
-          <p style="color:var(--muted);margin:4px 0 10px">${FASA.escapeHtml(user.cargo)} · ${FASA.escapeHtml(user.setor)} · Matrícula: ${FASA.escapeHtml(user.matricula)}</p>
-          <div style="display:flex;gap:10px">
-            <span class="pill accent">🏆 ${user.pontos || 0} Pontos FASA</span>
-            <span class="pill">✉ ${FASA.escapeHtml(user.email)}</span>
-          </div>
-        </div>
-        <button class="btn btn-ghost btn-sm" id="btn-edit-foto">📷 Alterar Foto</button>
-      </div>
-
-      <div class="tabs">
-        <button class="tab active">Minhas Publicações (${meusPosts.length})</button>
-      </div>
-
-      <div id="perfil-posts-list">
-        ${meusPosts.length > 0 ? meusPosts.map(p => renderPostCardHTML(p, user)).join('') : '<div class="card empty"><div class="big">📝</div><p>Você ainda não fez nenhuma publicação.</p></div>'}
-      </div>
-    `;
-
-    document.getElementById('btn-edit-foto').addEventListener('click', () => {
-      const url = prompt('Cole a URL da sua foto de perfil:', user.foto_url || '');
-      if (url !== null) {
-        user.foto_url = url.trim();
-        FASA.saveDB(db);
-        FASA.toast('Foto atualizada!');
-        draw();
-      }
-    });
-
-    bindPostEvents(pageEl, draw);
-  }
-
-  draw();
-}
-
-/* ---------------- Demais Páginas (Simplificadas e Funcionais) ---------------- */
-function renderChat() {
-  const { user, pageEl } = renderShell('chat', 'Chat');
-  pageEl.innerHTML = `<div class="card">💬 <h3>Chat e Mensagens</h3><p style="color:var(--muted)">Em breve integração direta via Supabase Realtime.</p></div>`;
-}
-function renderAvisos() {
-  const { user, pageEl } = renderShell('avisos', 'Avisos');
-  const db = FASA.getDB();
-  pageEl.innerHTML = db.avisos.map(a => `<div class="card aviso" style="margin-bottom:12px"><h3>${FASA.escapeHtml(a.titulo)}</h3><p>${FASA.escapeHtml(a.texto)}</p></div>`).join('');
-}
-function renderEscala() {
-  const { user, pageEl } = renderShell('escala', 'Escala');
-  pageEl.innerHTML = `<div class="card">📅 <h3>Escalas do Mês</h3><p style="color:var(--muted)">Consulte os turnos de trabalho da equipe de farmácia.</p></div>`;
-}
-function renderBiblioteca() {
-  const { user, pageEl } = renderShell('biblioteca', 'Biblioteca');
-  pageEl.innerHTML = `<div class="card">📚 <h3>Biblioteca & POPs</h3><p style="color:var(--muted)">Procedimentos Operacionais Padrão e Manuais.</p></div>`;
-}
-function renderEnquetes() {
-  const { user, pageEl } = renderShell('enquetes', 'Enquetes');
-  pageEl.innerHTML = `<div class="card">📊 <h3>Enquetes Internas</h3><p style="color:var(--muted)">Participe das votações da equipe.</p></div>`;
-}
-function renderSugestoes() {
-  const { user, pageEl } = renderShell('sugestoes', 'Sugestões');
-  pageEl.innerHTML = `<div class="card">💡 <h3>Caixa de Sugestões</h3><p style="color:var(--muted)">Deixe ideias para melhorar nossa rotina.</p></div>`;
-}
-function renderRanking() {
-  const { user, pageEl } = renderShell('ranking', 'Reconhecimento');
-  pageEl.innerHTML = `<div class="card">🏆 <h3>Ranking FASA</h3><p style="color:var(--muted)">Destaques do mês e gamificação.</p></div>`;
-}
-function renderAdmin() {
-  const { user, pageEl } = renderShell('admin', 'Administração');
-  pageEl.innerHTML = `<div class="card">⚙ <h3>Painel Administrativo</h3><p style="color:var(--muted)">Gestão de usuários e permissões.</p></div>`;
-}
-
-/* ---------------- Login ---------------- */
-function renderLogin() {
-  root.innerHTML = `
-  <div class="auth-shell">
-    <div class="auth-art">
-      <div class="caps"><span style="top:8%;left:-6%;transform:rotate(20deg)"></span></div>
-      <div class="auth-brand">${FASA.logoMark(34)}<span>FASA</span></div>
-      <div class="auth-quote">"A gente cuida de quem cuida."<small>Rede interna da equipe de farmácia</small></div>
-    </div>
-    <div class="auth-form-wrap">
-      <div class="auth-form">
-        <h1>Bem-vindo de volta</h1>
-        <p class="sub">Entre com suas credenciais do FASA.</p>
-        <div class="err" id="login-err">E-mail ou senha incorretos.</div>
-        <div class="field"><label>E-mail</label><input id="usuario" type="text" value="alexandre.jsilva.ajs@gmail.com"></div>
-        <div class="field"><label>Senha</label><input id="senha" type="password" value="123"></div>
-        <button class="btn btn-primary btn-block" id="btn-entrar" style="margin-top:16px">Entrar no FASA</button>
-      </div>
-    </div>
-  </div>`;
-
-  document.getElementById('btn-entrar').addEventListener('click', () => {
-    const em = document.getElementById('usuario').value.trim();
-    const db = FASA.getDB();
-    const u = db.usuarios.find(x => x.email === em);
-    if (u) {
-      FASA.setSession(u.id);
-      FASA.go('feed');
-    } else {
-      document.getElementById('login-err').classList.add('show');
-    }
-  });
-}
-
-/* ---------------- Roteador ---------------- */
 function handleRoute() {
   FASA.seed();
-  const route = (location.hash.replace('#/', '') || 'login').split('?')[0];
-  const user = FASA.currentUser();
-
-  if (!user && route !== 'login') { FASA.go('login'); return; }
-
-  switch (route) {
-    case 'login': renderLogin(); break;
-    case 'feed': renderFeed(); break;
-    case 'perfil': renderPerfil(); break;
-    case 'chat': renderChat(); break;
-    case 'avisos': renderAvisos(); break;
-    case 'escala': renderEscala(); break;
-    case 'biblioteca': renderBiblioteca(); break;
-    case 'enquetes': renderEnquetes(); break;
-    case 'sugestoes': renderSugestoes(); break;
-    case 'ranking': renderRanking(); break;
-    case 'admin': user && user.admin ? renderAdmin() : renderFeed(); break;
-    default: renderFeed();
-  }
+  const route = location.hash.replace('#/', '') || 'perfil';
+  const user = FASA.currentUser() || FASA.getDB().usuarios[0];
+  FASA.setSession(user.id);
+  
+  if (route === 'perfil' || route === 'feed') renderPerfil();
+  else renderShell(route, route.toUpperCase());
 }
 
 window.addEventListener('hashchange', handleRoute);
