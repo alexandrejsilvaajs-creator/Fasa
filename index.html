@@ -585,16 +585,19 @@ function renderPerfil() {
   draw();
 }
 
-function renderFeed() { renderPerfil(); } // Redirecionador temporário
+function renderFeed() { renderPerfilSocial('main-content', FASA.currentUser().id); }
 
 function handleRoute() {
   FASA.seed();
   const route = location.hash.replace('#/', '') || 'perfil';
   const user = FASA.currentUser() || FASA.getDB().usuarios[0];
-  FASA.setSession(user.id);
-  
-  if (route === 'perfil' || route === 'feed') renderPerfil();
-  else renderShell(route, route.toUpperCase());
+  if (user) FASA.setSession(user.id);
+
+  if (route === 'perfil' || route === 'feed') {
+    renderPerfilSocial('main-content', user.id);
+  } else {
+    renderShell(route, route.toUpperCase());
+  }
 }
 
 window.addEventListener('hashchange', handleRoute);
