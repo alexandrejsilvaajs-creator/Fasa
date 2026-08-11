@@ -679,178 +679,239 @@ function renderFeed() {
 }
 
 /* ---------------- Perfil ---------------- */
+/* ---------------- Meu Perfil Social Completo ---------------- */
 async function renderPerfil() {
   const { user, pageEl } = renderShell('perfil', 'Meu Perfil');
-  pageEl.innerHTML = `<div class="empty">Carregando perfil...</div>`;
+  let activeTab = 'publicoes';
 
-  const { data: authData } = await sb.auth.getUser();
-  const meuId = (authData && authData.user) ? authData.user.id : user.id;
+  function calcularIdade(dataNasc) {
+    if (!dataNasc) return null;
+    const hoje = new Date();
+    const nascimento = new Date(dataNasc);
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const m = hoje.getMonth() - nascimento.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
+      idade--;
+    }
+    return idade;
+  }
 
-  const { data: meusPosts, error } = await sb
-    .from('posts')
-    .select('*, post_likes(usuario_id)')
-    .eq('autor_id', meuId)
-    .order('criado_em', { ascending: false });
+  async function carregarDadosPerfil() {
+    const { data: posts } = await sb.from('posts').select('*, post_likes(usuario_id), comentarios(*)').eq('autor_id', user.id).order('criado_em', { ascending: false });
+    const { data: albuns } = await sb.from('albuns').select('*, album_fotos(*)').eq('usuario_id', user.id);
+    const { data: destaques } = await sb.from('destaques').select('*').eq('usuario_id', user.id);
 
-  if (error) { FASA.toast('Erro ao carregar perfil: ' + error.message); }
-  const posts = meusPosts || [];
-  const curtidasRecebidas = posts.reduce((s, p) => s + (p.post_likes || []).length, 0);
+    return { posts: posts || [], albuns: albuns || [], destaques: destaques || [] };
+  }
 
-  const conquistas = [
-    { ic: '🏅', t: 'Colaborador do mês', d: 'Reconhecido pela equipe' },
-    { ic: '📚', t: 'Trilha concluída', d: 'Boas Práticas de Manipulação' },
-    { ic: '💬', t: 'Voz ativa', d: '10+ contribuições em comunidades' },
-  ];
+  async function paint() {
+    pageEl.innerHTML = `<div class="empty">Carregando Perfil Social...</div>`;
+    const { posts, albuns, destaques } = await carregarDadosPerfil();
+    const idade = calcularIdade(user.data_nascimento);
 
-  let editMode = false;
-
-  function headerHtml() {
-    const capaFallback = `background:linear-gradient(135deg,var(--primary),var(--accent))`;
-
-    if (!editMode) {
-      return `
-      <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
-        <div style="position:relative;${user.capa_url ? '' : `height:130px;${capaFallback}`}">
-          ${user.capa_url ? `<img src="${user.capa_url}" style="width:100%;display:block">` : ''}
-          <button id="capa-btn" title="Alterar capa" style="position:absolute;bottom:10px;right:${user.capa_url ? '96px' : '10px'};background:rgba(22,36,31,.55);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">📷 Capa</button>
-          ${user.capa_url ? `<button id="capa-remover-btn" title="Excluir capa" style="position:absolute;bottom:10px;right:10px;background:rgba(194,69,69,.75);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">🗑 Excluir</button>` : ''}
-          <input type="file" id="capa-input" accept="image/*" style="display:none">
+    pageEl.innerHTML = `
+      <!-- Cabeçalho Principal do Perfil Social -->
+      <div class="card" style="padding:0; overflow:hidden; margin-bottom:20px; position:relative;">
+        <!-- Foto de Capa -->
+        <div style="height:220px; background:${user.capa_url ? `url('${user.capa_url}') center/cover` : 'linear-gradient(135deg,var(--primary-dk),var(--primary))'}; position:relative;">
+          <input type="file" id="input-capa-perfil" accept="image/*" style="display:none;" />
+          <button class="btn btn-sm" style="position:absolute; right:15px; bottom:15px; background:rgba(0,0,0,0.65); color:#fff;" onclick="document.getElementById('input-capa-perfil').click()">📷 Alterar Capa</button>
         </div>
-        <div style="padding:0 20px 24px;text-align:center;margin-top:${user.capa_url ? '-40px' : '-40px'}">
-          <div style="position:relative;width:80px;margin:0 auto 12px">
+
+        <!-- Dados do Usuário e Foto de Perfil sobreposta -->
+        <div style="padding:20px; text-align:center; position:relative; margin-top:-60px;">
+          <div style="display:inline-block; position:relative;">
             ${FASA.avatarHtml(user, 'lg')}
-            <button id="foto-btn" title="Alterar foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">📷</button>
-            <input type="file" id="foto-input" accept="image/*" style="display:none">
+            <input type="file" id="input-foto-perfil" accept="image/*" capture="environment" style="display:none;" />
+            <button style="position:absolute; bottom:0; right:0; border-radius:50%; width:32px; height:32px; border:2px solid #fff; background:var(--accent); color:#fff; cursor:pointer;" onclick="document.getElementById('input-foto-perfil').click()">📷</button>
           </div>
-          <h1 style="font-size:22px">${FASA.escapeHtml(user.nome)}</h1>
-          <p style="color:var(--muted);font-size:13.5px;margin:4px 0 12px">${FASA.escapeHtml(user.cargo || '')} · ${FASA.escapeHtml(user.setor || '')}</p>
-          ${user.bio ? `<p style="font-size:13.5px;color:var(--ink-soft);max-width:420px;margin:0 auto 14px">${FASA.escapeHtml(user.bio)}</p>` : ''}
-          <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-            <span class="pill">Matrícula ${FASA.escapeHtml(user.matricula)}</span><span class="pill accent">${FASA.escapeHtml(user.tempo_empresa || 'A definir')} de empresa</span>
-            ${user.admin ? '<span class="pill muted">Administrador</span>' : ''}
+          
+          <h2 style="margin-top:12px; font-size:24px;">${FASA.escapeHtml(user.nome)}</h2>
+          ${user.username ? `<div style="font-family:var(--f-mono); font-size:13px; color:var(--primary); margin-top:-4px;">@${FASA.escapeHtml(user.username)}</div>` : ''}
+          
+          <p style="color:var(--muted); font-size:14px; margin-top:6px;">${FASA.escapeHtml(user.cargo || 'Colaborador')} · ${FASA.escapeHtml(user.setor || 'Farmácia')}</p>
+          ${user.bio ? `<p style="font-size:14px; color:var(--ink-soft); max-width:480px; margin:8px auto; line-height:1.4;">${FASA.escapeHtml(user.bio)}</p>` : ''}
+
+          <div style="display:flex; justify-content:center; gap:8px; margin-top:12px; flex-wrap:wrap;">
+            <span class="pill">Matrícula ${FASA.escapeHtml(user.matricula)}</span>
+            ${idade !== null ? `<span class="pill muted">${idade} anos</span>` : ''}
+            ${user.cidade ? `<span class="pill muted">📍 ${FASA.escapeHtml(user.cidade)}</span>` : ''}
+            ${user.admin ? '<span class="pill accent">Administrador</span>' : ''}
           </div>
-          <button class="btn btn-ghost btn-sm" id="edit-perfil-btn">✎ Editar perfil</button>
         </div>
-      </div>`;
+
+        <!-- Sub-menu do Perfil (Navegação Interna) -->
+        <div style="display:flex; border-top:1px solid var(--line); background:var(--paper-2); overflow-x:auto;">
+          <button class="tab ${activeTab==='publicoes'?'active':''}" style="flex:1; border:none; border-radius:0;" onclick="mudarSubAba('publicoes')">📝 Publicações</button>
+          <button class="tab ${activeTab==='sobre'?'active':''}" style="flex:1; border:none; border-radius:0;" onclick="mudarSubAba('sobre')">ℹ️ Sobre</button>
+          <button class="tab ${activeTab==='fotos'?'active':''}" style="flex:1; border:none; border-radius:0;" onclick="mudarSubAba('fotos')">🖼️ Fotos</button>
+          <button class="tab ${activeTab==='videos'?'active':''}" style="flex:1; border:none; border-radius:0;" onclick="mudarSubAba('videos')">🎬 Vídeos</button>
+          <button class="tab ${activeTab==='albuns'?'active':''}" style="flex:1; border:none; border-radius:0;" onclick="mudarSubAba('albuns')">📁 Álbuns</button>
+          <button class="tab ${activeTab==='destaques'?'active':''}" style="flex:1; border:none; border-radius:0;" onclick="mudarSubAba('destaques')">⭐ Destaques</button>
+          <button class="tab ${activeTab==='config'?'active':''}" style="flex:1; border:none; border-radius:0;" onclick="mudarSubAba('config')">⚙️ Configurações</button>
+        </div>
+      </div>
+
+      <!-- Conteúdo Dinâmico das Sub-Abas -->
+      <div id="perfil-tab-content"></div>
+    `;
+
+    renderSubAbaConteudo(posts, albuns, destaques);
+    bindEventosFotoCapa();
+  }
+
+  function renderSubAbaConteudo(posts, albuns, destaques) {
+    const container = document.getElementById('perfil-tab-content');
+
+    if (activeTab === 'publicoes') {
+      container.innerHTML = `
+        <div class="card composer" style="margin-bottom:18px;">
+          ${FASA.avatarHtml(user)}
+          <div style="flex:1">
+            <textarea id="perfil-post-text" placeholder="Escreva algo no seu perfil, ${user.nome.split(' ')[0]}..."></textarea>
+            <div class="composer-actions">
+              <div class="composer-tools">
+                <input type="file" id="perfil-multimidia" accept="image/*,video/*" multiple style="display:none;" />
+                <button class="tool-btn" onclick="document.getElementById('perfil-multimidia').click()">📷 Foto/Vídeo</button>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-pub-perfil">Publicar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid">
+          ${posts.length ? posts.map(p => `
+            <div class="card post">
+              <div class="post-head">
+                ${FASA.avatarHtml(user)}
+                <div class="meta" style="flex:1">
+                  <div class="name">${FASA.escapeHtml(user.nome)}</div>
+                  <div class="sub">${FASA.timeAgo(new Date(p.criado_em || p.ts).getTime())}</div>
+                </div>
+              </div>
+              <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
+              ${p.arquivo_url ? `<div class="post-media"><img src="${p.arquivo_url}" style="border-radius:10px; max-height:380px; width:100%; object-fit:cover;"></div>` : ''}
+              <div class="post-actions">
+                <button>❤️ Curtir (${(p.post_likes || []).length})</button>
+                <button>💬 Comentar (${(p.comentarios || []).length})</button>
+              </div>
+            </div>
+          `).join('') : '<div class="empty">Você ainda não fez nenhuma publicação no seu perfil.</div>'}
+        </div>
+      `;
+    } 
+    else if (activeTab === 'sobre') {
+      container.innerHTML = `
+        <div class="card">
+          <h3 style="margin-bottom:16px;">Sobre Mim</h3>
+          <div class="grid grid-2" style="gap:14px; font-size:14px;">
+            <div><b>Nome completo:</b> ${FASA.escapeHtml(user.nome)}</div>
+            <div><b>Username:</b> @${FASA.escapeHtml(user.username || 'não definido')}</div>
+            <div><b>Data de nascimento:</b> ${user.data_nascimento ? new Date(user.data_nascimento+'T00:00').toLocaleDateString('pt-BR') : 'Não informada'}</div>
+            <div><b>Cidade/Estado:</b> ${user.cidade ? `${FASA.escapeHtml(user.cidade)} - ${FASA.escapeHtml(user.estado || '')}` : 'Não informado'}</div>
+            <div><b>Cargo:</b> ${FASA.escapeHtml(user.cargo || '—')}</div>
+            <div><b>Setor:</b> ${FASA.escapeHtml(user.setor || '—')}</div>
+            <div><b>Matrícula:</b> ${FASA.escapeHtml(user.matricula || '—')}</div>
+            <div><b>E-mail:</b> ${FASA.escapeHtml(user.email || '—')}</div>
+          </div>
+        </div>
+      `;
+    }
+    else if (activeTab === 'fotos') {
+      const fotosPosts = posts.filter(p => p.arquivo_url && !p.arquivo_tipo?.startsWith('video/'));
+      container.innerHTML = `
+        <div class="card">
+          <h3 style="margin-bottom:14px;">Galeria de Fotos</h3>
+          <div class="grid grid-3">
+            ${fotosPosts.length ? fotosPosts.map(f => `
+              <div style="height:140px; border-radius:10px; overflow:hidden; background:#000;">
+                <img src="${f.arquivo_url}" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="window.open('${f.arquivo_url}','_blank')">
+              </div>
+            `).join('') : '<div class="empty" style="grid-column:1/-1;">Nenhuma foto publicada ainda.</div>'}
+          </div>
+        </div>
+      `;
+    }
+    else if (activeTab === 'config') {
+      container.innerHTML = `
+        <div class="card">
+          <h3 style="margin-bottom:16px;">⚙️ Configurações do Perfil e Privacidade</h3>
+          <div class="field"><label>Bio / Apresentação</label><input id="cfg-bio" value="${FASA.escapeHtml(user.bio || '')}"></div>
+          <div class="grid grid-2">
+            <div class="field"><label>Username (@)</label><input id="cfg-username" value="${FASA.escapeHtml(user.username || '')}"></div>
+            <div class="field"><label>Data de Nascimento</label><input type="date" id="cfg-nascimento" value="${user.data_nascimento || ''}"></div>
+            <div class="field"><label>Cidade</label><input id="cfg-cidade" value="${FASA.escapeHtml(user.cidade || '')}"></div>
+            <div class="field"><label>Estado</label><input id="cfg-estado" value="${FASA.escapeHtml(user.estado || '')}"></div>
+          </div>
+          <button class="btn btn-primary" id="btn-salvar-cfg" style="margin-top:10px;">Salvar Alterações</button>
+        </div>
+      `;
+
+      document.getElementById('btn-salvar-cfg').addEventListener('click', async () => {
+        const bio = document.getElementById('cfg-bio').value.trim();
+        const username = document.getElementById('cfg-username').value.trim();
+        const data_nascimento = document.getElementById('cfg-nascimento').value || null;
+        const cidade = document.getElementById('cfg-cidade').value.trim();
+        const estado = document.getElementById('cfg-estado').value.trim();
+
+        const { error } = await sb.from('usuarios').update({ bio, username, data_nascimento, cidade, estado }).eq('id', user.id);
+        if (error) { FASA.toast('Erro ao salvar: ' + error.message); return; }
+        
+        Object.assign(user, { bio, username, data_nascimento, cidade, estado });
+        FASA.toast('Perfil atualizado com sucesso!');
+        paint();
+      });
+    }
+  }
+
+  window.mudarSubAba = function(tab) {
+    activeTab = tab;
+    paint();
+  };
+
+  function bindEventosFotoCapa() {
+    const inputFoto = document.getElementById('input-foto-perfil');
+    const inputCapa = document.getElementById('input-capa-perfil');
+
+    if (inputFoto) {
+      inputFoto.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        FASA.toast('Enviando foto de perfil...');
+        const path = `${user.id}/avatar_${Date.now()}.${file.name.split('.').pop()}`;
+        const { error: upErr } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
+        if (upErr) { FASA.toast('Erro no upload: ' + upErr.message); return; }
+        
+        const { data: pub } = sb.storage.from('avatars').getPublicUrl(path);
+        const foto_url = pub.publicUrl + '?t=' + Date.now();
+        await sb.from('usuarios').update({ foto_url }).eq('id', user.id);
+        user.foto_url = foto_url;
+        FASA.toast('Foto de perfil atualizada!');
+        paint();
+      });
     }
 
-    return `
-      <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
-        <div style="${user.capa_url ? '' : `height:130px;${capaFallback}`}">
-          ${user.capa_url ? `<img src="${user.capa_url}" style="width:100%;display:block">` : ''}
-        </div>
-        <div style="padding:20px">
-          <h3 style="margin-bottom:14px">Editar perfil</h3>
-          <div class="field"><label>Cargo</label><input id="ep-cargo" value="${FASA.escapeHtml(user.cargo || '')}"></div>
-          <div class="field"><label>Setor</label><input id="ep-setor" value="${FASA.escapeHtml(user.setor || '')}"></div>
-          <div class="field"><label>Tempo de empresa</label><input id="ep-tempo" value="${FASA.escapeHtml(user.tempo_empresa || '')}"></div>
-          <div class="field"><label>Bio (uma frase sobre você)</label><textarea id="ep-bio" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit">${FASA.escapeHtml(user.bio || '')}</textarea></div>
-          <div style="display:flex;gap:10px">
-            <button class="btn btn-primary" id="ep-salvar">Salvar</button>
-            <button class="btn btn-ghost" id="ep-cancelar">Cancelar</button>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  function bindHeaderEvents() {
-    if (!editMode) {
-      document.getElementById('edit-perfil-btn').addEventListener('click', () => { editMode = true; paintHeader(); });
-
-      const fotoBtn = document.getElementById('foto-btn');
-      const fotoInput = document.getElementById('foto-input');
-      fotoBtn.addEventListener('click', () => fotoInput.click());
-      fotoInput.addEventListener('change', () => uploadImagem(fotoInput.files[0], 'avatar', 'foto_url', fotoBtn));
-
-      const capaBtn = document.getElementById('capa-btn');
-      const capaInput = document.getElementById('capa-input');
-      capaBtn.addEventListener('click', () => capaInput.click());
-      capaInput.addEventListener('change', () => uploadImagem(capaInput.files[0], 'capa', 'capa_url', capaBtn));
-
-      const capaRemoverBtn = document.getElementById('capa-remover-btn');
-      if (capaRemoverBtn) capaRemoverBtn.addEventListener('click', async () => {
-        if (!confirm('Excluir a foto de capa?')) return;
-        const { error: updError } = await sb.from('usuarios').update({ capa_url: null }).eq('id', user.id);
-        if (updError) { FASA.toast('Erro ao excluir: ' + updError.message); return; }
-        user.capa_url = null;
-        const db = FASA.getDB();
-        const jaExiste = db.usuarios.find(u => u.id === user.id);
-        if (jaExiste) jaExiste.capa_url = null;
-        FASA.saveDB(db);
-        FASA.toast('Capa removida.');
-        paintHeader();
-      });
-    } else {
-      document.getElementById('ep-cancelar').addEventListener('click', () => { editMode = false; paintHeader(); });
-      document.getElementById('ep-salvar').addEventListener('click', async () => {
-        const cargo = document.getElementById('ep-cargo').value.trim();
-        const setor = document.getElementById('ep-setor').value.trim();
-        const tempo_empresa = document.getElementById('ep-tempo').value.trim();
-        const bio = document.getElementById('ep-bio').value.trim();
-        const { error: updError } = await sb.from('usuarios').update({ cargo, setor, tempo_empresa, bio }).eq('id', user.id);
-        if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
-        Object.assign(user, { cargo, setor, tempo_empresa, bio });
-        const db = FASA.getDB();
-        const jaExiste = db.usuarios.find(u => u.id === user.id);
-        if (jaExiste) Object.assign(jaExiste, { cargo, setor, tempo_empresa, bio });
-        FASA.saveDB(db);
-        editMode = false;
-        FASA.toast('Perfil atualizado!');
-        paintHeader();
+    if (inputCapa) {
+      inputCapa.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        FASA.toast('Enviando foto de capa...');
+        const path = `${user.id}/capa_${Date.now()}.${file.name.split('.').pop()}`;
+        const { error: upErr } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
+        if (upErr) { FASA.toast('Erro no upload: ' + upErr.message); return; }
+        
+        const { data: pub } = sb.storage.from('avatars').getPublicUrl(path);
+        const capa_url = pub.publicUrl + '?t=' + Date.now();
+        await sb.from('usuarios').update({ capa_url }).eq('id', user.id);
+        user.capa_url = capa_url;
+        FASA.toast('Foto de capa atualizada!');
+        paint();
       });
     }
   }
 
-  async function uploadImagem(file, nomeArquivo, coluna, btnEl) {
-    if (!file) return;
-    btnEl.textContent = '…';
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/${nomeArquivo}.${ext}`;
-
-    const { error: upError } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
-    if (upError) { FASA.toast('Erro ao enviar imagem: ' + upError.message); paintHeader(); return; }
-
-    const { data: pub } = sb.storage.from('avatars').getPublicUrl(path);
-    const url = pub.publicUrl + '?t=' + Date.now();
-
-    const { error: updError } = await sb.from('usuarios').update({ [coluna]: url }).eq('id', user.id);
-    if (updError) { FASA.toast('Erro ao salvar imagem: ' + updError.message); paintHeader(); return; }
-
-    user[coluna] = url;
-    const db = FASA.getDB();
-    const jaExiste = db.usuarios.find(u => u.id === user.id);
-    if (jaExiste) jaExiste[coluna] = url;
-    FASA.saveDB(db);
-
-    FASA.toast('Imagem atualizada!');
-    paintHeader();
-  }
-
-  function paintHeader() {
-    document.getElementById('perfil-header').outerHTML = `<div id="perfil-header">${headerHtml()}</div>`;
-    bindHeaderEvents();
-  }
-
-  pageEl.innerHTML = `
-    <div id="perfil-header">${headerHtml()}</div>
-    <div class="grid grid-3" style="margin-bottom:20px">
-      <div class="card stat-card"><div class="num">${posts.length}</div><div class="lbl">Publicações</div></div>
-      <div class="card stat-card"><div class="num">${curtidasRecebidas}</div><div class="lbl">Curtidas recebidas</div></div>
-      <div class="card stat-card"><div class="num">${user.pontos}</div><div class="lbl">Pontos de reconhecimento</div></div>
-    </div>
-    <div class="card" style="margin-bottom:20px"><h3 style="margin-bottom:14px">Conquistas</h3><div class="grid grid-3">
-      ${conquistas.map(c => `<div style="text-align:center;padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm)"><div style="font-size:26px;margin-bottom:6px">${c.ic}</div><div style="font-weight:700;font-size:13px">${c.t}</div><div style="font-size:11.5px;color:var(--muted)">${c.d}</div></div>`).join('')}
-    </div></div>
-    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3>Minhas publicações</h3><button class="btn btn-ghost btn-sm" id="perfil-refresh-btn">↻ Atualizar</button></div>
-      ${posts.length ? posts.map(p => `<div style="padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>${FASA.escapeHtml(p.texto)}${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : ''}</div>`).join('') : `<div class="empty">Você ainda não publicou nada.</div>`}
-    </div>`;
-
-  bindHeaderEvents();
-  document.getElementById('perfil-refresh-btn').addEventListener('click', () => renderPerfil());
+  paint();
 }
-
-/* ---------------- Comunidades ---------------- */
-async function renderComunidades() {
   const { user, pageEl } = renderShell('comunidades', 'Comunidades');
   pageEl.innerHTML = `<div class="empty">Carregando comunidades...</div>`;
 
