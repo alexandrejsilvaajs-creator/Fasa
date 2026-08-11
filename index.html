@@ -698,8 +698,24 @@ async function renderPerfilSocial(containerId, userId) {
           <div class="create-post-card">
             <textarea id="novo-post-texto" rows="3" placeholder="No que você está pensando?"></textarea>
             <div class="post-actions">
-              <input type="file" id="novo-post-midias" multiple accept="image/*,video/*" style="display:none;" onchange="atualizarLabelMidias(this)" />
-              <button type="button" style="background:none; border:none; cursor:pointer;" onclick="document.getElementById('novo-post-midias').click()">
+              <div class="post-actions">
+            <!-- Opção 1: Câmera Direta (Fotos e Vídeos na hora) -->
+            <input type="file" id="camera-direta" accept="image/*,video/*" capture="environment" style="display:none;" onchange="atualizarLabelMidias(this)" />
+            
+            <!-- Opção 2: Galeria / Arquivos salvos -->
+            <input type="file" id="novo-post-midias" multiple accept="image/*,video/*" style="display:none;" onchange="atualizarLabelMidias(this)" />
+
+            <div style="display:flex; gap:12px;">
+              <button type="button" style="background:none; border:none; cursor:pointer; font-weight:500;" onclick="document.getElementById('camera-direta').click()">
+                📸 Tirar Foto/Vídeo
+              </button>
+              <button type="button" style="background:none; border:none; cursor:pointer; font-weight:500;" onclick="document.getElementById('novo-post-midias').click()">
+                🖼️ Galeria <span id="count-midias"></span>
+              </button>
+            </div>
+
+            <button class="btn-primary" onclick="publicarNoPerfil('${userId}')">Publicar</button>
+          </div>
                 📷 Adicionar Foto/Vídeo <span id="count-midias"></span>
               </button>
               <button class="btn-primary" onclick="publicarNoPerfil('${userId}')">Publicar</button>
