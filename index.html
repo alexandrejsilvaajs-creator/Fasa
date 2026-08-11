@@ -916,7 +916,7 @@ async function renderPerfil() {
   paint();
 }
   const { user, pageEl } = renderShell('comunidades', 'Comunidades');
-  pageEl.innerHTML = `<div class="empty">Carregando comunidades...</div>`;
+  if (pageEl) pageEl.innerHTML = `<div class="empty">Carregando comunidades...</div>`;
 
   async function load() {
     const { data: comunidades, error: e1 } = await sb.from('comunidades').select('*').order('nome');
@@ -928,7 +928,7 @@ async function renderPerfil() {
     (membros || []).forEach(m => { contagem[m.comunidade_id] = (contagem[m.comunidade_id] || 0) + 1; });
     const joined = new Set((minhas || []).map(m => m.comunidade_id));
 
-    pageEl.innerHTML = `
+    if (pageEl) pageEl.innerHTML = `
       <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Participe das comunidades da sua equipe para trocar experiências, tirar dúvidas e acompanhar novidades por setor.</p>
       <div class="grid grid-3">
         ${(comunidades || []).map(c => {
