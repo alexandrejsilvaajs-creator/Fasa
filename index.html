@@ -914,8 +914,42 @@ async function renderPerfil() {
   }
 
   paint();
-}
+async function renderComunidades() {
   const { user, pageEl } = renderShell('comunidades', 'Comunidades');
+  if (!pageEl) return;
+  
+  pageEl.innerHTML = `<div class="empty">Carregando comunidades...</div>`;
+
+  const { data: comunidades, error: e1 } = await sb.from('comunidades').select('*');
+  const { data: membros, error: e2 } = await sb.from('comunidade_membros').select('*');
+  const { data: minhas, error: e3 } = await sb.from('comunidade_membros').select('*');
+  if (e1 || e2 || e3) { FASA.toast('Erro ao carregar comunidades'); return; }
+
+  const contagem = {};
+  (membros || []).forEach(m => { contagem[m.comunidade_id] = (contagem[m.comunidade_id] || 0) + 1; });
+  const joined = new Set((minhas || []).map(m => m.comunidade_id));
+
+  pageEl.innerHTML = `
+    <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Participe das comunidades!</p>
+    <div class="grid grid-3">
+      ${(comunidades || []).map(c => {
+        const isIn = joined.has(c.id);
+        return `<div class="card comm-card" data-id="${c.id}"><div class="foot"><span class="pill muted">${contagem[c.id] || 0} membros</span></div></div>`;
+      }).join('')}
+    </div>`;
+
+  pageEl.querySelectorAll('.comm-card').forEach(card => {
+    card.querySelector('.join-btn')?.addEventListener('click', async () => {
+      const id = card.dataset.id;
+      if (joined.has(id)) {
+        await sb.from('comunidade_membros').delete().eq('comunidade_id', id);
+      } else {
+        await sb.from('comunidade_membros').insert({ comunidade_id: id, usuario_id: user.id });
+      }
+      renderComunidades();
+    });
+  });
+}
   if (pageEl) pageEl.innerHTML = `<div class="empty">Carregando comunidades...</div>`;
 
   async function load() {
