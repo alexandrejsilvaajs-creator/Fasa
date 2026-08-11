@@ -363,6 +363,10 @@ let _chatPollInterval = null;
 function renderShell(activeId, title) {
   if (_chatPollInterval && activeId !== 'chat') { clearInterval(_chatPollInterval); _chatPollInterval = null; }
   const user = FASA.currentUser();
+   if (!user) {
+    window.location.hash = '#login';
+    return { user: null, pageEl: document.getElementById('fasa-page') };
+  }
   root.innerHTML = `
     <div class="overlay-bg" id="fasa-overlay"></div>
     <div class="app-shell">
