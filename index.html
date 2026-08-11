@@ -949,20 +949,6 @@ async function renderComunidades() {
       renderComunidades();
     
   });
-}
- 
-
-
-    if (pageEl) pageEl.innerHTML = `
-      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Participe das comunidades da sua equipe para trocar experiências, tirar dúvidas e acompanhar novidades por setor.</p>
-      <div class="grid grid-3">
-        ${(comunidades || []).map(c => {
-          const isIn = joined.has(c.id);
-          return `<div class="card comm-card" data-id="${c.id}"><div class="comm-banner"></div><h3>${FASA.escapeHtml(c.nome)}</h3><div class="desc">${FASA.escapeHtml(c.descricao || '')}</div>
-          <div class="foot"><span class="pill muted">${contagem[c.id] || 0} membros</span><button class="btn btn-sm ${isIn ? 'btn-ghost' : 'btn-primary'} join-btn">${isIn ? 'Participando' : 'Participar'}</button></div></div>`;
-        }).join('')}
-      </div>`;
-
     pageEl.querySelectorAll('.comm-card').forEach(card => {
       card.querySelector('.join-btn').addEventListener('click', async () => {
         const id = card.dataset.id;
@@ -974,9 +960,6 @@ async function renderComunidades() {
         load();
    });
   });
-}
-
-
 /* ---------------- Avisos ---------------- */
 function renderAvisos() {
   const { user, pageEl } = renderShell('avisos', 'Avisos');
