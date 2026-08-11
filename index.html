@@ -21,6 +21,215 @@
   --shadow:0 1px 2px rgba(22,36,31,.05),0 8px 24px -12px rgba(22,36,31,.12);
   --shadow-lg:0 12px 40px -16px rgba(22,36,31,.28);
 }
+   /* --- PERFIL SOCIAL FASA --- */
+.perfil-container {
+  max-width: 935px;
+  margin: 0 auto;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #1c1e21;
+}
+
+/* Capa e Avatar */
+.perfil-header {
+  position: relative;
+  background: #fff;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.capa-box {
+  height: 240px;
+  background: #e4e6eb;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.avatar-box {
+  position: absolute;
+  bottom: 15px;
+  left: 30px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  overflow: hidden;
+  background: #ccc;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.avatar-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.perfil-info-bar {
+  padding: 15px 30px 20px 180px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.user-names h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.user-names p {
+  margin: 2px 0 0;
+  color: #65676b;
+  font-size: 14px;
+}
+
+/* Abas de Navegação Interna */
+.perfil-nav {
+  display: flex;
+  border-top: 1px solid #e4e6eb;
+  background: #fff;
+  padding: 0 20px;
+}
+
+.perfil-nav button {
+  background: none;
+  border: none;
+  padding: 14px 20px;
+  font-weight: 600;
+  color: #65676b;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+}
+
+.perfil-nav button.active {
+  color: #1877f2;
+  border-bottom-color: #1877f2;
+}
+
+/* Feed & Cards */
+.perfil-content {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+}
+
+.card-sobre {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  height: fit-content;
+}
+
+.card-sobre h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.info-item {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #4b4c4f;
+}
+
+.feed-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Criar Publicação */
+.create-post-card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.create-post-card textarea {
+  width: 100%;
+  border: 1px solid #e4e6eb;
+  border-radius: 6px;
+  padding: 10px;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.post-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.btn-primary {
+  background: #1877f2;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Cards de Postagem */
+.post-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.post-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.post-media-grid {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.post-media-grid img, .post-media-grid video {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 768px) {
+  .perfil-content {
+    grid-template-columns: 1fr;
+  }
+  .perfil-info-bar {
+    padding: 70px 15px 15px 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .avatar-box {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 60px;
+    width: 110px;
+    height: 110px;
+  }
+}
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--f-body);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
@@ -390,6 +599,244 @@ function handleRoute() {
 
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute);
+   // ==========================================
+// MÓDULO PERFIL SOCIAL FASA
+// ==========================================
+
+// Helper: Calcular idade automaticamente a partir da data de nascimento
+function calcularIdade(dataNascimento) {
+  if (!dataNascimento) return null;
+  const hoje = new Date();
+  const nascimento = new Date(dataNascimento);
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const m = hoje.getMonth() - nascimento.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
+    idade--;
+  }
+  return idade;
+}
+
+// Renderizar o Perfil Social Completo
+async function renderPerfilSocial(containerId, userId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.innerHTML = `<div style="text-align:center; padding:40px;">Carregando perfil...</div>`;
+
+  // 1. Buscar dados do perfil no Supabase
+  const { data: perfil, error } = await supabase
+    .from('perfis_sociais')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Erro ao carregar perfil:", error);
+    container.innerHTML = `<p style="text-align:center; padding:20px;">Erro ao carregar o perfil.</p>`;
+    return;
+  }
+
+  const dados = perfil || {
+    nome_completo: "Colaborador FASA",
+    username: "colaborador",
+    foto_perfil_url: "https://via.placeholder.com/150",
+    foto_capa_url: "",
+    biografia: "Bem-vindo ao meu perfil no FASA!",
+    cargo: "Colaborador",
+    setor: "Geral",
+    cidade: "São Paulo",
+    data_nascimento: null
+  };
+
+  const idadeCalculada = calcularIdade(dados.data_nascimento);
+
+  // 2. Montar HTML da estrutura do Perfil
+  container.innerHTML = `
+    <div class="perfil-container">
+      
+      <!-- Cabeçalho / Capa / Avatar -->
+      <div class="perfil-header">
+        <div class="capa-box" style="background-image: url('${dados.foto_capa_url || ''}')"></div>
+        <div class="avatar-box">
+          <img src="${dados.foto_perfil_url || 'https://via.placeholder.com/150'}" alt="Foto de Perfil" />
+        </div>
+        <div class="perfil-info-bar">
+          <div class="user-names">
+            <h2>${dados.nome_completo}</h2>
+            <p>@${dados.username || 'usuario'} • ${dados.cargo}</p>
+          </div>
+          <button class="btn-primary" onclick="alert('Configurações em breve!')">⚙️ Configurações</button>
+        </div>
+
+        <!-- Abas do Perfil -->
+        <div class="perfil-nav">
+          <button class="active" onclick="mudarAbaPerfil('publicacoes')">Publicações</button>
+          <button onclick="mudarAbaPerfil('sobre')">Sobre</button>
+          <button onclick="mudarAbaPerfil('fotos')">Fotos</button>
+          <button onclick="mudarAbaPerfil('videos')">Vídeos</button>
+        </div>
+      </div>
+
+      <!-- Conteúdo do Perfil -->
+      <div class="perfil-content">
+        
+        <!-- Coluna Esquerda: Sobre mim -->
+        <div class="card-sobre">
+          <h3>Sobre</h3>
+          <p style="font-style: italic; color: #65676b;">"${dados.biografia}"</p>
+          <hr style="border:0; border-top:1px solid #eee; margin:12px 0;" />
+          <div class="info-item">💼 <strong>Cargo:</strong> ${dados.cargo}</div>
+          <div class="info-item">🏢 <strong>Setor:</strong> ${dados.setor}</div>
+          ${dados.cidade ? `<div class="info-item">📍 <strong>Cidade:</strong> ${dados.cidade}</div>` : ''}
+          ${idadeCalculada ? `<div class="info-item">🎂 <strong>Idade:</strong> ${idadeCalculada} anos</div>` : ''}
+        </div>
+
+        <!-- Coluna Direita: Feed / Publicações -->
+        <div class="feed-box" id="perfil-feed-area">
+          
+          <!-- Box para criar post -->
+          <div class="create-post-card">
+            <textarea id="novo-post-texto" rows="3" placeholder="No que você está pensando?"></textarea>
+            <div class="post-actions">
+              <input type="file" id="novo-post-midias" multiple accept="image/*,video/*" style="display:none;" onchange="atualizarLabelMidias(this)" />
+              <button type="button" style="background:none; border:none; cursor:pointer;" onclick="document.getElementById('novo-post-midias').click()">
+                📷 Adicionar Foto/Vídeo <span id="count-midias"></span>
+              </button>
+              <button class="btn-primary" onclick="publicarNoPerfil('${userId}')">Publicar</button>
+            </div>
+          </div>
+
+          <!-- Lista de Posts do Perfil -->
+          <div id="lista-posts-perfil">Carregando publicações...</div>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+  // 3. Carregar as publicações do usuário
+  carregarPostsPerfil(userId);
+}
+
+// Criar Publicação com Mídias
+async function publicarNoPerfil(userId) {
+  const textoInput = document.getElementById('novo-post-texto');
+  const fileInput = document.getElementById('novo-post-midias');
+  const texto = textoInput.value.trim();
+  const files = fileInput.files;
+
+  if (!texto && files.length === 0) {
+    alert("Escreva algo ou selecione uma mídia para publicar!");
+    return;
+  }
+
+  // A. Inserir a publicação na tabela
+  const { data: post, error: postErr } = await supabase
+    .from('publicacoes')
+    .insert([{ user_id: userId, texto: texto }])
+    .select()
+    .single();
+
+  if (postErr) {
+    alert("Erro ao publicar: " + postErr.message);
+    return;
+  }
+
+  // B. Fazer Upload das Mídias para o Bucket 'publicacoes'
+  if (files.length > 0) {
+    for (let i = 0; i < Math.min(files.length, 10); i++) {
+      const file = files[i];
+      const ext = file.name.split('.').pop();
+      const fileName = `${post.id}/${Date.now()}_${i}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('publicacoes')
+        .upload(fileName, file);
+
+      if (!uploadErr) {
+        const { data: urlData } = supabase.storage
+          .from('publicacoes')
+          .getPublicUrl(fileName);
+
+        const tipoMidia = file.type.startsWith('video/') ? 'video' : 'imagem';
+
+        await supabase.from('midias_publicacoes').insert([{
+          publicacao_id: post.id,
+          url_midia: urlData.publicUrl,
+          tipo_midia: tipoMidia
+        }]);
+      }
+    }
+  }
+
+  // Limpar form e recarregar feed
+  textoInput.value = '';
+  fileInput.value = '';
+  document.getElementById('count-midias').innerText = '';
+  carregarPostsPerfil(userId);
+}
+
+// Carregar posts no feed
+async function carregarPostsPerfil(userId) {
+  const feedArea = document.getElementById('lista-posts-perfil');
+  if (!feedArea) return;
+
+  const { data: posts, error } = await supabase
+    .from('publicacoes')
+    .select(`
+      *,
+      midias_publicacoes(*),
+      reacoes(*),
+      comentarios(*)
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    feedArea.innerHTML = `<p>Erro ao carregar posts.</p>`;
+    return;
+  }
+
+  if (!posts || posts.length === 0) {
+    feedArea.innerHTML = `<p style="text-align:center; color:#65676b; margin-top:20px;">Nenhuma publicação ainda.</p>`;
+    return;
+  }
+
+  feedArea.innerHTML = posts.map(p => `
+    <div class="post-card">
+      <div class="post-header">
+        <div>
+          <strong style="display:block;">${new Date(p.created_at).toLocaleDateString()}</strong>
+        </div>
+      </div>
+      <p style="margin: 0 0 10px 0;">${p.texto || ''}</p>
+      
+      ${p.midias_publicacoes && p.midias_publicacoes.length > 0 ? `
+        <div class="post-media-grid">
+          ${p.midias_publicacoes.map(m => 
+            m.tipo_midia === 'video' 
+              ? `<video src="${m.url_midia}" controls></video>`
+              : `<img src="${m.url_midia}" alt="Mídia" />`
+          ).join('')}
+        </div>
+      ` : ''}
+
+      <div style="margin-top:12px; display:flex; gap:15px; font-size:14px; color:#65676b;">
+        <span>👍 ${p.reacoes ? p.reacoes.length : 0} reações</span>
+        <span>💬 ${p.comentarios ? p.comentarios.length : 0} comentários</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function atualizarLabelMidias(input) {
+  const countSpan = document.getElementById('count-midias');
+  if (countSpan) {
+    countSpan.innerText = input.files.length > 0 ? `(${input.files.length} selecionado(s))` : '';
+  }
+}
 </script>
 </body>
 </html>
