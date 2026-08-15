@@ -1780,12 +1780,12 @@ async function renderChat() {
     const userConvs = outros.filter(u => u.nome.toLowerCase().includes(search.toLowerCase())).map(u => {
       const msgs = allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === u.id) || (m.remetente_id === u.id && m.destinatario_id === user.id)));
       const last = msgs[msgs.length - 1];
-      return { type: 'user', id: u.id, nome: u.nome, pessoa: u, lastMsg: last ? (last.gif_url ? '🖼️ GIF' : last.texto) : 'Diga olá 👋' };
+      return { type: 'user', id: u.id, nome: u.nome, pessoa: u, lastMsg: last ? (last.audio_url ? '🎤 Áudio' : last.gif_url ? '🖼️ GIF' : last.texto) : 'Diga olá 👋' };
     });
     const groupConvs = grupos.filter(g => g.nome.toLowerCase().includes(search.toLowerCase())).map(g => {
       const msgs = allMsgs.filter(m => m.grupo_id === g.id);
       const last = msgs[msgs.length - 1];
-      return { type: 'group', id: g.id, nome: g.nome, lastMsg: last ? (last.gif_url ? '🖼️ GIF' : last.texto) : 'Grupo criado' };
+      return { type: 'group', id: g.id, nome: g.nome, lastMsg: last ? (last.audio_url ? '🎤 Áudio' : last.gif_url ? '🖼️ GIF' : last.texto) : 'Grupo criado' };
     });
     return [...groupConvs, ...userConvs];
   }
@@ -1815,7 +1815,7 @@ async function renderChat() {
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
         <div><div style="font-weight:700;font-size:14px">${nome}</div><div id="chat-sub-status" style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
@@ -1826,6 +1826,7 @@ async function renderChat() {
         <div class="chat-input">
           <button class="icon-btn" id="emoji-btn" title="Emoji">😊</button>
           <button class="icon-btn" id="gif-btn" title="GIF">🎞️</button>
+          <button class="icon-btn" id="mic-btn" title="Gravar áudio">🎤</button>
           <input type="text" id="chat-text-input" placeholder="Escreva uma mensagem...">
           <button class="btn btn-primary btn-sm" id="chat-send-btn">Enviar</button>
         </div>
@@ -1892,6 +1893,52 @@ async function renderChat() {
     const gifBtn = document.getElementById('gif-btn'), gifPop = document.getElementById('gif-pop');
     gifBtn.addEventListener('click', () => { gifPop.style.display = gifPop.style.display === 'none' ? 'flex' : 'none'; emojiPop.style.display = 'none'; });
     gifPop.querySelectorAll('.gif-choice').forEach(g => g.addEventListener('click', () => { sendGif(g.dataset.url); gifPop.style.display = 'none'; }));
+
+    const micBtn = document.getElementById('mic-btn');
+    let gravador = null, chunks = [], gravando = false, gravTimer = null, gravSegundos = 0;
+    micBtn.addEventListener('click', async () => {
+      if (!gravando) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          chunks = [];
+          gravador = new MediaRecorder(stream);
+          gravador.ondataavailable = (e) => chunks.push(e.data);
+          gravador.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const path = `${user.id}/${Date.now()}.webm`;
+            micBtn.textContent = '⏳';
+            const { error: upError } = await sb.storage.from('chat-audio').upload(path, blob);
+            if (upError) { FASA.toast('Erro ao enviar áudio: ' + upError.message); micBtn.textContent = '🎤'; return; }
+            const { data: pub } = sb.storage.from('chat-audio').getPublicUrl(path);
+            const payload = isGroup
+              ? { remetente_id: user.id, grupo_id: activeId, texto: '', audio_url: pub.publicUrl }
+              : { remetente_id: user.id, destinatario_id: activeId, texto: '', audio_url: pub.publicUrl };
+            const { error } = await sb.from('mensagens').insert(payload);
+            micBtn.textContent = '🎤';
+            if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
+            await carregarMensagens();
+            renderMessagesOnly();
+            paintList();
+          };
+          gravador.start();
+          gravando = true; gravSegundos = 0;
+          micBtn.style.color = '#e0453c';
+          micBtn.textContent = '⏹ 0:00';
+          gravTimer = setInterval(() => {
+            gravSegundos++;
+            micBtn.textContent = `⏹ ${Math.floor(gravSegundos / 60)}:${String(gravSegundos % 60).padStart(2, '0')}`;
+          }, 1000);
+        } catch (err) {
+          FASA.toast('Não foi possível acessar o microfone. Verifique a permissão do navegador.');
+        }
+      } else {
+        gravando = false;
+        clearInterval(gravTimer);
+        micBtn.style.color = '';
+        gravador.stop();
+      }
+    });
   }
 
   // Atualiza só a lista de mensagens (sem recriar o input/emoji), pra não
@@ -1908,7 +1955,7 @@ async function renderChat() {
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
