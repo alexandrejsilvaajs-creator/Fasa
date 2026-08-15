@@ -168,6 +168,7 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 .chat-input{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
 .chat-input input{flex:1;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;font-size:13.5px}
 .icon-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:6px}
+.notif-badge{position:absolute;top:0;right:0;background:#e0453c;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;align-items:center;justify-content:center;padding:0 3px}
 .icon-btn:hover{color:var(--primary)}
 .stat-card{display:flex;flex-direction:column;gap:6px}
 .stat-card .num{font-family:var(--f-display);font-size:32px;color:var(--primary-dk)}
@@ -380,6 +381,7 @@ function renderShell(activeId, title) {
             <h2>${title}</h2>
           </div>
           <div class="topbar-search">🔍 <input placeholder="Pesquisar no FASA..."></div>
+          <button class="icon-btn" id="fasa-bell" title="Notificações" style="position:relative;font-size:19px">🔔<span id="fasa-bell-badge" class="notif-badge" style="display:none"></span></button>
         </div>
         <div class="page" id="fasa-page"></div>
       </div>
@@ -396,6 +398,12 @@ function renderShell(activeId, title) {
   const overlay = document.getElementById('fasa-overlay');
   document.getElementById('fasa-menu-btn').addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('show'); });
   overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
+
+  document.getElementById('fasa-bell').addEventListener('click', () => FASA.go('notificacoes'));
+  sb.from('notificacoes').select('id', { count: 'exact', head: true }).eq('usuario_id', user.id).eq('lida', false).then(({ count }) => {
+    const badge = document.getElementById('fasa-bell-badge');
+    if (badge && count) { badge.textContent = count > 9 ? '9+' : count; badge.style.display = 'flex'; }
+  });
 
   return { user, pageEl: document.getElementById('fasa-page') };
 }
@@ -973,6 +981,12 @@ function renderAvisos() {
       if (!titulo || !texto) return;
       const { error: insError } = await sb.from('avisos').insert({ autor_id: user.id, titulo, texto });
       if (insError) { FASA.toast('Erro ao publicar: ' + insError.message); return; }
+      const { data: todos } = await sb.from('usuarios').select('id').neq('id', user.id);
+      if (todos && todos.length) {
+        await sb.from('notificacoes').insert(todos.map(u => ({
+          usuario_id: u.id, tipo: 'aviso', titulo: '📢 Novo aviso: ' + titulo, texto, link: 'avisos',
+        })));
+      }
       FASA.toast('Aviso publicado!'); paint();
     });
   }
@@ -2277,7 +2291,50 @@ function renderAdmin() {
 }
 
 /* ---------------- Router ---------------- */
-const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin };
+/* ---------------- Notificações ---------------- */
+async function renderNotificacoes() {
+  const { user, pageEl } = renderShell('notificacoes', 'Notificações');
+  pageEl.innerHTML = `<div class="empty">Carregando notificações...</div>`;
+
+  const { data: notifs, error } = await sb
+    .from('notificacoes')
+    .select('*')
+    .eq('usuario_id', user.id)
+    .order('criado_em', { ascending: false })
+    .limit(50);
+  if (error) { FASA.toast('Erro ao carregar notificações: ' + error.message); }
+
+  const ICONES = { aviso: '📢', comentario: '💬', reacao: '🙂', troca: '🔄', ausencia: '🌴', banco_horas: '🕐' };
+
+  pageEl.innerHTML = `
+    ${notifs && notifs.some(n => !n.lida) ? `<button class="btn btn-ghost btn-sm" id="marcar-todas" style="margin-bottom:14px">Marcar todas como lidas</button>` : ''}
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${(notifs || []).map(n => `
+        <div class="card notif-item ${n.lida ? '' : 'nao-lida'}" data-id="${n.id}" data-link="${n.link || ''}" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start;${n.lida ? '' : 'border-left:3px solid var(--accent)'}">
+          <div style="font-size:22px">${ICONES[n.tipo] || '🔔'}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(n.titulo)}</div>
+            ${n.texto ? `<div style="font-size:13px;color:var(--ink-soft);margin-top:2px">${FASA.escapeHtml(n.texto)}</div>` : ''}
+            <div style="font-size:11.5px;color:var(--muted);margin-top:4px">${FASA.timeAgo(new Date(n.criado_em).getTime())}</div>
+          </div>
+          ${!n.lida ? `<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px"></span>` : ''}
+        </div>`).join('') || `<div class="empty">Nenhuma notificação por aqui ainda.</div>`}
+    </div>`;
+
+  pageEl.querySelectorAll('.notif-item').forEach(el => el.addEventListener('click', async () => {
+    const id = el.dataset.id;
+    await sb.from('notificacoes').update({ lida: true }).eq('id', id);
+    const link = el.dataset.link;
+    if (link) FASA.go(link); else renderNotificacoes();
+  }));
+  const marcarTodas = document.getElementById('marcar-todas');
+  if (marcarTodas) marcarTodas.addEventListener('click', async () => {
+    await sb.from('notificacoes').update({ lida: true }).eq('usuario_id', user.id).eq('lida', false);
+    renderNotificacoes();
+  });
+}
+
+const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin, notificacoes: renderNotificacoes };
 
 function router() {
   const route = location.hash.replace('#/', '') || '';
