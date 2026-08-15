@@ -208,7 +208,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
    FASA — núcleo de dados (localStorage) + helpers
    ============================================================ */
 const FASA = (() => {
-   let _db = null;
+  let _db = null;
   let _session = null;
   const _joined = {};
 
@@ -333,6 +333,15 @@ const FASA = (() => {
     if (d < 30) return `há ${d}d`;
     return `há ${Math.floor(d / 30)} mês(es)`;
   }
+  function statusOnline(ultimoAcesso) {
+    if (!ultimoAcesso) return 'Offline';
+    const diffMin = (Date.now() - new Date(ultimoAcesso).getTime()) / 60000;
+    if (diffMin < 3) return '🟢 Online';
+    if (diffMin < 60) return `Visto há ${Math.floor(diffMin)} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `Visto há ${diffH}h`;
+    return `Visto há ${Math.floor(diffH / 24)}d`;
+  }
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function logoMark(size) {
     size = size || 30;
@@ -352,7 +361,7 @@ const FASA = (() => {
   }
   function go(route) { location.hash = '#/' + route; }
 
-  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS };
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS };
 })();
 
 const root = document.getElementById('root');
@@ -410,7 +419,7 @@ function renderShell(activeId, title) {
 
 /* ---------------- Login / Cadastro ---------------- */
 function renderLogin() {
-   root.innerHTML = `
+  root.innerHTML = `
   <div class="auth-shell">
     <div class="auth-art">
       <div class="caps">
@@ -527,6 +536,12 @@ function renderCadastro() {
 function renderFeed() {
   const { user, pageEl } = renderShell('feed', 'Início');
   let arquivoSelecionado = null;
+  if (window._fasaFeedMenuCloser) document.removeEventListener('click', window._fasaFeedMenuCloser);
+  window._fasaFeedMenuCloser = (e) => {
+    if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu-pop')) return;
+    pageEl.querySelectorAll('.post-menu-pop').forEach(p => { p.style.display = 'none'; });
+  };
+  document.addEventListener('click', window._fasaFeedMenuCloser);
   const REACOES = [
     { tipo: 'like', emoji: '👍', label: 'Curtir' },
     { tipo: 'amei', emoji: '❤️', label: 'Amei' },
@@ -574,10 +589,15 @@ function renderFeed() {
       const souAutor = p.autor_id === user.id;
       const infoReacao = minhaReacao ? reacaoInfo(minhaReacao.tipo) : null;
       return `
-      <div class="card post" data-id="${p.id}">
+      <div class="card post" data-id="${p.id}" data-autor-id="${p.autor_id}">
         <div class="post-head">${FASA.avatarHtml(autor)}
           <div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(autor.nome)}${autor.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub">${FASA.escapeHtml(autor.cargo || '')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
-          ${souAutor ? '<button class="icon-btn del-post-btn" title="Excluir publicação">🗑</button>' : ''}
+          ${souAutor ? `<div style="position:relative">
+            <button class="icon-btn post-menu-btn" title="Opções">⋮</button>
+            <div class="post-menu-pop" style="display:none;position:absolute;top:32px;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden">
+              <button class="post-menu-item del-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir publicação</button>
+            </div>
+          </div>` : ''}
         </div>
         <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
         ${anexoHtml(p)}
@@ -613,7 +633,7 @@ function renderFeed() {
   }
 
   async function paint() {
-     pageEl.innerHTML = `<div class="two-col"><div>
+    pageEl.innerHTML = `<div class="two-col"><div>
       <div class="card composer">${FASA.avatarHtml(user)}
         <div style="flex:1"><textarea id="post-text" placeholder="No que você está pensando, ${user.nome.split(' ')[0]}?"></textarea>
         <div id="anexo-preview-wrap"></div>
@@ -695,12 +715,21 @@ function renderFeed() {
       }));
       postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
       postEl.querySelector('.share-btn').addEventListener('click', () => FASA.toast('Publicação compartilhada no seu perfil!'));
+      const menuBtn = postEl.querySelector('.post-menu-btn');
+      const menuPop = postEl.querySelector('.post-menu-pop');
+      if (menuBtn) menuBtn.addEventListener('click', () => { menuPop.style.display = menuPop.style.display === 'none' ? 'block' : 'none'; });
       const sendBtn = postEl.querySelector('.send-comment');
       if (sendBtn) sendBtn.addEventListener('click', async () => {
         const input = postEl.querySelector('.comment-box input'), texto = input.value.trim();
         if (!texto) return;
         const { error } = await sb.from('comentarios').insert({ post_id: id, autor_id: user.id, texto });
         if (error) { FASA.toast('Erro ao comentar: ' + error.message); return; }
+        const autorPost = postEl.dataset.autorId;
+        if (autorPost && autorPost !== user.id) {
+          await sb.from('notificacoes').insert({
+            usuario_id: autorPost, tipo: 'comentario', titulo: `${user.nome} comentou na sua publicação`, texto, link: 'feed',
+          });
+        }
         refresh();
       });
       const delBtn = postEl.querySelector('.del-post-btn');
@@ -809,7 +838,7 @@ async function renderPerfil() {
     if (!editMode) {
       document.getElementById('edit-perfil-btn').addEventListener('click', () => { editMode = true; paintHeader(); });
 
-     const fotoBtn = document.getElementById('foto-btn');
+      const fotoBtn = document.getElementById('foto-btn');
       const fotoInput = document.getElementById('foto-input');
       fotoBtn.addEventListener('click', () => fotoInput.click());
       fotoInput.addEventListener('change', () => uploadImagem(fotoInput.files[0], 'avatar', 'foto_url', fotoBtn));
@@ -999,7 +1028,7 @@ async function renderEscala() {
   pageEl.innerHTML = `<div class="empty">Carregando escala...</div>`;
 
   const ABAS = [
-     { id: 'todas', label: 'Todas' },
+    { id: 'todas', label: 'Todas' },
     { id: 'noturno-a', label: 'Noturno A' },
     { id: 'noturno-b', label: 'Noturno B' },
     { id: 'diurno', label: 'Diurno' },
@@ -1193,7 +1222,7 @@ async function renderEscala() {
       <h3 style="font-size:15px;margin-bottom:12px">${user.admin ? 'Todas as solicitações' : 'Minhas solicitações'}</h3>
       <div style="display:flex;flex-direction:column;gap:12px">
         ${(trocas || []).filter(t => user.admin || t.solicitante_id === user.id).map(t => `
-          <div class="card" data-id="${t.id}">
+          <div class="card" data-id="${t.id}" data-solicitante-id="${t.solicitante_id}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div>
                 <b>${FASA.escapeHtml((t.usuarios || {}).nome || '—')}</b>
@@ -1211,7 +1240,7 @@ async function renderEscala() {
       </div>`;
 
     bindSubNav();
-     bindVoltar(paintNegociacoesMenu);
+    bindVoltar(paintNegociacoesMenu);
     const submitBtn = document.getElementById('ng-submit');
     if (submitBtn) submitBtn.addEventListener('click', async () => {
       const escala_id = document.getElementById('ng-escala').value;
@@ -1224,10 +1253,12 @@ async function renderEscala() {
     });
     pageEl.querySelectorAll('.card[data-id]').forEach(card => {
       const id = card.dataset.id;
+      const solicitanteId = card.dataset.solicitanteId;
       const aprovar = card.querySelector('.ng-aprovar');
       if (aprovar) aprovar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Aprovada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+        if (solicitanteId) await sb.from('notificacoes').insert({ usuario_id: solicitanteId, tipo: 'troca', titulo: '✅ Sua troca de plantão foi aprovada', link: 'escala' });
         FASA.toast('Troca aprovada! Ajuste a escala em Administração se necessário.');
         paintNegTurnos();
       });
@@ -1235,6 +1266,7 @@ async function renderEscala() {
       if (recusar) recusar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Recusada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+        if (solicitanteId) await sb.from('notificacoes').insert({ usuario_id: solicitanteId, tipo: 'troca', titulo: '❌ Sua troca de plantão foi recusada', link: 'escala' });
         FASA.toast('Troca recusada.');
         paintNegTurnos();
       });
@@ -1411,7 +1443,7 @@ async function renderEscala() {
           <div class="card" data-id="${l.id}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div>
-              <b>${l.tipo === 'Crédito' ? '➕' : '➖'} ${l.tipo} · ${Number(l.horas).toFixed(1)}h</b>
+                <b>${l.tipo === 'Crédito' ? '➕' : '➖'} ${l.tipo} · ${Number(l.horas).toFixed(1)}h</b>
                 <div style="font-size:12.5px;color:var(--muted)">${new Date(l.data + 'T00:00').toLocaleDateString('pt-BR')}${l.aba ? ' · ' + FASA.escapeHtml((ABAS.find(a => a.id === l.aba) || {}).label || l.aba) : ''}</div>
                 ${l.observacao ? `<p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0">${FASA.escapeHtml(l.observacao)}</p>` : ''}
               </div>
@@ -1612,7 +1644,7 @@ function renderEnquetes() {
 
 /* ---------------- Sugestões ---------------- */
 function renderSugestoes() {
-   const { user, pageEl } = renderShell('sugestoes', 'Sugestões');
+  const { user, pageEl } = renderShell('sugestoes', 'Sugestões');
 
   async function paint() {
     pageEl.innerHTML = `<div class="empty">Carregando sugestões...</div>`;
@@ -1687,6 +1719,16 @@ async function renderChat() {
   pageEl.classList.add('wide');
   pageEl.innerHTML = `<div class="empty">Carregando conversas...</div>`;
   const EMOJIS = ['😀','😁','😂','🤣','😊','😇','🙂','😉','😍','🥰','😘','😋','😜','🤔','😐','😴','😪','😢','😭','😱','😡','🤬','🥳','😎','🤩','😷','🤒','🙏','👍','👎','👏','🙌','🤝','💪','👋','✌️','🤞','❤️','🧡','💚','💙','💜','🖤','🔥','✨','🎉','🎂','👏','🙏','✅','❌','❗','❓','💡','📌','📎','⏰','😴','🤯'];
+  const GIFS = [
+    { label: 'Aplausos', url: 'https://media.giphy.com/media/artj92oYlDZ7i/giphy.gif' },
+    { label: 'Parabéns', url: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
+    { label: 'Rindo', url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
+    { label: 'Joinha', url: 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif' },
+    { label: 'Ótimo trabalho', url: 'https://media.giphy.com/media/g5uD9C7pnCzhOoIx4v/giphy.gif' },
+    { label: 'Comemorando', url: 'https://media.giphy.com/media/xUPGcguWZHRC2HyBRS/giphy.gif' },
+    { label: 'Cansado', url: 'https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif' },
+    { label: 'Café', url: 'https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif' },
+  ];
 
   let outros = [];
   let grupos = [];
@@ -1727,16 +1769,37 @@ async function renderChat() {
 
   function userById(id) { return id === user.id ? user : outros.find(u => u.id === id); }
 
+  function abrirModalEncaminhar(texto) {
+    const modal = document.getElementById('fwd-modal');
+    const lista = document.getElementById('fwd-list');
+    if (!modal || !lista) return;
+    const alvos = [
+      ...grupos.map(g => ({ tipo: 'group', id: g.id, nome: g.nome })),
+      ...outros.map(u => ({ tipo: 'user', id: u.id, nome: u.nome })),
+    ];
+    lista.innerHTML = alvos.map(a => `<button class="btn btn-ghost btn-block fwd-alvo" data-tipo="${a.tipo}" data-id="${a.id}" style="text-align:left">${a.tipo === 'group' ? '👥 ' : ''}${FASA.escapeHtml(a.nome)}</button>`).join('') || `<div class="empty">Nenhum contato disponível.</div>`;
+    modal.style.display = 'flex';
+    lista.querySelectorAll('.fwd-alvo').forEach(btn => btn.addEventListener('click', async () => {
+      const payload = { remetente_id: user.id, texto };
+      if (btn.dataset.tipo === 'group') payload.grupo_id = btn.dataset.id; else payload.destinatario_id = btn.dataset.id;
+      const { error } = await sb.from('mensagens').insert(payload);
+      if (error) { FASA.toast('Erro ao encaminhar: ' + error.message); return; }
+      FASA.toast('Mensagem encaminhada!');
+      modal.style.display = 'none';
+    }));
+    document.getElementById('fwd-cancel').addEventListener('click', () => { modal.style.display = 'none'; });
+  }
+
   function convList() {
     const userConvs = outros.filter(u => u.nome.toLowerCase().includes(search.toLowerCase())).map(u => {
       const msgs = allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === u.id) || (m.remetente_id === u.id && m.destinatario_id === user.id)));
       const last = msgs[msgs.length - 1];
-      return { type: 'user', id: u.id, nome: u.nome, pessoa: u, lastMsg: last ? last.texto : 'Diga olá 👋' };
+      return { type: 'user', id: u.id, nome: u.nome, pessoa: u, lastMsg: last ? (last.audio_url ? '🎤 Áudio' : last.gif_url ? '🖼️ GIF' : last.texto) : 'Diga olá 👋' };
     });
     const groupConvs = grupos.filter(g => g.nome.toLowerCase().includes(search.toLowerCase())).map(g => {
       const msgs = allMsgs.filter(m => m.grupo_id === g.id);
       const last = msgs[msgs.length - 1];
-      return { type: 'group', id: g.id, nome: g.nome, lastMsg: last ? last.texto : 'Grupo criado' };
+      return { type: 'group', id: g.id, nome: g.nome, lastMsg: last ? (last.audio_url ? '🎤 Áudio' : last.gif_url ? '🖼️ GIF' : last.texto) : 'Grupo criado' };
     });
     return [...groupConvs, ...userConvs];
   }
@@ -1745,7 +1808,7 @@ async function renderChat() {
     const list = convList();
     pageEl.querySelector('#chat-list-inner').innerHTML = list.map(c => `
       <div class="chat-conv ${c.type === activeType && c.id === activeId ? 'active' : ''}" data-type="${c.type}" data-id="${c.id}">
-        ${c.type === 'group' ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(c.pessoa, 'sm')}
+        <div style="position:relative">${c.type === 'group' ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(c.pessoa, 'sm')}${c.type === 'user' && FASA.statusOnline(c.pessoa.ultimo_acesso) === '🟢 Online' ? '<span style="position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:50%;background:#2ecc71;border:2px solid #fff"></span>' : ''}</div>
         <div class="t"><div class="n">${FASA.escapeHtml(c.nome)}</div><div class="m">${FASA.escapeHtml(c.lastMsg)}</div></div></div>`).join('') || `<div class="empty" style="padding:20px 10px">Nenhuma conversa encontrada.</div>`;
     pageEl.querySelectorAll('.chat-conv').forEach(el => el.addEventListener('click', () => { activeType = el.dataset.type; activeId = el.dataset.id; paintList(); paintMain(); }));
   }
@@ -1757,30 +1820,44 @@ async function renderChat() {
     const info = isGroup ? grupos.find(g => g.id === activeId) : outros.find(u => u.id === activeId);
     if (!info) { mainWrap.innerHTML = `<div class="empty" style="margin:auto">Conversa não encontrada.</div>`; return; }
     const nome = FASA.escapeHtml(info.nome);
-    const sub = isGroup ? 'Grupo' : `${FASA.escapeHtml(info.cargo || '')} · ${FASA.escapeHtml(info.setor || '')}`;
+    const sub = isGroup ? 'Grupo' : FASA.statusOnline(info.ultimo_acesso);
     const msgs = isGroup
       ? allMsgs.filter(m => m.grupo_id === activeId)
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
 
     mainWrap.innerHTML = `
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
-        <div><div style="font-weight:700;font-size:14px">${nome}</div><div style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
+        <div><div style="font-weight:700;font-size:14px">${nome}</div><div id="chat-sub-status" style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
         </div>
+        <div id="gif-pop" style="display:none;position:absolute;bottom:64px;left:56px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:8px;flex-wrap:wrap;width:280px;max-height:260px;overflow-y:auto">
+          ${GIFS.map(g => `<img src="${g.url}" title="${FASA.escapeHtml(g.label)}" class="gif-choice" data-url="${g.url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer">`).join('')}
+        </div>
         <div class="chat-input">
           <button class="icon-btn" id="emoji-btn" title="Emoji">😊</button>
+          <button class="icon-btn" id="gif-btn" title="GIF">🎞️</button>
+          <button class="icon-btn" id="mic-btn" title="Gravar áudio">🎤</button>
           <input type="text" id="chat-text-input" placeholder="Escreva uma mensagem...">
           <button class="btn btn-primary btn-sm" id="chat-send-btn">Enviar</button>
+        </div>
+      </div>
+      <div id="fwd-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;align-items:flex-end;justify-content:center">
+        <div style="background:#fff;border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:480px;max-height:70vh;overflow-y:auto">
+          <h3 style="margin-bottom:12px">Encaminhar mensagem para...</h3>
+          <div id="fwd-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          <button class="btn btn-ghost btn-block" id="fwd-cancel" style="margin-top:12px">Cancelar</button>
         </div>
       </div>`;
 
     const msgsWrap = document.getElementById('chat-msgs');
     msgsWrap.scrollTop = msgsWrap.scrollHeight;
     msgsWrap.addEventListener('click', async (e) => {
+      const fwdBtn = e.target.closest('.msg-fwd-btn');
+      if (fwdBtn) { abrirModalEncaminhar(fwdBtn.dataset.texto); return; }
       const btn = e.target.closest('.msg-del-btn');
       if (!btn) return;
       if (!confirm('Excluir esta mensagem?')) return;
@@ -1791,6 +1868,14 @@ async function renderChat() {
       paintList();
     });
     const input = document.getElementById('chat-text-input');
+    let digitandoTimeout;
+    input.addEventListener('input', () => {
+      clearTimeout(digitandoTimeout);
+      sb.from('usuarios').update({ digitando_em: new Date().toISOString(), digitando_para: activeId }).eq('id', user.id).then(() => {});
+      digitandoTimeout = setTimeout(() => {
+        sb.from('usuarios').update({ digitando_para: null }).eq('id', user.id).then(() => {});
+      }, 3000);
+    });
 
     async function send(texto) {
       texto = texto.trim();
@@ -1799,6 +1884,8 @@ async function renderChat() {
       const { error } = await sb.from('mensagens').insert(payload);
       if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
       input.value = '';
+      clearTimeout(digitandoTimeout);
+      sb.from('usuarios').update({ digitando_para: null }).eq('id', user.id).then(() => {});
       await carregarMensagens();
       renderMessagesOnly();
       paintList();
@@ -1806,8 +1893,66 @@ async function renderChat() {
     document.getElementById('chat-send-btn').addEventListener('click', () => send(input.value));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(input.value); });
     const emojiBtn = document.getElementById('emoji-btn'), emojiPop = document.getElementById('emoji-pop');
-    emojiBtn.addEventListener('click', () => { emojiPop.style.display = emojiPop.style.display === 'none' ? 'flex' : 'none'; });
+    emojiBtn.addEventListener('click', () => { emojiPop.style.display = emojiPop.style.display === 'none' ? 'flex' : 'none'; gifPop.style.display = 'none'; });
     emojiPop.querySelectorAll('.emoji-choice').forEach(e => e.addEventListener('click', () => { input.value += e.textContent; emojiPop.style.display = 'none'; input.focus(); }));
+
+    async function sendGif(url) {
+      const payload = isGroup ? { remetente_id: user.id, grupo_id: activeId, texto: '', gif_url: url } : { remetente_id: user.id, destinatario_id: activeId, texto: '', gif_url: url };
+      const { error } = await sb.from('mensagens').insert(payload);
+      if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
+      await carregarMensagens();
+      renderMessagesOnly();
+      paintList();
+    }
+    const gifBtn = document.getElementById('gif-btn'), gifPop = document.getElementById('gif-pop');
+    gifBtn.addEventListener('click', () => { gifPop.style.display = gifPop.style.display === 'none' ? 'flex' : 'none'; emojiPop.style.display = 'none'; });
+    gifPop.querySelectorAll('.gif-choice').forEach(g => g.addEventListener('click', () => { sendGif(g.dataset.url); gifPop.style.display = 'none'; }));
+
+    const micBtn = document.getElementById('mic-btn');
+    let gravador = null, chunks = [], gravando = false, gravTimer = null, gravSegundos = 0;
+    micBtn.addEventListener('click', async () => {
+      if (!gravando) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          chunks = [];
+          gravador = new MediaRecorder(stream);
+          gravador.ondataavailable = (e) => chunks.push(e.data);
+          gravador.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const path = `${user.id}/${Date.now()}.webm`;
+            micBtn.textContent = '⏳';
+            const { error: upError } = await sb.storage.from('chat-audio').upload(path, blob);
+            if (upError) { FASA.toast('Erro ao enviar áudio: ' + upError.message); micBtn.textContent = '🎤'; return; }
+            const { data: pub } = sb.storage.from('chat-audio').getPublicUrl(path);
+            const payload = isGroup
+              ? { remetente_id: user.id, grupo_id: activeId, texto: '', audio_url: pub.publicUrl }
+              : { remetente_id: user.id, destinatario_id: activeId, texto: '', audio_url: pub.publicUrl };
+            const { error } = await sb.from('mensagens').insert(payload);
+            micBtn.textContent = '🎤';
+            if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
+            await carregarMensagens();
+            renderMessagesOnly();
+            paintList();
+          };
+          gravador.start();
+          gravando = true; gravSegundos = 0;
+          micBtn.style.color = '#e0453c';
+          micBtn.textContent = '⏹ 0:00';
+          gravTimer = setInterval(() => {
+            gravSegundos++;
+            micBtn.textContent = `⏹ ${Math.floor(gravSegundos / 60)}:${String(gravSegundos % 60).padStart(2, '0')}`;
+          }, 1000);
+        } catch (err) {
+          FASA.toast('Não foi possível acessar o microfone. Verifique a permissão do navegador.');
+        }
+      } else {
+        gravando = false;
+        clearInterval(gravTimer);
+        micBtn.style.color = '';
+        gravador.stop();
+      }
+    });
   }
 
   // Atualiza só a lista de mensagens (sem recriar o input/emoji), pra não
@@ -1819,12 +1964,12 @@ async function renderChat() {
     const isGroup = activeType === 'group';
     const info = isGroup ? grupos.find(g => g.id === activeId) : outros.find(u => u.id === activeId);
     if (!info) return;
-     const msgs = isGroup
+    const msgs = isGroup
       ? allMsgs.filter(m => m.grupo_id === activeId)
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
@@ -1842,6 +1987,15 @@ async function renderChat() {
     await carregarMensagens();
     renderMessagesOnly();
     paintList();
+    if (activeId && activeType === 'user') {
+      const { data: outro } = await sb.from('usuarios').select('digitando_em, digitando_para').eq('id', activeId).single();
+      const subEl = document.getElementById('chat-sub-status');
+      if (subEl && outro) {
+        const digitandoAgora = outro.digitando_para === user.id && outro.digitando_em && (Date.now() - new Date(outro.digitando_em).getTime()) < 5000;
+        if (digitandoAgora) subEl.innerHTML = '<i style="color:var(--accent)">digitando...</i>';
+        else { const infoAtual = outros.find(u => u.id === activeId); if (infoAtual) subEl.textContent = FASA.statusOnline(infoAtual.ultimo_acesso); }
+      }
+    }
   }, 4000);
 }
 
@@ -2000,7 +2154,7 @@ function renderAdmin() {
         if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
         paintEscalas();
       }));
-       }
+    }
     pageEl.querySelectorAll('[data-aba-filtro]').forEach(t => t.addEventListener('click', () => {
       pageEl.querySelectorAll('[data-aba-filtro]').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
@@ -2031,7 +2185,7 @@ function renderAdmin() {
     const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
     const { data: ausencias, error } = await sb
       .from('ausencias')
-      .select('id, tipo, status, data_inicio, data_fim, observacao, usuarios!ausencias_usuario_id_fkey(nome)')
+      .select('id, tipo, status, data_inicio, data_fim, observacao, usuario_id, usuarios!ausencias_usuario_id_fkey(nome)')
       .order('data_inicio', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar ausências: ' + error.message); }
     const hojeISO = new Date().toISOString().slice(0, 10);
@@ -2055,7 +2209,7 @@ function renderAdmin() {
       <div class="card" style="margin-bottom:18px">
         <h3 style="margin-bottom:12px">Solicitações pendentes de aprovação</h3>
         <div style="display:flex;flex-direction:column;gap:10px">
-          ${pendentes.map(a => `<div class="card" data-id="${a.id}" style="box-shadow:none;border:1px solid var(--line)">
+          ${pendentes.map(a => `<div class="card" data-id="${a.id}" data-usuario-id="${a.usuario_id}" style="box-shadow:none;border:1px solid var(--line)">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div><b>${FASA.escapeHtml((a.usuarios || {}).nome || '—')}</b> · ${FASA.escapeHtml(a.tipo)}
                 <div style="font-size:12.5px;color:var(--muted)">${new Date(a.data_inicio + 'T00:00').toLocaleDateString('pt-BR')} — ${new Date(a.data_fim + 'T00:00').toLocaleDateString('pt-BR')}</div>
@@ -2073,16 +2227,20 @@ function renderAdmin() {
     bindTabs();
 
     pageEl.querySelectorAll('.au-aprovar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('ausencias').update({ status: 'Aprovada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '✅ Sua solicitação de ausência foi aprovada', link: 'escala' });
       FASA.toast('Ausência aprovada!');
       paintAusencias();
     }));
     pageEl.querySelectorAll('.au-recusar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('ausencias').update({ status: 'Recusada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '❌ Sua solicitação de ausência foi recusada', link: 'escala' });
       FASA.toast('Solicitação recusada.');
       paintAusencias();
     }));
@@ -2113,7 +2271,7 @@ function renderAdmin() {
     const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
     const { data: lancamentos, error } = await sb
       .from('banco_horas')
-      .select('id, tipo, horas, data, aba, observacao, status, usuarios!banco_horas_usuario_id_fkey(nome)')
+      .select('id, tipo, horas, data, aba, observacao, status, usuario_id, usuarios!banco_horas_usuario_id_fkey(nome)')
       .order('data', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar banco de horas: ' + error.message); }
     const hojeISO = new Date().toISOString().slice(0, 10);
@@ -2137,7 +2295,7 @@ function renderAdmin() {
       <div class="card" style="margin-bottom:18px">
         <h3 style="margin-bottom:12px">Solicitações pendentes</h3>
         <div style="display:flex;flex-direction:column;gap:10px">
-          ${pendentes.map(l => `<div class="card" data-id="${l.id}" style="box-shadow:none;border:1px solid var(--line)">
+          ${pendentes.map(l => `<div class="card" data-id="${l.id}" data-usuario-id="${l.usuario_id}" style="box-shadow:none;border:1px solid var(--line)">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div><b>${FASA.escapeHtml((l.usuarios || {}).nome || '—')}</b> · ${FASA.escapeHtml(l.tipo)} · ${Number(l.horas).toFixed(1)}h
                 <div style="font-size:12.5px;color:var(--muted)">${new Date(l.data + 'T00:00').toLocaleDateString('pt-BR')}</div>
@@ -2155,16 +2313,20 @@ function renderAdmin() {
     bindTabs();
 
     pageEl.querySelectorAll('.bh-aprovar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('banco_horas').update({ status: 'Aprovada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '✅ Seu lançamento no banco de horas foi aprovado', link: 'escala' });
       FASA.toast('Lançamento aprovado!');
       paintBancoHorasAdmin();
     }));
     pageEl.querySelectorAll('.bh-recusar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('banco_horas').update({ status: 'Recusada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '❌ Seu lançamento no banco de horas foi recusado', link: 'escala' });
       FASA.toast('Solicitação recusada.');
       paintBancoHorasAdmin();
     }));
@@ -2298,7 +2460,7 @@ async function renderNotificacoes() {
 
   const { data: notifs, error } = await sb
     .from('notificacoes')
-   .select('*')
+    .select('*')
     .eq('usuario_id', user.id)
     .order('criado_em', { ascending: false })
     .limit(50);
@@ -2353,6 +2515,13 @@ FASA.seed();
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
 router();
+
+function heartbeat() {
+  const u = FASA.currentUser();
+  if (u) sb.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', u.id).then(() => {});
+}
+heartbeat();
+setInterval(heartbeat, 60000);
 </script>
 </body>
 </html>
