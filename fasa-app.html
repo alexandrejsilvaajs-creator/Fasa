@@ -536,6 +536,12 @@ function renderCadastro() {
 function renderFeed() {
   const { user, pageEl } = renderShell('feed', 'Início');
   let arquivoSelecionado = null;
+  if (window._fasaFeedMenuCloser) document.removeEventListener('click', window._fasaFeedMenuCloser);
+  window._fasaFeedMenuCloser = (e) => {
+    if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu-pop')) return;
+    pageEl.querySelectorAll('.post-menu-pop').forEach(p => { p.style.display = 'none'; });
+  };
+  document.addEventListener('click', window._fasaFeedMenuCloser);
   const REACOES = [
     { tipo: 'like', emoji: '👍', label: 'Curtir' },
     { tipo: 'amei', emoji: '❤️', label: 'Amei' },
@@ -586,7 +592,12 @@ function renderFeed() {
       <div class="card post" data-id="${p.id}" data-autor-id="${p.autor_id}">
         <div class="post-head">${FASA.avatarHtml(autor)}
           <div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(autor.nome)}${autor.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub">${FASA.escapeHtml(autor.cargo || '')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
-          ${souAutor ? '<button class="icon-btn del-post-btn" title="Excluir publicação">🗑</button>' : ''}
+          ${souAutor ? `<div style="position:relative">
+            <button class="icon-btn post-menu-btn" title="Opções">⋮</button>
+            <div class="post-menu-pop" style="display:none;position:absolute;top:32px;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden">
+              <button class="post-menu-item del-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir publicação</button>
+            </div>
+          </div>` : ''}
         </div>
         <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
         ${anexoHtml(p)}
@@ -704,6 +715,9 @@ function renderFeed() {
       }));
       postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
       postEl.querySelector('.share-btn').addEventListener('click', () => FASA.toast('Publicação compartilhada no seu perfil!'));
+      const menuBtn = postEl.querySelector('.post-menu-btn');
+      const menuPop = postEl.querySelector('.post-menu-pop');
+      if (menuBtn) menuBtn.addEventListener('click', () => { menuPop.style.display = menuPop.style.display === 'none' ? 'block' : 'none'; });
       const sendBtn = postEl.querySelector('.send-comment');
       if (sendBtn) sendBtn.addEventListener('click', async () => {
         const input = postEl.querySelector('.comment-box input'), texto = input.value.trim();
