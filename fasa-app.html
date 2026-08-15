@@ -762,6 +762,7 @@ async function renderPerfil() {
             ${user.data_admissao ? `<span class="pill">📅 Desde ${new Date(user.data_admissao + 'T00:00').toLocaleDateString('pt-BR')}</span>` : ''}
             ${user.admin ? '<span class="pill muted">Administrador</span>' : ''}
           </div>
+          ${(user.especialidades || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">${user.especialidades.map(h => `<span class="pill" style="background:var(--primary-dk);color:#fff;border-color:var(--primary-dk)">${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
           ${(user.habilidades || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">${user.habilidades.map(h => `<span class="pill muted">${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
           ${(user.interesses || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:16px">${user.interesses.map(h => `<span class="pill accent">${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
           <button class="btn btn-ghost btn-sm" id="edit-perfil-btn">✎ Editar perfil</button>
@@ -783,6 +784,7 @@ async function renderPerfil() {
           <div class="field"><label>Data de admissão</label><input type="date" id="ep-admissao" value="${user.data_admissao || ''}"></div>
           <div class="field"><label>Habilidades (separadas por vírgula)</label><input id="ep-habilidades" value="${FASA.escapeHtml((user.habilidades || []).join(', '))}" placeholder="Ex: Excel, Manipulação, Atendimento"></div>
           <div class="field"><label>Interesses (separados por vírgula)</label><input id="ep-interesses" value="${FASA.escapeHtml((user.interesses || []).join(', '))}" placeholder="Ex: Futebol, Culinária, Games"></div>
+          <div class="field"><label>Especialidades (separadas por vírgula)</label><input id="ep-especialidades" value="${FASA.escapeHtml((user.especialidades || []).join(', '))}" placeholder="Ex: Oncologia, Farmácia Clínica, Nutrição Parenteral"></div>
           <div class="field"><label>Bio (uma frase sobre você)</label><textarea id="ep-bio" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit">${FASA.escapeHtml(user.bio || '')}</textarea></div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-primary" id="ep-salvar">Salvar</button>
@@ -829,13 +831,14 @@ async function renderPerfil() {
         const data_admissao = document.getElementById('ep-admissao').value || null;
         const habilidades = document.getElementById('ep-habilidades').value.split(',').map(h => h.trim()).filter(Boolean);
         const interesses = document.getElementById('ep-interesses').value.split(',').map(h => h.trim()).filter(Boolean);
+        const especialidades = document.getElementById('ep-especialidades').value.split(',').map(h => h.trim()).filter(Boolean);
         const bio = document.getElementById('ep-bio').value.trim();
-        const { error: updError } = await sb.from('usuarios').update({ cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, bio }).eq('id', user.id);
+        const { error: updError } = await sb.from('usuarios').update({ cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, bio }).eq('id', user.id);
         if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
-        Object.assign(user, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, bio });
+        Object.assign(user, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, bio });
         const db = FASA.getDB();
         const jaExiste = db.usuarios.find(u => u.id === user.id);
-        if (jaExiste) Object.assign(jaExiste, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, bio });
+        if (jaExiste) Object.assign(jaExiste, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, bio });
         FASA.saveDB(db);
         editMode = false;
         FASA.toast('Perfil atualizado!');
