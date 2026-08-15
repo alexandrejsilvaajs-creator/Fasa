@@ -759,6 +759,7 @@ async function renderPerfil() {
           <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
             <span class="pill">Matrícula ${FASA.escapeHtml(user.matricula)}</span><span class="pill accent">${FASA.escapeHtml(user.tempo_empresa || 'A definir')} de empresa</span>
             ${user.ramal ? `<span class="pill">☎ Ramal ${FASA.escapeHtml(user.ramal)}</span>` : ''}
+            ${user.email_corporativo ? `<span class="pill">✉ ${FASA.escapeHtml(user.email_corporativo)}</span>` : ''}
             ${user.data_admissao ? `<span class="pill">📅 Desde ${new Date(user.data_admissao + 'T00:00').toLocaleDateString('pt-BR')}</span>` : ''}
             ${user.admin ? '<span class="pill muted">Administrador</span>' : ''}
           </div>
@@ -785,6 +786,7 @@ async function renderPerfil() {
           <div class="field"><label>Habilidades (separadas por vírgula)</label><input id="ep-habilidades" value="${FASA.escapeHtml((user.habilidades || []).join(', '))}" placeholder="Ex: Excel, Manipulação, Atendimento"></div>
           <div class="field"><label>Interesses (separados por vírgula)</label><input id="ep-interesses" value="${FASA.escapeHtml((user.interesses || []).join(', '))}" placeholder="Ex: Futebol, Culinária, Games"></div>
           <div class="field"><label>Especialidades (separadas por vírgula)</label><input id="ep-especialidades" value="${FASA.escapeHtml((user.especialidades || []).join(', '))}" placeholder="Ex: Oncologia, Farmácia Clínica, Nutrição Parenteral"></div>
+          <div class="field"><label>E-mail corporativo</label><input type="email" id="ep-email" value="${FASA.escapeHtml(user.email_corporativo || '')}" placeholder="nome@einstein.br"></div>
           <div class="field"><label>Bio (uma frase sobre você)</label><textarea id="ep-bio" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit">${FASA.escapeHtml(user.bio || '')}</textarea></div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-primary" id="ep-salvar">Salvar</button>
@@ -832,13 +834,14 @@ async function renderPerfil() {
         const habilidades = document.getElementById('ep-habilidades').value.split(',').map(h => h.trim()).filter(Boolean);
         const interesses = document.getElementById('ep-interesses').value.split(',').map(h => h.trim()).filter(Boolean);
         const especialidades = document.getElementById('ep-especialidades').value.split(',').map(h => h.trim()).filter(Boolean);
+        const email_corporativo = document.getElementById('ep-email').value.trim();
         const bio = document.getElementById('ep-bio').value.trim();
-        const { error: updError } = await sb.from('usuarios').update({ cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, bio }).eq('id', user.id);
+        const { error: updError } = await sb.from('usuarios').update({ cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, email_corporativo, bio }).eq('id', user.id);
         if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
-        Object.assign(user, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, bio });
+        Object.assign(user, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, email_corporativo, bio });
         const db = FASA.getDB();
         const jaExiste = db.usuarios.find(u => u.id === user.id);
-        if (jaExiste) Object.assign(jaExiste, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, bio });
+        if (jaExiste) Object.assign(jaExiste, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, email_corporativo, bio });
         FASA.saveDB(db);
         editMode = false;
         FASA.toast('Perfil atualizado!');
