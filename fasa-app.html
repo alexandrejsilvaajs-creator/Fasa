@@ -1736,6 +1736,27 @@ async function renderChat() {
 
   function userById(id) { return id === user.id ? user : outros.find(u => u.id === id); }
 
+  function abrirModalEncaminhar(texto) {
+    const modal = document.getElementById('fwd-modal');
+    const lista = document.getElementById('fwd-list');
+    if (!modal || !lista) return;
+    const alvos = [
+      ...grupos.map(g => ({ tipo: 'group', id: g.id, nome: g.nome })),
+      ...outros.map(u => ({ tipo: 'user', id: u.id, nome: u.nome })),
+    ];
+    lista.innerHTML = alvos.map(a => `<button class="btn btn-ghost btn-block fwd-alvo" data-tipo="${a.tipo}" data-id="${a.id}" style="text-align:left">${a.tipo === 'group' ? '👥 ' : ''}${FASA.escapeHtml(a.nome)}</button>`).join('') || `<div class="empty">Nenhum contato disponível.</div>`;
+    modal.style.display = 'flex';
+    lista.querySelectorAll('.fwd-alvo').forEach(btn => btn.addEventListener('click', async () => {
+      const payload = { remetente_id: user.id, texto };
+      if (btn.dataset.tipo === 'group') payload.grupo_id = btn.dataset.id; else payload.destinatario_id = btn.dataset.id;
+      const { error } = await sb.from('mensagens').insert(payload);
+      if (error) { FASA.toast('Erro ao encaminhar: ' + error.message); return; }
+      FASA.toast('Mensagem encaminhada!');
+      modal.style.display = 'none';
+    }));
+    document.getElementById('fwd-cancel').addEventListener('click', () => { modal.style.display = 'none'; });
+  }
+
   function convList() {
     const userConvs = outros.filter(u => u.nome.toLowerCase().includes(search.toLowerCase())).map(u => {
       const msgs = allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === u.id) || (m.remetente_id === u.id && m.destinatario_id === user.id)));
@@ -1775,7 +1796,7 @@ async function renderChat() {
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
         <div><div style="font-weight:700;font-size:14px">${nome}</div><div style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
@@ -1785,11 +1806,20 @@ async function renderChat() {
           <input type="text" id="chat-text-input" placeholder="Escreva uma mensagem...">
           <button class="btn btn-primary btn-sm" id="chat-send-btn">Enviar</button>
         </div>
+      </div>
+      <div id="fwd-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;align-items:flex-end;justify-content:center">
+        <div style="background:#fff;border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:480px;max-height:70vh;overflow-y:auto">
+          <h3 style="margin-bottom:12px">Encaminhar mensagem para...</h3>
+          <div id="fwd-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          <button class="btn btn-ghost btn-block" id="fwd-cancel" style="margin-top:12px">Cancelar</button>
+        </div>
       </div>`;
 
     const msgsWrap = document.getElementById('chat-msgs');
     msgsWrap.scrollTop = msgsWrap.scrollHeight;
     msgsWrap.addEventListener('click', async (e) => {
+      const fwdBtn = e.target.closest('.msg-fwd-btn');
+      if (fwdBtn) { abrirModalEncaminhar(fwdBtn.dataset.texto); return; }
       const btn = e.target.closest('.msg-del-btn');
       if (!btn) return;
       if (!confirm('Excluir esta mensagem?')) return;
@@ -1833,7 +1863,7 @@ async function renderChat() {
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
