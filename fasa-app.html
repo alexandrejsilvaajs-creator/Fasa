@@ -763,6 +763,7 @@ async function renderPerfil() {
             ${user.data_admissao ? `<span class="pill">📅 Desde ${new Date(user.data_admissao + 'T00:00').toLocaleDateString('pt-BR')}</span>` : ''}
             ${user.admin ? '<span class="pill muted">Administrador</span>' : ''}
           </div>
+          ${(user.conquistas || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">${user.conquistas.map(h => `<span class="pill" style="background:#B8860B;color:#fff;border-color:#B8860B">🏅 ${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
           ${(user.especialidades || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">${user.especialidades.map(h => `<span class="pill" style="background:var(--primary-dk);color:#fff;border-color:var(--primary-dk)">${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
           ${(user.habilidades || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">${user.habilidades.map(h => `<span class="pill muted">${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
           ${(user.interesses || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:16px">${user.interesses.map(h => `<span class="pill accent">${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
@@ -1881,13 +1882,24 @@ function renderAdmin() {
           <td><input class="ed-cargo" value="${FASA.escapeHtml(u.cargo || '')}" style="border:none;background:none;width:110px;font:inherit"></td>
           <td><input class="ed-setor" value="${FASA.escapeHtml(u.setor || '')}" style="border:none;background:none;width:100px;font:inherit"></td>
           <td><label class="checkline"><input type="checkbox" class="ed-admin" ${u.admin ? 'checked' : ''}> <span class="badge ${u.admin ? 'ok' : 'off'}">${u.admin ? 'Admin' : 'Colaborador'}</span></label></td>
-          <td style="display:flex;gap:6px"><button class="icon-action salvar-user" title="Salvar">💾</button><button class="icon-action del-user" title="Excluir perfil">🗑</button></td>
+          <td style="display:flex;gap:6px"><button class="icon-action salvar-user" title="Salvar">💾</button><button class="icon-action conquista-user" title="Conquistas/medalhas">🏅</button><button class="icon-action del-user" title="Excluir perfil">🗑</button></td>
         </tr>`).join('')}
       </tbody></table></div>`);
     bindTabs();
 
     pageEl.querySelectorAll('tr[data-id]').forEach(tr => {
       const id = tr.dataset.id;
+      const usuarioAtual = (usuarios || []).find(u => u.id === id);
+      tr.querySelector('.conquista-user').addEventListener('click', async () => {
+        const atual = (usuarioAtual.conquistas || []).join(', ');
+        const novo = prompt('Conquistas/medalhas (separadas por vírgula):', atual);
+        if (novo === null) return;
+        const conquistas = novo.split(',').map(c => c.trim()).filter(Boolean);
+        const { error: updError } = await sb.from('usuarios').update({ conquistas }).eq('id', id);
+        if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
+        FASA.toast('Conquistas atualizadas!');
+        paintUsuarios();
+      });
       tr.querySelector('.salvar-user').addEventListener('click', async () => {
         const nome = tr.querySelector('.ed-nome').value.trim();
         const matricula = tr.querySelector('.ed-matricula').value.trim();
