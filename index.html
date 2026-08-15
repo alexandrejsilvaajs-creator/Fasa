@@ -3,253 +3,245 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FASA</title>
+<title>FASA · Demo</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f5f5f5}
-.auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#164F41,#1F6F5C)}
-.auth h1{color:#fff;margin-bottom:20px}
-.auth-box{background:#fff;padding:30px;border-radius:16px;width:100%;max-width:400px}
-.btn{background:#1F6F5C;color:#fff;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px;cursor:pointer;margin-top:10px}
-input,textarea{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px}
-.error{color:red;background:#fee;padding:10px;border-radius:8px;margin-bottom:10px;display:none}
-.error.show{display:block}
-.card{background:#fff;padding:20px;margin:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-.topbar{background:#1F6F5C;color:#fff;padding:16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
-.menu-btn{background:none;border:none;color:#fff;font-size:24px;cursor:pointer}
-.notification-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;position:relative}
-.notification-btn .badge{position:absolute;top:-8px;right:-8px;background:red;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center}
-.sidebar{position:fixed;left:0;top:0;width:260px;height:100vh;background:#fff;box-shadow:2px 0 8px rgba(0,0,0,.1);transform:translateX(-100%);transition:.3s;z-index:1000;padding:20px}
-.sidebar.open{transform:translateX(0)}
-.nav-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
-.nav-item:active{background:#e0e0e0}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:999}
-.overlay.show{display:block}
+/* ============================================================
+   FASA — Design System (versão demo single-file)
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root{
+  --ink:#16241F;--ink-soft:#3B4A44;--muted:#64766F;--paper:#F3F7F3;--paper-2:#EAF1EC;--card:#FFFFFF;--line:#DCE6DF;
+  --primary:#1F6F5C;--primary-dk:#164F41;--primary-lt:#E4F1EC;--accent:#E8873A;--accent-dk:#C96A22;--accent-lt:#FBE7D4;
+  --danger:#C24545;--gold:#B8933B;
+  --f-display:'Fraunces',serif;--f-body:'Inter',system-ui,sans-serif;--f-mono:'JetBrains Mono',monospace;
+  --sidebar-w:248px;--radius:14px;--radius-sm:9px;--radius-pill:999px;
+  --shadow:0 1px 2px rgba(22,36,31,.05),0 8px 24px -12px rgba(22,36,31,.12);
+  --shadow-lg:0 12px 40px -16px rgba(22,36,31,.28);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--f-body);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+ul{list-style:none;margin:0;padding:0}
+img{max-width:100%;display:block}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-.01em}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--primary)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px;padding:11px 20px;border-radius:var(--radius-pill);border:1px solid transparent;cursor:pointer;transition:.15s ease;white-space:nowrap}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dk)}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent-dk)}
+.btn-ghost{background:transparent;color:var(--primary);border-color:var(--line)}.btn-ghost:hover{background:var(--primary-lt)}
+.btn-block{width:100%}.btn-sm{padding:7px 14px;font-size:13px}.btn[disabled]{opacity:.5;cursor:not-allowed}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;font-weight:500;padding:4px 12px 4px 4px;border-radius:var(--radius-pill);background:var(--primary-lt);color:var(--primary-dk);border:1px solid transparent}
+.pill::before{content:"";width:8px;height:16px;border-radius:5px;background:var(--primary);flex:none}
+.pill.accent{background:var(--accent-lt);color:var(--accent-dk)}.pill.accent::before{background:var(--accent)}
+.pill.muted{background:var(--paper-2);color:var(--muted)}.pill.muted::before{background:var(--muted)}
+.pill.live::before{background:#3AA35C;box-shadow:0 0 0 3px rgba(58,163,92,.25)}
+.auth-shell{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+@media (max-width:860px){.auth-shell{grid-template-columns:1fr}}
+.auth-art{background:linear-gradient(160deg,var(--primary-dk),var(--primary) 60%,#2F8A73);color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:48px}
+@media (max-width:860px){.auth-art{display:none}}
+.auth-art .caps{position:absolute;inset:0;opacity:.15}
+.auth-art .caps span{position:absolute;width:120px;height:44px;border-radius:999px;border:2px solid #fff}
+.auth-brand{display:flex;align-items:center;gap:12px;font-family:var(--f-display);font-size:22px;position:relative;z-index:1}
+.auth-quote{font-family:var(--f-display);font-size:28px;line-height:1.3;max-width:420px;position:relative;z-index:1}
+.auth-quote small{display:block;font-family:var(--f-mono);font-size:12px;opacity:.75;margin-top:14px;text-transform:uppercase;letter-spacing:.1em}
+.auth-form-wrap{display:flex;align-items:center;justify-content:center;padding:32px}
+.auth-form{width:100%;max-width:380px}
+.auth-form .mark-mobile{display:none}
+@media (max-width:860px){.auth-form .mark-mobile{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-family:var(--f-display);font-size:20px;color:var(--primary-dk)}}
+.auth-form h1{font-size:30px;margin-bottom:6px}
+.auth-form .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.01em}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:#fff;font-size:14px;font-family:var(--f-body);color:var(--ink)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);outline:none}
+.field-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:14px 0 22px}
+.checkline{display:flex;align-items:center;gap:8px;color:var(--ink-soft)}
+.checkline input{width:16px;height:16px;accent-color:var(--primary)}
+.link{color:var(--primary);font-weight:600}.link:hover{text-decoration:underline}
+.form-foot{margin-top:22px;text-align:center;font-size:13px;color:var(--muted)}
+.err{background:#FBEAEA;color:var(--danger);border:1px solid #F1C6C6;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+.err.show{display:block}
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);flex:none;background:var(--card);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:20px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;font-family:var(--f-display);font-size:19px;color:var(--primary-dk)}
+.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;color:var(--ink-soft);transition:.12s;cursor:pointer}
+.nav-item .ic{width:20px;text-align:center;font-size:16px}
+.nav-item:hover{background:var(--paper-2)}
+.nav-item.active{background:var(--primary-lt);color:var(--primary-dk);font-weight:700}
+.sidebar-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--line)}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none;font-family:var(--f-display)}
+.avatar.sm{width:30px;height:30px;font-size:12px}.avatar.lg{width:64px;height:64px;font-size:22px}
+.sidebar-user .who{min-width:0}
+.sidebar-user .who .name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user .who .role{font-size:11px;color:var(--muted)}
+.logout-btn{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px}
+.logout-btn:hover{color:var(--danger)}
+.main{flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:5;background:rgba(243,247,243,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:14px 28px;gap:16px}
+.topbar h2{font-size:20px}
+.topbar-search{flex:1;max-width:360px;display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:8px 16px;font-size:13px;color:var(--muted)}
+.topbar-search input{border:none;outline:none;background:none;font-size:13px;width:100%;font-family:inherit}
+.menu-btn{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink)}
+.page{padding:24px 28px;max-width:1040px}
+.page.wide{max-width:none}
+@media (max-width:900px){.sidebar{position:fixed;left:-260px;z-index:20;transition:.2s;box-shadow:var(--shadow-lg)}.sidebar.open{left:0}.menu-btn{display:block}.page{padding:18px}.topbar{padding:12px 16px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.composer{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px}
+.composer textarea{flex:1;resize:none;border:none;background:var(--paper-2);border-radius:var(--radius-sm);padding:12px 14px;font-family:inherit;font-size:14px;min-height:44px;color:var(--ink)}
+.composer textarea:focus{outline:2px solid var(--primary)}
+.composer-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.composer-tools{display:flex;gap:6px}
+.tool-btn{background:none;border:1px solid var(--line);border-radius:var(--radius-pill);padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer}
+.tool-btn:hover{background:var(--paper-2)}
 .post{margin-bottom:16px}
-.post-header{display:flex;gap:10px;align-items:center;margin-bottom:12px}
-.avatar{width:40px;height:40px;border-radius:50%;background:#1F6F5C;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.notifications-panel{position:fixed;right:0;top:0;width:350px;height:100vh;background:#fff;box-shadow:-2px 0 8px rgba(0,0,0,.1);z-index:1001;transform:translateX(100%);transition:.3s;padding:20px;overflow-y:auto}
-.notifications-panel.open{transform:translateX(0)}
-.notifications-panel h3{margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #eee}
-.notification-item{padding:12px;margin-bottom:10px;border-left:4px solid #1F6F5C;background:#f9f9f9;border-radius:4px;cursor:pointer}
-.notification-item.unread{background:#e8f4f1;font-weight:600}
-.notification-item:active{background:#e0e0e0}
-.notification-item .time{font-size:11px;color:#666;margin-top:4px}
-.notification-item .action{font-size:12px;color:#1F6F5C;margin-top:6px}
-.close-notifications{background:none;border:none;font-size:24px;cursor:pointer;float:right}
-.empty-notifs{color:#666;text-align:center;padding:20px}
-.mark-all-read{background:#1F6F5C;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px;width:100%}
+.post-head{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.post-head .meta .name{font-weight:700;font-size:14px}
+.post-head .meta .sub{font-size:12px;color:var(--muted)}
+.post-body{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin-bottom:12px;white-space:pre-wrap}
+.post-actions{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.post-actions button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:none;border:none;border-radius:var(--radius-sm);padding:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.post-actions button:hover{background:var(--paper-2);color:var(--primary-dk)}
+.post-actions button.liked{color:var(--accent-dk)}
+.comment-box{display:none;margin-top:10px;gap:8px}.comment-box.open{display:flex}
+.comment-box input{flex:1;border:1px solid var(--line);border-radius:var(--radius-pill);padding:8px 14px;font-size:13px}
+.comments-list{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.comment-item{background:var(--paper-2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px}
+.comment-item b{font-size:12.5px}
+.two-col{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
+@media (max-width:900px){.two-col{grid-template-columns:1fr}}
+.side-card+.side-card{margin-top:18px}
+.side-card h3{font-size:14px;margin-bottom:12px}
+.mini-list{display:flex;flex-direction:column;gap:10px}
+.mini-item{display:flex;align-items:center;gap:10px;font-size:13px}
+.mini-item .t{flex:1;min-width:0}
+.mini-item .t .n{font-weight:600;font-size:13px}
+.mini-item .t .s{font-size:11.5px;color:var(--muted)}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+.comm-card{overflow:hidden}
+.comm-banner{height:84px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;margin:-18px -18px 14px;background:linear-gradient(135deg,var(--primary),var(--accent))}
+.comm-card h3{font-size:16px;margin-bottom:4px}
+.comm-card .desc{font-size:12.5px;color:var(--muted);margin-bottom:12px;min-height:32px}
+.comm-card .foot{display:flex;justify-content:space-between;align-items:center}
+.aviso{border-left:4px solid var(--accent);padding-left:14px}
+.aviso h3{font-size:15px;margin-bottom:4px}
+.aviso .sub{font-size:12px;color:var(--muted);margin-bottom:8px}
+.aviso p{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0}
+.doc-card{display:flex;gap:12px;align-items:flex-start}
+.doc-ic{width:42px;height:42px;border-radius:var(--radius-sm);background:var(--primary-lt);color:var(--primary-dk);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.doc-card h3{font-size:14px;margin-bottom:2px}
+.doc-card .meta{font-size:11.5px;color:var(--muted)}
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:var(--radius-pill);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff}
+.tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.poll-opt{position:relative;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;cursor:pointer;overflow:hidden;background:#fff}
+.poll-opt .fill{position:absolute;inset:0;background:var(--primary-lt);z-index:0;transition:.4s}
+.poll-opt .txt{position:relative;z-index:1;display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
+.poll-opt.voted{border-color:var(--primary)}
+.rank-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rank-row:last-child{border-bottom:none}
+.rank-pos{width:26px;text-align:center;font-family:var(--f-mono);font-weight:700;color:var(--muted)}
+.rank-pos.top{color:var(--gold)}
+.rank-row .pts{margin-left:auto;font-family:var(--f-mono);font-size:13px;color:var(--primary-dk);font-weight:700}
+.chat-shell{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 62px)}
+@media (max-width:760px){.chat-shell{grid-template-columns:1fr}}
+.chat-list{border-right:1px solid var(--line);overflow-y:auto;padding:12px}
+.chat-search{margin-bottom:10px}
+.chat-conv{display:flex;gap:10px;align-items:center;padding:10px;border-radius:var(--radius-sm);cursor:pointer}
+.chat-conv:hover,.chat-conv.active{background:var(--paper-2)}
+.chat-conv .t{min-width:0;flex:1}
+.chat-conv .t .n{font-size:13.5px;font-weight:700}
+.chat-conv .t .m{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-main{display:flex;flex-direction:column;min-width:0}
+.chat-head{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:60%;padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.4}
+.msg.in{background:var(--paper-2);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.out{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg .time{display:block;font-size:10px;opacity:.65;margin-top:4px}
+.chat-input{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
+.chat-input input{flex:1;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;font-size:13.5px}
+.icon-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:6px}
+.notif-badge{position:absolute;top:0;right:0;background:#e0453c;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;align-items:center;justify-content:center;padding:0 3px}
+.icon-btn:hover{color:var(--primary)}
+.stat-card{display:flex;flex-direction:column;gap:6px}
+.stat-card .num{font-family:var(--f-display);font-size:32px;color:var(--primary-dk)}
+.stat-card .lbl{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.table-wrap{overflow-x:auto}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--radius-pill)}
+.badge.ok{background:#E3F3E7;color:#2C7A45}.badge.warn{background:var(--accent-lt);color:var(--accent-dk)}.badge.off{background:#F1F1F1;color:var(--muted)}
+.icon-action{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px}
+.icon-action:hover{color:var(--danger)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty .big{font-size:32px;margin-bottom:10px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:.25s;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.overlay-bg{position:fixed;inset:0;background:rgba(22,36,31,.4);z-index:15;display:none}
+.overlay-bg.show{display:block}
+.demo-badge{position:fixed;top:10px;right:10px;z-index:200;background:var(--ink);color:#fff;font-family:var(--f-mono);font-size:10px;padding:5px 10px;border-radius:var(--radius-pill);opacity:.7}
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="root"></div>
+<div class="demo-badge">FASA · protótipo demo</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-let currentUser=null;
-let db=JSON.parse(localStorage.getItem('fasa_db'))||null;
-let showNotifications=false;
+/* ============================================================
+   Conexão real com o Supabase (banco de dados da FASA)
+   ============================================================ */
+const SUPABASE_URL = 'https://qhmjrdnxjkpqxijhxjuv.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_pdI7QD_wTeWcGO1vn1cETg_xnUXUDbz';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function initDB(){
-  if(!db){
-    db={
-      users:[
-        {id:'u1',nome:'Alexandre',cargo:'Técnico de Farmácia',setor:'Farmácia',email:'alexandre@fasa.local',senha:'123456',admin:true,pontos:260},
-        {id:'u2',nome:'Thais',cargo:'Coordenadora',setor:'Farmácia',email:'thais@fasa.local',senha:'123456',admin:true,pontos:480},
-        {id:'u3',nome:'Camila',cargo:'Farmacêutica',setor:'Farmácia',email:'camila@fasa.local',senha:'123456',admin:false,pontos:400}
-      ],
-      posts:[
-        {id:'p1',userId:'u2',content:'Bom dia equipe! Lembrem-se de conferir as validades.',timestamp:Date.now()-3600000,likes:[],comments:[]},
-        {id:'p2',userId:'u1',content:'Alguém tem o contato do plantão de hoje?',timestamp:Date.now()-7200000,likes:['u2'],comments:[]}
-      ],
-      avisos:[{id:'a1',titulo:'Feriado',texto:'Escala disponível',timestamp:Date.now()-86400000}],
-      notifications:[],
-      enquetes:[],
-      sugestoes:[],
-      escalas:[],
-      biblioteca:[],
-      chats:[]
-    };
-    localStorage.setItem('fasa_db',JSON.stringify(db));
-  }
-}
+/* ============================================================
+   FASA — núcleo de dados (localStorage) + helpers
+   ============================================================ */
+const FASA = (() => {
+  let _db = null;
+  let _session = null;
+  const _joined = {};
 
-function saveDB(){localStorage.setItem('fasa_db',JSON.stringify(db));}
+  const NAV_ITEMS = [
+    { id: 'feed', icon: '🏠', label: 'Início' },
+    { id: 'perfil', icon: '👤', label: 'Meu Perfil' },
+    { id: 'chat', icon: '💬', label: 'Chat' },
+    { id: 'avisos', icon: '📢', label: 'Avisos' },
+    { id: 'escala', icon: '📅', label: 'Escalas' },
+    { id: 'biblioteca', icon: '📚', label: 'Biblioteca' },
+    { id: 'enquetes', icon: '📊', label: 'Enquetes' },
+    { id: 'sugestoes', icon: '💡', label: 'Sugestões' },
+    { id: 'ranking', icon: '🏆', label: 'Reconhecimento' },
+  ];
 
-function createNotification(userId,postId,commenterName,commentText){
-  const notification={
-    id:'n'+Date.now(),
-    userId:userId,
-    postId:postId,
-    commenterName:commenterName,
-    commentText:commentText,
-    timestamp:Date.now(),
-    read:false
-  };
-  db.notifications.push(notification);
-  saveDB();
-}
+  const COMUNIDADES = [
+    { id: 'farmacia-clinica', nome: 'Farmácia Clínica', desc: 'Discussões clínicas, interações e acompanhamento farmacoterapêutico.', membros: 84 },
+    { id: 'centro-cirurgico', nome: 'Centro Cirúrgico', desc: 'Escalas, materiais e protocolos do centro cirúrgico.', membros: 52 },
+    { id: 'uti', nome: 'UTI', desc: 'Rotina, intercorrências e protocolos da unidade de terapia intensiva.', membros: 47 },
+    { id: 'oncologia', nome: 'Oncologia', desc: 'Quimioterápicos, manipulação e cuidados oncológicos.', membros: 36 },
+    { id: 'logistica', nome: 'Logística', desc: 'Estoque, recebimento e distribuição de medicamentos.', membros: 29 },
+    { id: 'treinamentos', nome: 'Treinamentos', desc: 'Capacitações, cursos internos e certificações.', membros: 61 },
+    { id: 'qualidade', nome: 'Qualidade', desc: 'Indicadores, auditorias e melhoria contínua.', membros: 33 },
+  ];
 
-function getUnreadNotificationsCount(userId){
-  return db.notifications.filter(n=>n.userId===userId && !n.read).length;
-}
-
-function login(email,senha){
-  const user=db.users.find(u=>u.email===email&&u.senha===senha);
-  if(user){
-    currentUser=user;
-    localStorage.setItem('fasa_user',JSON.stringify(user));
-    render();
-  }else{
-    const err=document.getElementById('loginErr');
-    if(err)err.classList.add('show');
-  }
-}
-
-function logout(){
-  currentUser=null;
-  localStorage.removeItem('fasa_user');
-  render();
-}
-
-function render(){
-  const app=document.getElementById('app');
-  if(!currentUser){
-    app.innerHTML='<div class="auth"><h1>💊 FASA</h1><div class="auth-box"><h2 style="margin-bottom:10px">Bem-vindo de volta</h2><p style="color:#666;margin-bottom:20px">Entre com seu e-mail para acessar o FASA.</p><div id="loginErr" class="error">E-mail ou senha inválidos</div><div style="margin-bottom:12px"><label style="font-size:12px;font-weight:600;color:#666">E-mail</label><input type="email" id="email" value="alexandre@fasa.local"></div><div style="margin-bottom:12px"><label style="font-size:12px;font-weight:600;color:#666">Senha</label><input type="password" id="senha" value="123456"></div><button class="btn" onclick="login(document.getElementById(\'email\').value,document.getElementById(\'senha\').value)">Entrar</button><p style="text-align:center;margin-top:20px;font-size:13px;color:#666">Não tem conta? <a href="#" style="color:#1F6F5C">Como pedir acesso</a></p></div></div>';
-  }else{
-    app.innerHTML='<div class="overlay" id="overlay" onclick="toggleMenu()"></div><div class="sidebar" id="sidebar"><h2 style="margin-bottom:20px">💊 FASA</h2><div class="nav-item" onclick="setView(\'feed\')">🏠 Início</div><div class="nav-item" onclick="setView(\'perfil\')">👤 Meu Perfil</div><div class="nav-item" onclick="setView(\'avisos\')">📢 Avisos</div><div class="nav-item" onclick="logout()" style="color:red;margin-top:20px">🚪 Sair</div></div><div class="topbar"><button class="menu-btn" onclick="toggleMenu()">☰</button><h2 id="pageTitle">Início</h2><button class="notification-btn" onclick="toggleNotifications()">🔔<span id="notifBadge" class="badge" style="display:none">0</span></button></div><div id="content" style="padding:20px;max-width:900px"></div><div class="notifications-panel" id="notifPanel"><button class="close-notifications" onclick="toggleNotifications()">×</button><h3>Notificações</h3><div id="notifList"></div><button class="mark-all-read" onclick="markAllAsRead()">Marcar todas como lidas</button></div>';
-    renderFeed();
-  }
-}
-
-function toggleMenu(){
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
-}
-
-function toggleNotifications(){
-  showNotifications=!showNotifications;
-  const panel=document.getElementById('notifPanel');
-  if(showNotifications){
-    panel.classList.add('open');
-    renderNotifications();
-    updateBadge();
-  }else{
-    panel.classList.remove('open');
-  }
-}
-
-function updateBadge(){
-  const badge=document.getElementById('notifBadge');
-  const count=getUnreadNotificationsCount(currentUser.id);
-  if(count>0){
-    badge.textContent=count;
-    badge.style.display='flex';
-  }else{
-    badge.style.display='none';
-  }
-}
-
-function renderNotifications(){
-  const userNotifs=db.notifications.filter(n=>n.userId===currentUser.id).sort((a,b)=>b.timestamp-a.timestamp);
-  const list=document.getElementById('notifList');
-  if(userNotifs.length===0){
-    list.innerHTML='<div class="empty-notifs">Nenhuma notificação</div>';
-    return;
-  }
-  list.innerHTML=userNotifs.map(n=>{
-    const post=db.posts.find(p=>p.id===n.postId);
-    const time=new Date(n.timestamp).toLocaleString('pt-BR');
-    return '<div class="notification-item '+(!n.read?'unread':'')+'" onclick="goToPost(\''+n.postId+'\')"><div><b>'+n.commenterName+'</b> comentou na sua publicação</div><div style="font-size:12px;color:#666;margin-top:4px">"'+n.commentText.substring(0,50)+(n.commentText.length>50?'...':'')+'"</div><div class="time">'+time+'</div><div class="action">Ver publicação →</div></div>';
-  }).join('');
-}
-
-function goToPost(postId){
-  showNotifications=false;
-  document.getElementById('notifPanel').classList.remove('open');
-  const postEl=document.querySelector('[data-postid="'+postId+'"]');
-  if(postEl){
-    postEl.scrollIntoView({behavior:'smooth'});
-    postEl.style.background='#e8f4f1';
-    setTimeout(()=>postEl.style.background='#fff',2000);
-  }
-  markAllAsRead();
-}
-
-function markAllAsRead(){
-  db.notifications.forEach(n=>{
-    if(n.userId===currentUser.id)n.read=true;
-  });
-  saveDB();
-  renderNotifications();
-  updateBadge();
-}
-
-function setView(view){
-  if(view==='feed')renderFeed();
-  else if(view==='perfil')renderPerfil();
-  else if(view==='avisos')renderAvisos();
-  toggleMenu();
-}
-
-function renderFeed(){
-  document.getElementById('pageTitle').textContent='Início';
-  updateBadge();
-  const posts=db.posts.map(p=>{
-    const user=db.users.find(u=>u.id===p.userId);
-    const commentsHtml=(p.comments||[]).map(c=>{
-      const commenter=db.users.find(u=>u.id===c.userId);
-      return '<div class="comment-item"><b>'+(commenter?commenter.nome:'')+'</b>: '+c.text+'</div>';
-    }).join('');
-    return '<div class="card post" data-postid="'+p.id+'"><div class="post-header"><div class="avatar">'+(user?user.nome[0]:'?')+'</div><div><b>'+(user?user.nome:'')+'</b><div style="font-size:12px;color:#666">'+(user?user.cargo:'')+'</div></div></div><div>'+p.content+'</div><div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee"><button style="background:none;border:none;color:#1F6F5C;cursor:pointer;font-size:13px" onclick="toggleCommentBox(\''+p.id+'\')">💬 Comentar ('+(p.comments?p.comments.length:0)+')</button></div><div id="commentBox-'+p.id+'" style="display:none;margin-top:10px"><textarea id="commentText-'+p.id+'" placeholder="Escreva um comentário..." style="min-height:40px;margin-bottom:8px"></textarea><button class="btn" onclick="addComment(\''+p.id+'\')">Enviar comentário</button></div><div style="margin-top:10px">'+commentsHtml+'</div></div>';
-  }).join('');
-  document.getElementById('content').innerHTML='<div class="card"><textarea id="newPost" placeholder="No que você está pensando?" style="min-height:60px;margin-bottom:10px"></textarea><button class="btn" onclick="addPost()">Publicar</button></div>'+posts;
-}
-
-function toggleCommentBox(postId){
-  const box=document.getElementById('commentBox-'+postId);
-  box.style.display=box.style.display==='none'?'block':'none';
-}
-
-function addComment(postId){
-  const text=document.getElementById('commentText-'+postId).value;
-  if(!text)return;
-  const post=db.posts.find(p=>p.id===postId);
-  if(!post.comments)post.comments=[];
-  post.comments.push({userId:currentUser.id,text:text,timestamp:Date.now()});
-  
-  // Criar notificação se o comentário não for do próprio autor
-  if(post.userId!==currentUser.id){
-    createNotification(post.userId,postId,currentUser.nome,text);
-  }
-  
-  saveDB();
-  renderFeed();
-}
-
-function renderPerfil(){
-  const posts=db.posts.filter(p=>p.userId===currentUser.id);
-  document.getElementById('pageTitle').textContent='Meu Perfil';
-  document.getElementById('content').innerHTML='<div class="card"><h2>'+currentUser.nome+'</h2><p style="color:#666">'+currentUser.cargo+'</p><p>Pontos: '+currentUser.pontos+'</p></div><div class="card"><h3>Minhas publicações ('+posts.length+')</h3>'+posts.map(p=>'<div style="padding:12px 0;border-bottom:1px solid #eee">'+p.content+'</div>').join('')+'</div>';
-}
-
-function renderAvisos(){
-  const avisos=db.avisos.map(a=>'<div class="card"><h3>'+a.titulo+'</h3><p>'+a.texto+'</p></div>').join('');
-  document.getElementById('pageTitle').textContent='Avisos';
-  document.getElementById('content').innerHTML=avisos||'<div class="card">Nenhum aviso</div>';
-}
-
-function addPost(){
-  const content=document.getElementById('newPost').value;
-  if(content){
-    db.posts.unshift({id:'p'+Date.now(),userId:currentUser.id,content:content,timestamp:Date.now(),likes:[],comments:[]});
-    saveDB();
-    renderFeed();
-  }
-}
-
-initDB();
-const savedUser=localStorage.getItem('fasa_user');
-if(savedUser)currentUser=JSON.parse(savedUser);
-render();
-</script>
-</body>
-</html>
+  function seed() {
+    if (_db) return;
+    const now = Date.now();
+    const db = {
+      usuarios: [
+        { id: 'u1', nome: 'Alexandre', matricula: '30001', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'alexandre@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 260 },
+        { id: 'u2', nome: 'Thais', matricula: '30002', cargo: 'Coordenadora', setor: 'Farmácia', email: 'thais@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 480 },
+        { id: 'u3', nome: 'Camila', matricula: '30003', cargo: 'Farmacêutica', setor: 'Farmácia', email: 'camila@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 400 },
+        { id: 'u4', nome: 'Welton', matricula: '30004', cargo: 'Líder', setor: 'Farmácia', email: 'welton@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 440 },
+        { id: 'u5', nome: 'Antônio', matricula: '30005', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'antonio@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 210 },
+        { id: 'u6', nome: 'Basílio', matricula: '30006', cargo: 'T
