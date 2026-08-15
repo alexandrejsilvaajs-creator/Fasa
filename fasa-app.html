@@ -333,6 +333,15 @@ const FASA = (() => {
     if (d < 30) return `há ${d}d`;
     return `há ${Math.floor(d / 30)} mês(es)`;
   }
+  function statusOnline(ultimoAcesso) {
+    if (!ultimoAcesso) return 'Offline';
+    const diffMin = (Date.now() - new Date(ultimoAcesso).getTime()) / 60000;
+    if (diffMin < 3) return '🟢 Online';
+    if (diffMin < 60) return `Visto há ${Math.floor(diffMin)} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `Visto há ${diffH}h`;
+    return `Visto há ${Math.floor(diffH / 24)}d`;
+  }
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function logoMark(size) {
     size = size || 30;
@@ -352,7 +361,7 @@ const FASA = (() => {
   }
   function go(route) { location.hash = '#/' + route; }
 
-  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS };
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS };
 })();
 
 const root = document.getElementById('root');
@@ -1775,7 +1784,7 @@ async function renderChat() {
     const list = convList();
     pageEl.querySelector('#chat-list-inner').innerHTML = list.map(c => `
       <div class="chat-conv ${c.type === activeType && c.id === activeId ? 'active' : ''}" data-type="${c.type}" data-id="${c.id}">
-        ${c.type === 'group' ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(c.pessoa, 'sm')}
+        <div style="position:relative">${c.type === 'group' ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(c.pessoa, 'sm')}${c.type === 'user' && FASA.statusOnline(c.pessoa.ultimo_acesso) === '🟢 Online' ? '<span style="position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:50%;background:#2ecc71;border:2px solid #fff"></span>' : ''}</div>
         <div class="t"><div class="n">${FASA.escapeHtml(c.nome)}</div><div class="m">${FASA.escapeHtml(c.lastMsg)}</div></div></div>`).join('') || `<div class="empty" style="padding:20px 10px">Nenhuma conversa encontrada.</div>`;
     pageEl.querySelectorAll('.chat-conv').forEach(el => el.addEventListener('click', () => { activeType = el.dataset.type; activeId = el.dataset.id; paintList(); paintMain(); }));
   }
@@ -1787,7 +1796,7 @@ async function renderChat() {
     const info = isGroup ? grupos.find(g => g.id === activeId) : outros.find(u => u.id === activeId);
     if (!info) { mainWrap.innerHTML = `<div class="empty" style="margin:auto">Conversa não encontrada.</div>`; return; }
     const nome = FASA.escapeHtml(info.nome);
-    const sub = isGroup ? 'Grupo' : `${FASA.escapeHtml(info.cargo || '')} · ${FASA.escapeHtml(info.setor || '')}`;
+    const sub = isGroup ? 'Grupo' : FASA.statusOnline(info.ultimo_acesso);
     const msgs = isGroup
       ? allMsgs.filter(m => m.grupo_id === activeId)
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
@@ -2400,6 +2409,13 @@ FASA.seed();
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
 router();
+
+function heartbeat() {
+  const u = FASA.currentUser();
+  if (u) sb.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', u.id).then(() => {});
+}
+heartbeat();
+setInterval(heartbeat, 60000);
 </script>
 </body>
 </html>
