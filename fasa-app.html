@@ -1199,7 +1199,7 @@ async function renderEscala() {
       <h3 style="font-size:15px;margin-bottom:12px">${user.admin ? 'Todas as solicitações' : 'Minhas solicitações'}</h3>
       <div style="display:flex;flex-direction:column;gap:12px">
         ${(trocas || []).filter(t => user.admin || t.solicitante_id === user.id).map(t => `
-          <div class="card" data-id="${t.id}">
+          <div class="card" data-id="${t.id}" data-solicitante-id="${t.solicitante_id}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div>
                 <b>${FASA.escapeHtml((t.usuarios || {}).nome || '—')}</b>
@@ -1230,10 +1230,12 @@ async function renderEscala() {
     });
     pageEl.querySelectorAll('.card[data-id]').forEach(card => {
       const id = card.dataset.id;
+      const solicitanteId = card.dataset.solicitanteId;
       const aprovar = card.querySelector('.ng-aprovar');
       if (aprovar) aprovar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Aprovada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+        if (solicitanteId) await sb.from('notificacoes').insert({ usuario_id: solicitanteId, tipo: 'troca', titulo: '✅ Sua troca de plantão foi aprovada', link: 'escala' });
         FASA.toast('Troca aprovada! Ajuste a escala em Administração se necessário.');
         paintNegTurnos();
       });
@@ -1241,6 +1243,7 @@ async function renderEscala() {
       if (recusar) recusar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Recusada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+        if (solicitanteId) await sb.from('notificacoes').insert({ usuario_id: solicitanteId, tipo: 'troca', titulo: '❌ Sua troca de plantão foi recusada', link: 'escala' });
         FASA.toast('Troca recusada.');
         paintNegTurnos();
       });
@@ -2037,7 +2040,7 @@ function renderAdmin() {
     const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
     const { data: ausencias, error } = await sb
       .from('ausencias')
-      .select('id, tipo, status, data_inicio, data_fim, observacao, usuarios!ausencias_usuario_id_fkey(nome)')
+      .select('id, tipo, status, data_inicio, data_fim, observacao, usuario_id, usuarios!ausencias_usuario_id_fkey(nome)')
       .order('data_inicio', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar ausências: ' + error.message); }
     const hojeISO = new Date().toISOString().slice(0, 10);
@@ -2061,7 +2064,7 @@ function renderAdmin() {
       <div class="card" style="margin-bottom:18px">
         <h3 style="margin-bottom:12px">Solicitações pendentes de aprovação</h3>
         <div style="display:flex;flex-direction:column;gap:10px">
-          ${pendentes.map(a => `<div class="card" data-id="${a.id}" style="box-shadow:none;border:1px solid var(--line)">
+          ${pendentes.map(a => `<div class="card" data-id="${a.id}" data-usuario-id="${a.usuario_id}" style="box-shadow:none;border:1px solid var(--line)">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div><b>${FASA.escapeHtml((a.usuarios || {}).nome || '—')}</b> · ${FASA.escapeHtml(a.tipo)}
                 <div style="font-size:12.5px;color:var(--muted)">${new Date(a.data_inicio + 'T00:00').toLocaleDateString('pt-BR')} — ${new Date(a.data_fim + 'T00:00').toLocaleDateString('pt-BR')}</div>
@@ -2079,16 +2082,20 @@ function renderAdmin() {
     bindTabs();
 
     pageEl.querySelectorAll('.au-aprovar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('ausencias').update({ status: 'Aprovada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '✅ Sua solicitação de ausência foi aprovada', link: 'escala' });
       FASA.toast('Ausência aprovada!');
       paintAusencias();
     }));
     pageEl.querySelectorAll('.au-recusar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('ausencias').update({ status: 'Recusada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '❌ Sua solicitação de ausência foi recusada', link: 'escala' });
       FASA.toast('Solicitação recusada.');
       paintAusencias();
     }));
@@ -2119,7 +2126,7 @@ function renderAdmin() {
     const { data: usuarios } = await sb.from('usuarios').select('id, nome').order('nome');
     const { data: lancamentos, error } = await sb
       .from('banco_horas')
-      .select('id, tipo, horas, data, aba, observacao, status, usuarios!banco_horas_usuario_id_fkey(nome)')
+      .select('id, tipo, horas, data, aba, observacao, status, usuario_id, usuarios!banco_horas_usuario_id_fkey(nome)')
       .order('data', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar banco de horas: ' + error.message); }
     const hojeISO = new Date().toISOString().slice(0, 10);
@@ -2143,7 +2150,7 @@ function renderAdmin() {
       <div class="card" style="margin-bottom:18px">
         <h3 style="margin-bottom:12px">Solicitações pendentes</h3>
         <div style="display:flex;flex-direction:column;gap:10px">
-          ${pendentes.map(l => `<div class="card" data-id="${l.id}" style="box-shadow:none;border:1px solid var(--line)">
+          ${pendentes.map(l => `<div class="card" data-id="${l.id}" data-usuario-id="${l.usuario_id}" style="box-shadow:none;border:1px solid var(--line)">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div><b>${FASA.escapeHtml((l.usuarios || {}).nome || '—')}</b> · ${FASA.escapeHtml(l.tipo)} · ${Number(l.horas).toFixed(1)}h
                 <div style="font-size:12.5px;color:var(--muted)">${new Date(l.data + 'T00:00').toLocaleDateString('pt-BR')}</div>
@@ -2161,16 +2168,20 @@ function renderAdmin() {
     bindTabs();
 
     pageEl.querySelectorAll('.bh-aprovar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('banco_horas').update({ status: 'Aprovada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '✅ Seu lançamento no banco de horas foi aprovado', link: 'escala' });
       FASA.toast('Lançamento aprovado!');
       paintBancoHorasAdmin();
     }));
     pageEl.querySelectorAll('.bh-recusar').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.closest('.card[data-id]').dataset.id;
+      const card = btn.closest('.card[data-id]');
+      const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('banco_horas').update({ status: 'Recusada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '❌ Seu lançamento no banco de horas foi recusado', link: 'escala' });
       FASA.toast('Solicitação recusada.');
       paintBancoHorasAdmin();
     }));
