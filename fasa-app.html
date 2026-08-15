@@ -532,7 +532,7 @@ function renderFeed() {
   async function fetchPosts() {
     const { data, error } = await sb
       .from('posts')
-      .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url), post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
+      .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado), post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
       .order('criado_em', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar posts: ' + error.message); return []; }
     return data;
@@ -568,7 +568,7 @@ function renderFeed() {
       return `
       <div class="card post" data-id="${p.id}">
         <div class="post-head">${FASA.avatarHtml(autor)}
-          <div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(autor.nome)}</div><div class="sub">${FASA.escapeHtml(autor.cargo || '')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
+          <div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(autor.nome)}${autor.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub">${FASA.escapeHtml(autor.cargo || '')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
           ${souAutor ? '<button class="icon-btn del-post-btn" title="Excluir publicação">🗑</button>' : ''}
         </div>
         <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
@@ -753,7 +753,7 @@ async function renderPerfil() {
             <button id="foto-btn" title="Alterar foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">📷</button>
             <input type="file" id="foto-input" accept="image/*" style="display:none">
           </div>
-          <h1 style="font-size:22px">${FASA.escapeHtml(user.nome)}</h1>
+          <h1 style="font-size:22px">${FASA.escapeHtml(user.nome)}${user.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</h1>
           <p style="color:var(--muted);font-size:13.5px;margin:4px 0 12px">${FASA.escapeHtml(user.cargo || '')} · ${FASA.escapeHtml(user.setor || '')}</p>
           ${user.bio ? `<p style="font-size:13.5px;color:var(--ink-soft);max-width:420px;margin:0 auto 14px">${FASA.escapeHtml(user.bio)}</p>` : ''}
           <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
@@ -1875,13 +1875,14 @@ function renderAdmin() {
         Pra adicionar alguém novo, convide pelo <b>Supabase → Authentication → Users → Invite user</b>.
         O perfil aparece aqui automaticamente — é só editar matrícula, cargo e setor.
       </div>
-      <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Setor</th><th>Perfil</th><th></th></tr></thead><tbody>
+      <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Setor</th><th>Perfil</th><th>✔️</th><th></th></tr></thead><tbody>
         ${(usuarios || []).map(u => `<tr data-id="${u.id}">
           <td><input class="ed-nome" value="${FASA.escapeHtml(u.nome || '')}" style="border:none;background:none;width:100px;font:inherit"></td>
           <td><input class="ed-matricula" value="${FASA.escapeHtml(u.matricula || '')}" style="border:none;background:none;width:80px;font:inherit"></td>
           <td><input class="ed-cargo" value="${FASA.escapeHtml(u.cargo || '')}" style="border:none;background:none;width:110px;font:inherit"></td>
           <td><input class="ed-setor" value="${FASA.escapeHtml(u.setor || '')}" style="border:none;background:none;width:100px;font:inherit"></td>
           <td><label class="checkline"><input type="checkbox" class="ed-admin" ${u.admin ? 'checked' : ''}> <span class="badge ${u.admin ? 'ok' : 'off'}">${u.admin ? 'Admin' : 'Colaborador'}</span></label></td>
+          <td><label class="checkline"><input type="checkbox" class="ed-verificado" ${u.verificado ? 'checked' : ''}> <span title="Perfil verificado">✔️</span></label></td>
           <td style="display:flex;gap:6px"><button class="icon-action salvar-user" title="Salvar">💾</button><button class="icon-action conquista-user" title="Conquistas/medalhas">🏅</button><button class="icon-action del-user" title="Excluir perfil">🗑</button></td>
         </tr>`).join('')}
       </tbody></table></div>`);
@@ -1906,7 +1907,8 @@ function renderAdmin() {
         const cargo = tr.querySelector('.ed-cargo').value.trim();
         const setor = tr.querySelector('.ed-setor').value.trim();
         const admin = tr.querySelector('.ed-admin').checked;
-        const { error: updError } = await sb.from('usuarios').update({ nome, matricula, cargo, setor, admin }).eq('id', id);
+        const verificado = tr.querySelector('.ed-verificado').checked;
+        const { error: updError } = await sb.from('usuarios').update({ nome, matricula, cargo, setor, admin, verificado }).eq('id', id);
         if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
         FASA.toast('Usuário atualizado!');
         paintUsuarios();
