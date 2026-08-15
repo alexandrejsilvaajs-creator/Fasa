@@ -1705,6 +1705,16 @@ async function renderChat() {
   pageEl.classList.add('wide');
   pageEl.innerHTML = `<div class="empty">Carregando conversas...</div>`;
   const EMOJIS = ['😀','😁','😂','🤣','😊','😇','🙂','😉','😍','🥰','😘','😋','😜','🤔','😐','😴','😪','😢','😭','😱','😡','🤬','🥳','😎','🤩','😷','🤒','🙏','👍','👎','👏','🙌','🤝','💪','👋','✌️','🤞','❤️','🧡','💚','💙','💜','🖤','🔥','✨','🎉','🎂','👏','🙏','✅','❌','❗','❓','💡','📌','📎','⏰','😴','🤯'];
+  const GIFS = [
+    { label: 'Aplausos', url: 'https://media.giphy.com/media/artj92oYlDZ7i/giphy.gif' },
+    { label: 'Parabéns', url: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
+    { label: 'Rindo', url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
+    { label: 'Joinha', url: 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif' },
+    { label: 'Ótimo trabalho', url: 'https://media.giphy.com/media/g5uD9C7pnCzhOoIx4v/giphy.gif' },
+    { label: 'Comemorando', url: 'https://media.giphy.com/media/xUPGcguWZHRC2HyBRS/giphy.gif' },
+    { label: 'Cansado', url: 'https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif' },
+    { label: 'Café', url: 'https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif' },
+  ];
 
   let outros = [];
   let grupos = [];
@@ -1770,12 +1780,12 @@ async function renderChat() {
     const userConvs = outros.filter(u => u.nome.toLowerCase().includes(search.toLowerCase())).map(u => {
       const msgs = allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === u.id) || (m.remetente_id === u.id && m.destinatario_id === user.id)));
       const last = msgs[msgs.length - 1];
-      return { type: 'user', id: u.id, nome: u.nome, pessoa: u, lastMsg: last ? last.texto : 'Diga olá 👋' };
+      return { type: 'user', id: u.id, nome: u.nome, pessoa: u, lastMsg: last ? (last.gif_url ? '🖼️ GIF' : last.texto) : 'Diga olá 👋' };
     });
     const groupConvs = grupos.filter(g => g.nome.toLowerCase().includes(search.toLowerCase())).map(g => {
       const msgs = allMsgs.filter(m => m.grupo_id === g.id);
       const last = msgs[msgs.length - 1];
-      return { type: 'group', id: g.id, nome: g.nome, lastMsg: last ? last.texto : 'Grupo criado' };
+      return { type: 'group', id: g.id, nome: g.nome, lastMsg: last ? (last.gif_url ? '🖼️ GIF' : last.texto) : 'Grupo criado' };
     });
     return [...groupConvs, ...userConvs];
   }
@@ -1805,13 +1815,17 @@ async function renderChat() {
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
         <div><div style="font-weight:700;font-size:14px">${nome}</div><div id="chat-sub-status" style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
         </div>
+        <div id="gif-pop" style="display:none;position:absolute;bottom:64px;left:56px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:8px;flex-wrap:wrap;width:280px;max-height:260px;overflow-y:auto">
+          ${GIFS.map(g => `<img src="${g.url}" title="${FASA.escapeHtml(g.label)}" class="gif-choice" data-url="${g.url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer">`).join('')}
+        </div>
         <div class="chat-input">
           <button class="icon-btn" id="emoji-btn" title="Emoji">😊</button>
+          <button class="icon-btn" id="gif-btn" title="GIF">🎞️</button>
           <input type="text" id="chat-text-input" placeholder="Escreva uma mensagem...">
           <button class="btn btn-primary btn-sm" id="chat-send-btn">Enviar</button>
         </div>
@@ -1864,8 +1878,20 @@ async function renderChat() {
     document.getElementById('chat-send-btn').addEventListener('click', () => send(input.value));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(input.value); });
     const emojiBtn = document.getElementById('emoji-btn'), emojiPop = document.getElementById('emoji-pop');
-    emojiBtn.addEventListener('click', () => { emojiPop.style.display = emojiPop.style.display === 'none' ? 'flex' : 'none'; });
+    emojiBtn.addEventListener('click', () => { emojiPop.style.display = emojiPop.style.display === 'none' ? 'flex' : 'none'; gifPop.style.display = 'none'; });
     emojiPop.querySelectorAll('.emoji-choice').forEach(e => e.addEventListener('click', () => { input.value += e.textContent; emojiPop.style.display = 'none'; input.focus(); }));
+
+    async function sendGif(url) {
+      const payload = isGroup ? { remetente_id: user.id, grupo_id: activeId, texto: '', gif_url: url } : { remetente_id: user.id, destinatario_id: activeId, texto: '', gif_url: url };
+      const { error } = await sb.from('mensagens').insert(payload);
+      if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
+      await carregarMensagens();
+      renderMessagesOnly();
+      paintList();
+    }
+    const gifBtn = document.getElementById('gif-btn'), gifPop = document.getElementById('gif-pop');
+    gifBtn.addEventListener('click', () => { gifPop.style.display = gifPop.style.display === 'none' ? 'flex' : 'none'; emojiPop.style.display = 'none'; });
+    gifPop.querySelectorAll('.gif-choice').forEach(g => g.addEventListener('click', () => { sendGif(g.dataset.url); gifPop.style.display = 'none'; }));
   }
 
   // Atualiza só a lista de mensagens (sem recriar o input/emoji), pra não
@@ -1882,7 +1908,7 @@ async function renderChat() {
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
