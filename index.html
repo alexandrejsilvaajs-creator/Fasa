@@ -1920,11 +1920,19 @@ async function renderChat() {
       ? allMsgs.filter(m => m.grupo_id === activeId)
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
 
+    if (!isGroup) {
+      const naoLidas = msgs.filter(m => m.remetente_id === activeId && m.destinatario_id === user.id && !m.lida);
+      if (naoLidas.length) {
+        sb.from('mensagens').update({ lida: true }).eq('destinatario_id', user.id).eq('remetente_id', activeId).eq('lida', false).then(() => {});
+        naoLidas.forEach(m => { m.lida = true; });
+      }
+    }
+
     mainWrap.innerHTML = `
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
         <div><div style="font-weight:700;font-size:14px">${nome}</div><div id="chat-sub-status" style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${!isGroup && m.remetente_id === user.id ? ` <span style="color:${m.lida ? '#4fa3ff' : '#e0453c'}">${m.lida ? '✓✓' : '✓'}</span>` : ''}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
@@ -2062,9 +2070,16 @@ async function renderChat() {
     const msgs = isGroup
       ? allMsgs.filter(m => m.grupo_id === activeId)
       : allMsgs.filter(m => !m.grupo_id && ((m.remetente_id === user.id && m.destinatario_id === activeId) || (m.remetente_id === activeId && m.destinatario_id === user.id)));
+    if (!isGroup) {
+      const naoLidas = msgs.filter(m => m.remetente_id === activeId && m.destinatario_id === user.id && !m.lida);
+      if (naoLidas.length) {
+        sb.from('mensagens').update({ lida: true }).eq('destinatario_id', user.id).eq('remetente_id', activeId).eq('lida', false).then(() => {});
+        naoLidas.forEach(m => { m.lida = true; });
+      }
+    }
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${!isGroup && m.remetente_id === user.id ? ` <span style="color:${m.lida ? '#4fa3ff' : '#e0453c'}">${m.lida ? '✓✓' : '✓'}</span>` : ''}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
