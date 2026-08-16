@@ -389,7 +389,7 @@ function renderShell(activeId, title) {
             <button class="menu-btn" id="fasa-menu-btn">☰</button>
             <h2>${title}</h2>
           </div>
-          <div class="topbar-search">🔍 <input placeholder="Pesquisar no FASA..."></div>
+          <div class="topbar-search">🔍 <input id="fasa-search-input" placeholder="Pesquisar no FASA..."></div>
           <button class="icon-btn" id="fasa-bell" title="Notificações" style="position:relative;font-size:19px">🔔<span id="fasa-bell-badge" class="notif-badge" style="display:none"></span></button>
         </div>
         <div class="page" id="fasa-page"></div>
@@ -409,6 +409,11 @@ function renderShell(activeId, title) {
   overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
 
   document.getElementById('fasa-bell').addEventListener('click', () => FASA.go('notificacoes'));
+  document.getElementById('fasa-search-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      location.hash = '#/busca/' + encodeURIComponent(e.target.value.trim());
+    }
+  });
   sb.from('notificacoes').select('id', { count: 'exact', head: true }).eq('usuario_id', user.id).eq('lida', false).then(({ count }) => {
     const badge = document.getElementById('fasa-bell-badge');
     if (badge && count) { badge.textContent = count > 9 ? '9+' : count; badge.style.display = 'flex'; }
@@ -2563,6 +2568,38 @@ function renderAdmin() {
 }
 
 /* ---------------- Router ---------------- */
+/* ---------------- Busca ---------------- */
+async function renderBusca(termo) {
+  const { pageEl } = renderShell('busca', 'Busca');
+  pageEl.innerHTML = `<div class="empty">Buscando...</div>`;
+  const t = termo.trim();
+  if (!t) { pageEl.innerHTML = `<div class="empty">Digite algo na barra de busca no topo.</div>`; return; }
+
+  const [{ data: pessoas }, { data: posts }, { data: avisos }, { data: docs }] = await Promise.all([
+    sb.from('usuarios').select('id, nome, cargo, setor, foto_url').or(`nome.ilike.%${t}%,cargo.ilike.%${t}%,setor.ilike.%${t}%`).limit(15),
+    sb.from('posts').select('id, texto, criado_em, usuarios!posts_autor_id_fkey(nome)').ilike('texto', `%${t}%`).order('criado_em', { ascending: false }).limit(15),
+    sb.from('avisos').select('id, titulo, texto, criado_em').or(`titulo.ilike.%${t}%,texto.ilike.%${t}%`).order('criado_em', { ascending: false }).limit(10),
+    sb.from('biblioteca').select('id, nome, categoria, arquivo_url').ilike('nome', `%${t}%`).limit(10),
+  ]);
+
+  function secao(titulo, itens, renderItem) {
+    if (!itens || !itens.length) return '';
+    return `<h3 style="font-size:14px;margin:18px 0 10px">${titulo}</h3><div style="display:flex;flex-direction:column;gap:8px">${itens.map(renderItem).join('')}</div>`;
+  }
+
+  const semResultado = !(pessoas || []).length && !(posts || []).length && !(avisos || []).length && !(docs || []).length;
+
+  pageEl.innerHTML = `
+    <p style="color:var(--muted);font-size:13px;margin-bottom:10px">Resultados para "${FASA.escapeHtml(t)}"</p>
+    ${semResultado ? `<div class="empty">Nada encontrado. Tenta outro termo.</div>` : ''}
+    ${secao('👤 Pessoas', pessoas, p => `<div class="card" style="display:flex;align-items:center;gap:12px;cursor:pointer" data-route="chat">${FASA.avatarHtml(p, 'sm')}<div><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(p.nome)}</div><div style="font-size:12px;color:var(--muted)">${FASA.escapeHtml(p.cargo || '')} · ${FASA.escapeHtml(p.setor || '')}</div></div></div>`)}
+    ${secao('📝 Publicações', posts, p => `<div class="card" data-route="feed"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">${FASA.escapeHtml((p.usuarios || {}).nome || '—')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div><div style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div></div>`)}
+    ${secao('📢 Avisos', avisos, a => `<div class="card" data-route="avisos"><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(a.titulo)}</div><div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px">${FASA.escapeHtml(a.texto)}</div></div>`)}
+    ${secao('📁 Biblioteca', docs, d => `<a class="card" href="${d.arquivo_url || '#'}" target="_blank" style="display:block;text-decoration:none;color:inherit"><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(d.nome)}</div><div style="font-size:12px;color:var(--muted)">${FASA.escapeHtml(d.categoria || '')}</div></a>`)}
+  `;
+  pageEl.querySelectorAll('[data-route]').forEach(el => el.addEventListener('click', () => FASA.go(el.dataset.route)));
+}
+
 /* ---------------- Notificações ---------------- */
 async function renderNotificacoes() {
   const { user, pageEl } = renderShell('notificacoes', 'Notificações');
@@ -2606,16 +2643,20 @@ async function renderNotificacoes() {
   });
 }
 
-const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin, notificacoes: renderNotificacoes };
+const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin, notificacoes: renderNotificacoes, busca: renderBusca };
 
 function router() {
-  const route = location.hash.replace('#/', '') || '';
+  const partes = location.hash.replace('#/', '').split('/');
+  const route = partes[0] || '';
+  const param = partes.length > 1 ? decodeURIComponent(partes.slice(1).join('/')) : null;
   const user = FASA.currentUser();
 
   if (route === 'login') { renderLogin(); return; }
   if (route === 'cadastro') { renderCadastro(); return; }
 
   if (!user) { FASA.go('login'); return; }
+
+  if (route === 'busca') { renderBusca(param || ''); return; }
 
   const fn = ROUTES[route] || ROUTES.feed;
   fn();
