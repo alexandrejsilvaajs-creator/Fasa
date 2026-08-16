@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FASA · Demo</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F6F5C">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
 /* ============================================================
    FASA — Design System (versão demo single-file)
@@ -2673,6 +2676,12 @@ function heartbeat() {
 }
 heartbeat();
 setInterval(heartbeat, 60000);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
