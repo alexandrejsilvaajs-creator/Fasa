@@ -2707,6 +2707,14 @@ function renderRedefinirSenha() {
 function router() {
   // Link de recuperação de senha no formato antigo (hash com access_token/type=recovery)
   if (location.hash.includes('type=recovery') || location.hash.includes('access_token=')) { renderRedefinirSenha(); return; }
+  // Link de recuperação expirado ou já usado — o Supabase manda de volta com um erro no hash
+  if (location.hash.includes('error=')) {
+    const params = new URLSearchParams(location.hash.replace('#', ''));
+    FASA.toast('Esse link de redefinição expirou ou já foi usado. Peça um novo em "Esqueci minha senha".');
+    history.replaceState(null, '', location.pathname);
+    FASA.go('login');
+    return;
+  }
   // Formato mais novo (?code=...) — o evento PASSWORD_RECOVERY do Supabase (ouvido acima) cuida de mostrar a tela.
 
   const partes = location.hash.replace('#/', '').split('/');
