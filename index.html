@@ -171,6 +171,9 @@ h1,h2,h3{font-family:var(--f-display);color:var(--ink);margin:0;letter-spacing:-
 .chat-input{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
 .chat-input input{flex:1;border:1.5px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;font-size:13.5px}
 .icon-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:6px}
+.pwd-wrap{position:relative}
+.pwd-wrap input{padding-right:40px !important}
+.pwd-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:6px}
 .notif-badge{position:absolute;top:0;right:0;background:#e0453c;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;align-items:center;justify-content:center;padding:0 3px}
 .icon-btn:hover{color:var(--primary)}
 .stat-card{display:flex;flex-direction:column;gap:6px}
@@ -357,6 +360,19 @@ const FASA = (() => {
       <rect x="9" y="17" width="11" height="10" rx="5" fill="#E8873A"/>
     </svg>`;
   }
+  function bindPwdToggles() {
+    document.querySelectorAll('.pwd-toggle').forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        if (!input) return;
+        const mostrando = input.type === 'text';
+        input.type = mostrando ? 'password' : 'text';
+        btn.textContent = mostrando ? '👁' : '🙈';
+      });
+    });
+  }
   function toast(msg) {
     let el = document.querySelector('.toast');
     if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
@@ -367,7 +383,7 @@ const FASA = (() => {
   }
   function go(route) { location.hash = '#/' + route; }
 
-  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS };
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles };
 })();
 
 const root = document.getElementById('root');
@@ -449,7 +465,7 @@ function renderLogin() {
         <p class="sub">Entre com seu e-mail para acessar o FASA.</p>
         <div class="err" id="login-err">E-mail ou senha inválidos.</div>
         <div class="field"><label>E-mail</label><input id="usuario" type="text" placeholder="voce@email.com" value="alexandre.jsilva.ajs@gmail.com"></div>
-        <div class="field"><label>Senha</label><input id="senha" type="password" placeholder="••••••••" value="Farmaciasat@2026"></div>
+        <div class="field"><label>Senha</label><div class="pwd-wrap"><input id="senha" type="password" placeholder="••••••••" value="Farmaciasat@2026"><button type="button" class="pwd-toggle" data-target="senha">👁</button></div></div>
         <div class="field-row">
           <label class="checkline"><input type="checkbox"> Lembrar acesso</label>
           <a href="#" class="link" id="forgot-link">Esqueci minha senha</a>
@@ -468,8 +484,8 @@ function renderLogin() {
         </div>
         <div id="rec-step2" style="display:none">
           <div class="field"><label>Código recebido por e-mail</label><input id="rec-codigo" type="text" placeholder="000000" maxlength="6"></div>
-          <div class="field"><label>Nova senha</label><input id="rec-nova-senha" type="password" placeholder="••••••••"></div>
-          <div class="field"><label>Confirmar nova senha</label><input id="rec-confirmar-senha" type="password" placeholder="••••••••"></div>
+          <div class="field"><label>Nova senha</label><div class="pwd-wrap"><input id="rec-nova-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="rec-nova-senha">👁</button></div></div>
+          <div class="field"><label>Confirmar nova senha</label><div class="pwd-wrap"><input id="rec-confirmar-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="rec-confirmar-senha">👁</button></div></div>
           <button type="button" id="rec-salvar" class="btn btn-primary btn-block">Salvar nova senha</button>
         </div>
         <p class="form-foot"><a class="link" id="rec-voltar">Voltar para o login</a></p>
@@ -478,6 +494,7 @@ function renderLogin() {
   </div>`;
 
   document.getElementById('go-cadastro').addEventListener('click', () => FASA.go('cadastro'));
+  FASA.bindPwdToggles();
   document.getElementById('forgot-link').addEventListener('click', (e) => {
     e.preventDefault();
     document.getElementById('rec-email').value = document.getElementById('usuario').value.trim();
@@ -2735,13 +2752,14 @@ function renderRedefinirSenha() {
         <h1>Definir nova senha</h1>
         <p class="sub">Escolha uma nova senha para sua conta.</p>
         <div class="err" id="redef-err">Não foi possível redefinir a senha.</div>
-        <div class="field"><label>Nova senha</label><input id="nova-senha" type="password" placeholder="••••••••"></div>
-        <div class="field"><label>Confirmar nova senha</label><input id="confirmar-senha" type="password" placeholder="••••••••"></div>
+        <div class="field"><label>Nova senha</label><div class="pwd-wrap"><input id="nova-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="nova-senha">👁</button></div></div>
+        <div class="field"><label>Confirmar nova senha</label><div class="pwd-wrap"><input id="confirmar-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="confirmar-senha">👁</button></div></div>
         <button type="button" id="redef-submit" class="btn btn-primary btn-block">Salvar nova senha</button>
       </div>
     </div>
   </div>`;
 
+  FASA.bindPwdToggles();
   document.getElementById('redef-submit').addEventListener('click', async () => {
     const nova = document.getElementById('nova-senha').value;
     const confirmar = document.getElementById('confirmar-senha').value;
