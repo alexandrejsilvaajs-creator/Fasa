@@ -457,21 +457,76 @@ function renderLogin() {
         <button type="button" id="login-submit" class="btn btn-primary btn-block">Entrar</button>
         <p class="form-foot">Não tem conta? <a class="link" id="go-cadastro">Como pedir acesso</a></p>
       </div>
+      <div class="auth-form" id="recovery-form" style="display:none">
+        <div class="mark-mobile">${FASA.logoMark(34)}<span>FASA</span></div>
+        <h1>Esqueci minha senha</h1>
+        <p class="sub" id="rec-step1-sub">Digite seu e-mail — vamos te mandar um código de 6 dígitos.</p>
+        <div class="err" id="rec-err">Erro.</div>
+        <div id="rec-step1">
+          <div class="field"><label>E-mail</label><input id="rec-email" type="text" placeholder="voce@email.com"></div>
+          <button type="button" id="rec-enviar-codigo" class="btn btn-primary btn-block">Enviar código</button>
+        </div>
+        <div id="rec-step2" style="display:none">
+          <div class="field"><label>Código recebido por e-mail</label><input id="rec-codigo" type="text" placeholder="000000" maxlength="6"></div>
+          <div class="field"><label>Nova senha</label><input id="rec-nova-senha" type="password" placeholder="••••••••"></div>
+          <div class="field"><label>Confirmar nova senha</label><input id="rec-confirmar-senha" type="password" placeholder="••••••••"></div>
+          <button type="button" id="rec-salvar" class="btn btn-primary btn-block">Salvar nova senha</button>
+        </div>
+        <p class="form-foot"><a class="link" id="rec-voltar">Voltar para o login</a></p>
+      </div>
     </div>
   </div>`;
 
   document.getElementById('go-cadastro').addEventListener('click', () => FASA.go('cadastro'));
-  document.getElementById('forgot-link').addEventListener('click', async (e) => {
+  document.getElementById('forgot-link').addEventListener('click', (e) => {
     e.preventDefault();
-    const email = document.getElementById('usuario').value.trim().toLowerCase();
-    if (!email) { FASA.toast('Digite seu e-mail no campo acima primeiro.'); return; }
-    const link = document.getElementById('forgot-link');
-    link.textContent = 'Enviando...';
-    const redirectTo = location.origin + location.pathname;
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
-    link.textContent = 'Esqueci minha senha';
-    if (error) { FASA.toast('Erro ao enviar: ' + error.message); return; }
-    FASA.toast('Se esse e-mail existir no FASA, enviamos um link de redefinição. Confira sua caixa de entrada.');
+    document.getElementById('rec-email').value = document.getElementById('usuario').value.trim();
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('recovery-form').style.display = 'block';
+  });
+  document.getElementById('rec-voltar').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('recovery-form').style.display = 'none';
+    document.getElementById('login-form').style.display = 'block';
+  });
+
+  document.getElementById('rec-enviar-codigo').addEventListener('click', async () => {
+    const email = document.getElementById('rec-email').value.trim().toLowerCase();
+    const errBox = document.getElementById('rec-err');
+    errBox.classList.remove('show');
+    if (!email) { errBox.textContent = 'Digite seu e-mail.'; errBox.classList.add('show'); return; }
+    const btn = document.getElementById('rec-enviar-codigo');
+    btn.textContent = 'Enviando...'; btn.disabled = true;
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    btn.textContent = 'Enviar código'; btn.disabled = false;
+    if (error) { errBox.textContent = 'Erro: ' + error.message; errBox.classList.add('show'); return; }
+    document.getElementById('rec-step1-sub').textContent = 'Código enviado! Confira seu e-mail (e a pasta de spam).';
+    document.getElementById('rec-step1').style.display = 'none';
+    document.getElementById('rec-step2').style.display = 'block';
+  });
+
+  document.getElementById('rec-salvar').addEventListener('click', async () => {
+    const email = document.getElementById('rec-email').value.trim().toLowerCase();
+    const codigo = document.getElementById('rec-codigo').value.trim();
+    const nova = document.getElementById('rec-nova-senha').value;
+    const confirmar = document.getElementById('rec-confirmar-senha').value;
+    const errBox = document.getElementById('rec-err');
+    errBox.classList.remove('show');
+    if (!codigo) { errBox.textContent = 'Digite o código recebido por e-mail.'; errBox.classList.add('show'); return; }
+    if (!nova || nova.length < 6) { errBox.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; errBox.classList.add('show'); return; }
+    if (nova !== confirmar) { errBox.textContent = 'As senhas não são iguais.'; errBox.classList.add('show'); return; }
+
+    const btn = document.getElementById('rec-salvar');
+    btn.textContent = 'Verificando...'; btn.disabled = true;
+    const { error: errVerify } = await sb.auth.verifyOtp({ email, token: codigo, type: 'recovery' });
+    if (errVerify) { btn.textContent = 'Salvar nova senha'; btn.disabled = false; errBox.textContent = 'Código inválido ou expirado: ' + errVerify.message; errBox.classList.add('show'); return; }
+
+    const { error: errUpdate } = await sb.auth.updateUser({ password: nova });
+    btn.textContent = 'Salvar nova senha'; btn.disabled = false;
+    if (errUpdate) { errBox.textContent = 'Erro ao salvar: ' + errUpdate.message; errBox.classList.add('show'); return; }
+
+    FASA.toast('Senha atualizada! Entrando...');
+    setTimeout(() => { FASA.go('feed'); location.reload(); }, 1000);
   });
 
   async function doLogin() {
@@ -2659,7 +2714,9 @@ async function renderNotificacoes() {
 
 const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin, notificacoes: renderNotificacoes, busca: renderBusca };
 
+let _emTelaRedefinirSenha = false;
 function renderRedefinirSenha() {
+  _emTelaRedefinirSenha = true;
   root.innerHTML = `
   <div class="auth-shell">
     <div class="auth-art">
@@ -2705,6 +2762,7 @@ function renderRedefinirSenha() {
 }
 
 function router() {
+  if (_emTelaRedefinirSenha) return; // não deixa nada sobrescrever a tela de nova senha
   // Link de recuperação de senha no formato antigo (hash com access_token/type=recovery)
   if (location.hash.includes('type=recovery') || location.hash.includes('access_token=')) { renderRedefinirSenha(); return; }
   // Link de recuperação expirado ou já usado — o Supabase manda de volta com um erro no hash
