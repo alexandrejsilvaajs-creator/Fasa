@@ -401,6 +401,7 @@ function renderShell(activeId, title) {
         <div class="sidebar-user">
           ${FASA.avatarHtml(user, 'sm')}
           <div class="who"><div class="name">${FASA.escapeHtml(user.nome)}</div><div class="role">${FASA.escapeHtml(user.cargo)}</div></div>
+          <button class="logout-btn" id="fasa-config" title="Configurações" style="margin-left:0">⚙</button>
           <button class="logout-btn" id="fasa-logout" title="Sair">⏻</button>
         </div>
       </aside>
@@ -423,6 +424,7 @@ function renderShell(activeId, title) {
   `).join('') + (user.admin ? `<a class="nav-item ${activeId === 'admin' ? 'active' : ''}" data-route="admin"><span class="ic">⚙</span>Administração</a>` : '');
   navEl.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => FASA.go(a.dataset.route)));
 
+  document.getElementById('fasa-config').addEventListener('click', () => FASA.go('configuracoes'));
   document.getElementById('fasa-logout').addEventListener('click', async () => { await sb.auth.signOut(); FASA.clearSession(); FASA.go('login'); });
   const sidebar = document.getElementById('fasa-sidebar');
   const overlay = document.getElementById('fasa-overlay');
@@ -2688,6 +2690,83 @@ async function renderBusca(termo) {
   pageEl.querySelectorAll('[data-route]').forEach(el => el.addEventListener('click', () => FASA.go(el.dataset.route)));
 }
 
+/* ---------------- Configurações ---------------- */
+function renderConfiguracoes() {
+  const { user, pageEl } = renderShell('configuracoes', 'Configurações');
+
+  const ITENS_PRINCIPAIS = [
+    { id: 'perfil', ic: '👤', label: 'Preferências da conta', desc: 'Editar seu perfil, cargo, bio e mais' },
+    { id: 'senha', ic: '🔒', label: 'Acesso e segurança', desc: 'Trocar sua senha' },
+    { id: 'notificacoes', ic: '🔔', label: 'Notificações', desc: 'Ver suas notificações' },
+    { id: 'visibilidade', ic: '👁', label: 'Visibilidade', desc: 'Em breve' },
+    { id: 'privacidade', ic: '🛡', label: 'Privacidade dos dados', desc: 'Em breve' },
+  ];
+  const LINKS_RODAPE = ['Central de Ajuda', 'Políticas de Uso', 'Política de Privacidade', 'Acessibilidade', 'Contrato do Usuário'];
+
+  function paint() {
+    pageEl.innerHTML = `
+      <div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+        ${FASA.avatarHtml(user, 'lg')}
+        <div><h1 style="font-size:18px">${FASA.escapeHtml(user.nome)}</h1><p style="color:var(--muted);font-size:13px;margin-top:2px">${FASA.escapeHtml(user.cargo || '')}</p></div>
+      </div>
+
+      <div class="card" style="padding:6px 0">
+        ${ITENS_PRINCIPAIS.map(it => `
+          <div class="config-item" data-id="${it.id}" style="display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--line)">
+            <span style="font-size:20px">${it.ic}</span>
+            <div style="flex:1"><div style="font-weight:600;font-size:14px">${it.label}</div><div style="font-size:12px;color:var(--muted)">${it.desc}</div></div>
+            <span style="color:var(--muted)">›</span>
+          </div>`).join('')}
+      </div>
+
+      <div id="config-painel" style="display:none;margin-top:14px"></div>
+
+      <div class="card" style="margin-top:18px;padding:6px 0">
+        ${LINKS_RODAPE.map(l => `<div class="config-link" style="padding:12px 18px;font-size:12.5px;color:var(--muted);cursor:pointer;border-bottom:1px solid var(--line)">${l}</div>`).join('')}
+      </div>
+
+      <button class="btn btn-ghost btn-block" id="config-sair" style="margin-top:18px;color:var(--danger)">⏻ Sair</button>`;
+
+    pageEl.querySelectorAll('.config-link').forEach(el => el.addEventListener('click', () => FASA.toast('Em breve.')));
+    pageEl.querySelectorAll('.config-item').forEach(el => el.addEventListener('click', () => abrirPainel(el.dataset.id)));
+    document.getElementById('config-sair').addEventListener('click', async () => {
+      if (!confirm('Sair da sua conta no FASA?')) return;
+      await sb.auth.signOut(); FASA.clearSession(); FASA.go('login');
+    });
+  }
+
+  function abrirPainel(id) {
+    const painel = document.getElementById('config-painel');
+    if (id === 'perfil') { FASA.go('perfil'); return; }
+    if (id === 'notificacoes') { FASA.go('notificacoes'); return; }
+    if (id === 'visibilidade' || id === 'privacidade') { FASA.toast('Em breve.'); return; }
+    if (id === 'senha') {
+      painel.style.display = 'block';
+      painel.innerHTML = `
+        <div class="card">
+          <h3 style="margin-bottom:12px">Trocar senha</h3>
+          <div class="field"><label>Nova senha</label><div class="pwd-wrap"><input id="cfg-nova-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="cfg-nova-senha">👁</button></div></div>
+          <div class="field"><label>Confirmar nova senha</label><div class="pwd-wrap"><input id="cfg-confirmar-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="cfg-confirmar-senha">👁</button></div></div>
+          <button class="btn btn-primary" id="cfg-salvar-senha">Salvar nova senha</button>
+        </div>`;
+      FASA.bindPwdToggles();
+      document.getElementById('cfg-salvar-senha').addEventListener('click', async () => {
+        const nova = document.getElementById('cfg-nova-senha').value;
+        const confirmar = document.getElementById('cfg-confirmar-senha').value;
+        if (!nova || nova.length < 6) { FASA.toast('A senha precisa ter pelo menos 6 caracteres.'); return; }
+        if (nova !== confirmar) { FASA.toast('As senhas não são iguais.'); return; }
+        const { error } = await sb.auth.updateUser({ password: nova });
+        if (error) { FASA.toast('Erro: ' + error.message); return; }
+        FASA.toast('Senha atualizada!');
+        painel.style.display = 'none';
+      });
+      painel.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  paint();
+}
+
 /* ---------------- Notificações ---------------- */
 async function renderNotificacoes() {
   const { user, pageEl } = renderShell('notificacoes', 'Notificações');
@@ -2731,7 +2810,7 @@ async function renderNotificacoes() {
   });
 }
 
-const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin, notificacoes: renderNotificacoes, busca: renderBusca };
+const ROUTES = { feed: renderFeed, perfil: renderPerfil, chat: renderChat, comunidades: renderComunidades, avisos: renderAvisos, escala: renderEscala, biblioteca: renderBiblioteca, enquetes: renderEnquetes, sugestoes: renderSugestoes, ranking: renderRanking, admin: renderAdmin, notificacoes: renderNotificacoes, busca: renderBusca, configuracoes: renderConfiguracoes };
 
 let _emTelaRedefinirSenha = false;
 function renderRedefinirSenha() {
