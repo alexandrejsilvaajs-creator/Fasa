@@ -483,7 +483,7 @@ function renderLogin() {
           <button type="button" id="rec-enviar-codigo" class="btn btn-primary btn-block">Enviar código</button>
         </div>
         <div id="rec-step2" style="display:none">
-          <div class="field"><label>Código recebido por e-mail</label><input id="rec-codigo" type="text" placeholder="000000" maxlength="6"></div>
+          <div class="field"><label>Código recebido por e-mail</label><input id="rec-codigo" type="text" inputmode="numeric" placeholder="00000000" maxlength="12"></div>
           <div class="field"><label>Nova senha</label><div class="pwd-wrap"><input id="rec-nova-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="rec-nova-senha">👁</button></div></div>
           <div class="field"><label>Confirmar nova senha</label><div class="pwd-wrap"><input id="rec-confirmar-senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="rec-confirmar-senha">👁</button></div></div>
           <button type="button" id="rec-salvar" class="btn btn-primary btn-block">Salvar nova senha</button>
@@ -507,6 +507,9 @@ function renderLogin() {
     document.getElementById('login-form').style.display = 'block';
   });
 
+  document.getElementById('rec-codigo').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
+  });
   document.getElementById('rec-enviar-codigo').addEventListener('click', async () => {
     const email = document.getElementById('rec-email').value.trim().toLowerCase();
     const errBox = document.getElementById('rec-err');
@@ -524,7 +527,7 @@ function renderLogin() {
 
   document.getElementById('rec-salvar').addEventListener('click', async () => {
     const email = document.getElementById('rec-email').value.trim().toLowerCase();
-    const codigo = document.getElementById('rec-codigo').value.trim();
+    const codigo = document.getElementById('rec-codigo').value.replace(/\D/g, '');
     const nova = document.getElementById('rec-nova-senha').value;
     const confirmar = document.getElementById('rec-confirmar-senha').value;
     const errBox = document.getElementById('rec-err');
