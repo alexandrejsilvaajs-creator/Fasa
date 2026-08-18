@@ -2701,7 +2701,48 @@ function renderConfiguracoes() {
     { id: 'visibilidade', ic: '👁', label: 'Visibilidade', desc: 'Em breve' },
     { id: 'privacidade', ic: '🛡', label: 'Privacidade dos dados', desc: 'Em breve' },
   ];
-  const LINKS_RODAPE = ['Central de Ajuda', 'Políticas de Uso', 'Política de Privacidade', 'Acessibilidade', 'Contrato do Usuário'];
+  const LINKS_RODAPE = [
+    { titulo: 'Central de Ajuda', corpo: `
+      <p><b>Como usar o FASA</b></p>
+      <p>O FASA é a rede interna da equipe de farmácia. No menu lateral você encontra: Início (feed de publicações), Chat, Avisos, Escalas, Biblioteca, Enquetes, Sugestões e Ranking.</p>
+      <p><b>Esqueci minha senha</b> — na tela de login, toque em "Esqueci minha senha" e siga o passo a passo pelo código enviado por e-mail.</p>
+      <p><b>Problemas técnicos ou dúvidas de uso</b> — fale com a liderança da Farmácia ou com quem administra o FASA na sua unidade.</p>
+    ` },
+    { titulo: 'Políticas de Uso', corpo: `
+      <p>O FASA é uma ferramenta interna da equipe de farmácia, destinada à comunicação, organização de escalas e colaboração entre colegas de trabalho.</p>
+      <p>Ao usar o FASA, espera-se que cada colaborador:</p>
+      <p>• Trate os colegas com respeito nas publicações, comentários e mensagens.<br>
+      • Não compartilhe informações sigilosas do hospital, de pacientes ou de outros colaboradores.<br>
+      • Use o app apenas para fins relacionados ao trabalho e à convivência da equipe.<br>
+      • Seja responsável pelo conteúdo que publica — a mesma conta que você usa pra logar é a mesma que assina suas publicações.</p>
+      <p>O uso inadequado pode ser tratado pela liderança conforme as políticas internas do hospital.</p>
+    ` },
+    { titulo: 'Política de Privacidade', corpo: `
+      <p><b>O que o FASA guarda sobre você</b></p>
+      <p>• Dados de perfil que você preenche: nome, cargo, setor, foto, bio, ramal, e-mail corporativo, habilidades, interesses e especialidades.<br>
+      • Suas publicações, comentários, reações e mensagens de chat.<br>
+      • Informações de escala, ausências e banco de horas que você ou a liderança cadastram.<br>
+      • Data/hora do seu último acesso (usado para mostrar status "online").</p>
+      <p><b>Quem vê o quê</b></p>
+      <p>Colegas autenticados no FASA podem ver seu perfil, publicações e postagens na Biblioteca. Mensagens de chat só são visíveis pra quem participa da conversa. Dados de escala e ausência são visíveis pra equipe e pra liderança/administração.</p>
+      <p><b>Onde fica guardado</b></p>
+      <p>Os dados ficam armazenados no Supabase (provedor de banco de dados), com acesso protegido por login.</p>
+      <p style="color:var(--muted);font-size:11.5px;margin-top:10px">Este é um resumo informativo, não um documento jurídico revisado. Fale com o RH/jurídico do hospital para uma política formal.</p>
+    ` },
+    { titulo: 'Acessibilidade', corpo: `
+      <p>O FASA foi desenhado para uso confortável em celular, com botões e áreas de toque maiores, texto legível e cores com bom contraste (verde escuro sobre fundo claro).</p>
+      <p>Se algo estiver difícil de usar, ler ou tocar, avise a liderança ou quem administra o FASA — isso ajuda a priorizar melhorias de acessibilidade.</p>
+    ` },
+    { titulo: 'Contrato do Usuário', corpo: `
+      <p>Ao criar uma conta no FASA, você concorda que:</p>
+      <p>• O acesso é pessoal e intransferível — não compartilhe sua senha com outras pessoas.<br>
+      • As informações de perfil que você fornece são verdadeiras.<br>
+      • O conteúdo que você publica é de sua responsabilidade.<br>
+      • O FASA é uma ferramenta interna, sujeita às normas de conduta e sigilo do hospital.<br>
+      • A liderança pode remover conteúdo ou suspender o acesso em caso de uso indevido.</p>
+      <p style="color:var(--muted);font-size:11.5px;margin-top:10px">Este é um rascunho de uso interno, não um contrato jurídico formal.</p>
+    ` },
+  ];
 
   function paint() {
     pageEl.innerHTML = `
@@ -2721,13 +2762,13 @@ function renderConfiguracoes() {
 
       <div id="config-painel" style="display:none;margin-top:14px"></div>
 
-      <div class="card" style="margin-top:18px;padding:6px 0">
-        ${LINKS_RODAPE.map(l => `<div class="config-link" style="padding:12px 18px;font-size:12.5px;color:var(--muted);cursor:pointer;border-bottom:1px solid var(--line)">${l}</div>`).join('')}
+      <div class="card" style="margin-top:18px;padding:6px 0" id="config-links-wrap">
+        ${LINKS_RODAPE.map((l, i) => `<div class="config-link" data-i="${i}" style="padding:12px 18px;font-size:12.5px;color:var(--muted);cursor:pointer;border-bottom:1px solid var(--line)">${FASA.escapeHtml(l.titulo)}</div>`).join('')}
       </div>
 
       <button class="btn btn-ghost btn-block" id="config-sair" style="margin-top:18px;color:var(--danger)">⏻ Sair</button>`;
 
-    pageEl.querySelectorAll('.config-link').forEach(el => el.addEventListener('click', () => FASA.toast('Em breve.')));
+    pageEl.querySelectorAll('.config-link').forEach(el => el.addEventListener('click', () => abrirConteudo(LINKS_RODAPE[parseInt(el.dataset.i)])));
     pageEl.querySelectorAll('.config-item').forEach(el => el.addEventListener('click', () => abrirPainel(el.dataset.id)));
     document.getElementById('config-sair').addEventListener('click', async () => {
       if (!confirm('Sair da sua conta no FASA?')) return;
@@ -2762,6 +2803,16 @@ function renderConfiguracoes() {
       });
       painel.scrollIntoView({ behavior: 'smooth' });
     }
+  }
+
+  function abrirConteudo(item) {
+    pageEl.innerHTML = `
+      <button class="btn btn-ghost btn-sm" id="config-voltar" style="margin-bottom:14px">‹ Voltar</button>
+      <div class="card">
+        <h2 style="margin-bottom:14px">${FASA.escapeHtml(item.titulo)}</h2>
+        <div style="font-size:13.5px;line-height:1.6;color:var(--ink-soft)">${item.corpo}</div>
+      </div>`;
+    document.getElementById('config-voltar').addEventListener('click', () => paint());
   }
 
   paint();
