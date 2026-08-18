@@ -1,5 +1,5 @@
 const CACHE_NAME = 'fasa-shell-v1';
-const SHELL_FILES = ['./', './index.html', './manifest.json'];
+const SHELL_FILES = ['./manifest.json'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -16,7 +16,14 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-first: sempre tenta buscar a versão mais nova; só usa o cache se estiver offline
+  // Página principal (HTML) e navegação: NUNCA usa cache — sempre busca a versão mais nova,
+  // pra garantir que atualizações apareçam assim que forem publicadas.
+  const isNavegacao = event.request.mode === 'navigate' || event.request.destination === 'document';
+  if (isNavegacao) {
+    event.respondWith(fetch(event.request).catch(() => caches.match('./manifest.json')));
+    return;
+  }
+  // Outros arquivos (ícones, manifest): busca da rede, guarda cópia, usa cache só se ficar offline.
   event.respondWith(
     fetch(event.request)
       .then((resp) => {
