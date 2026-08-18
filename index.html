@@ -2783,6 +2783,7 @@ function renderRedefinirSenha() {
 
 function router() {
   if (_emTelaRedefinirSenha) return; // não deixa nada sobrescrever a tela de nova senha
+  if (_restaurandoSessao) return; // espera terminar de checar se já existe login válido antes de decidir a rota
   // Link de recuperação de senha no formato antigo (hash com access_token/type=recovery)
   if (location.hash.includes('type=recovery') || location.hash.includes('access_token=')) { renderRedefinirSenha(); return; }
   // Link de recuperação expirado ou já usado — o Supabase manda de volta com um erro no hash
@@ -2814,7 +2815,26 @@ function router() {
 FASA.seed();
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
-router();
+
+let _restaurandoSessao = true;
+async function restaurarSessao() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const { data: perfil } = await sb.from('usuarios').select('*').eq('id', session.user.id).single();
+      if (perfil) {
+        const db = FASA.getDB();
+        const jaExiste = db.usuarios.find(u => u.id === perfil.id);
+        if (jaExiste) Object.assign(jaExiste, perfil); else db.usuarios.unshift(perfil);
+        FASA.saveDB(db);
+        FASA.setSession(perfil.id);
+      }
+    }
+  } catch (e) { /* sem sessão válida, segue pro login normalmente */ }
+  _restaurandoSessao = false;
+  router();
+}
+restaurarSessao();
 
 function heartbeat() {
   const u = FASA.currentUser();
