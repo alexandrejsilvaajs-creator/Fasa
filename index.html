@@ -690,11 +690,12 @@ function renderFeed() {
           ${souAutor ? `<div style="position:relative">
             <button class="icon-btn post-menu-btn" title="Opções">⋮</button>
             <div class="post-menu-pop" style="display:none;position:absolute;top:32px;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden">
+              <button class="post-menu-item edit-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">✏️ Editar publicação</button>
               <button class="post-menu-item del-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir publicação</button>
             </div>
           </div>` : ''}
         </div>
-        <div class="post-body">${FASA.escapeHtml(p.texto)}</div>
+        <div class="post-body" data-texto="${FASA.escapeHtml(p.texto)}">${FASA.escapeHtml(p.texto)}${p.editado_em ? ' <span style="font-size:11px;color:var(--muted)">(editado)</span>' : ''}</div>
         ${anexoHtml(p)}
         ${resumoReacoes(likes)}
         <div class="post-actions" style="position:relative">
@@ -825,6 +826,26 @@ function renderFeed() {
       const menuBtn = postEl.querySelector('.post-menu-btn');
       const menuPop = postEl.querySelector('.post-menu-pop');
       if (menuBtn) menuBtn.addEventListener('click', () => { menuPop.style.display = menuPop.style.display === 'none' ? 'block' : 'none'; });
+      const editBtn = postEl.querySelector('.edit-post-btn');
+      if (editBtn) editBtn.addEventListener('click', () => {
+        menuPop.style.display = 'none';
+        const body = postEl.querySelector('.post-body');
+        const textoAtual = body.dataset.texto;
+        body.innerHTML = `<textarea class="edit-post-textarea" style="width:100%;min-height:70px;padding:10px;border:1.5px solid var(--line);border-radius:var(--radius-sm);font-family:inherit;font-size:13.5px">${textoAtual}</textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-sm btn-primary save-edit-post-btn">Salvar</button>
+            <button class="btn btn-sm btn-ghost cancel-edit-post-btn">Cancelar</button>
+          </div>`;
+        postEl.querySelector('.save-edit-post-btn').addEventListener('click', async () => {
+          const novoTexto = postEl.querySelector('.edit-post-textarea').value.trim();
+          if (!novoTexto) { FASA.toast('A publicação não pode ficar vazia.'); return; }
+          const { error } = await sb.from('posts').update({ texto: novoTexto, editado_em: new Date().toISOString() }).eq('id', id);
+          if (error) { FASA.toast('Erro ao salvar: ' + error.message); return; }
+          FASA.toast('Publicação atualizada!');
+          refresh();
+        });
+        postEl.querySelector('.cancel-edit-post-btn').addEventListener('click', () => refresh());
+      });
       const sendBtn = postEl.querySelector('.send-comment');
       if (sendBtn) sendBtn.addEventListener('click', async () => {
         const input = postEl.querySelector('.comment-box input'), texto = input.value.trim();
@@ -1065,8 +1086,11 @@ function perfilPostsHtml(posts) {
     const ordenado = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
     const comentarios = (p.comentarios || []).sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
     return `<div class="post" data-id="${p.id}" style="padding:14px 0;border-bottom:1px solid var(--line)">
-      <div style="color:var(--muted);font-size:11.5px;margin-bottom:6px">${FASA.timeAgo(new Date(p.criado_em).getTime())}</div>
-      <div style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="color:var(--muted);font-size:11.5px">${FASA.timeAgo(new Date(p.criado_em).getTime())}${p.editado_em ? ' · (editado)' : ''}</div>
+        <button class="btn btn-ghost btn-sm perfil-edit-post-btn" style="padding:2px 8px">✏️ Editar</button>
+      </div>
+      <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div>
       ${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : ''}
       ${likes.length ? `<div style="display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);padding:6px 0">
         <span>${ordenado.slice(0, 3).map(([t]) => perfilReacaoInfo(t).emoji).join('')}</span><span>${likes.length}</span>
@@ -1115,6 +1139,25 @@ function bindPerfilPostEvents() {
       refresh();
     }));
     postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
+    const editBtn = postEl.querySelector('.perfil-edit-post-btn');
+    if (editBtn) editBtn.addEventListener('click', () => {
+      const body = postEl.querySelector('.perfil-post-body');
+      const textoAtual = body.dataset.texto;
+      body.innerHTML = `<textarea class="perfil-edit-textarea" style="width:100%;min-height:70px;padding:10px;border:1.5px solid var(--line);border-radius:var(--radius-sm);font-family:inherit;font-size:13.5px">${textoAtual}</textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-sm btn-primary perfil-save-edit-btn">Salvar</button>
+          <button class="btn btn-sm btn-ghost perfil-cancel-edit-btn">Cancelar</button>
+        </div>`;
+      postEl.querySelector('.perfil-save-edit-btn').addEventListener('click', async () => {
+        const novoTexto = postEl.querySelector('.perfil-edit-textarea').value.trim();
+        if (!novoTexto) { FASA.toast('A publicação não pode ficar vazia.'); return; }
+        const { error } = await sb.from('posts').update({ texto: novoTexto, editado_em: new Date().toISOString() }).eq('id', id);
+        if (error) { FASA.toast('Erro ao salvar: ' + error.message); return; }
+        FASA.toast('Publicação atualizada!');
+        refresh();
+      });
+      postEl.querySelector('.perfil-cancel-edit-btn').addEventListener('click', () => refresh());
+    });
     const sendBtn = postEl.querySelector('.send-comment');
     if (sendBtn) sendBtn.addEventListener('click', async () => {
       const input = postEl.querySelector('.comment-box input'), texto = input.value.trim();
@@ -2027,7 +2070,7 @@ async function renderChat() {
       <div class="chat-head">${isGroup ? '<div class="avatar sm" style="background:var(--accent)">👥</div>' : FASA.avatarHtml(info, 'sm')}
         <div><div style="font-weight:700;font-size:14px">${nome}</div><div id="chat-sub-status" style="font-size:11.5px;color:var(--muted)">${sub}</div></div></div>
       <div class="chat-msgs" id="chat-msgs">${msgs.map(m => `
-        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${!isGroup && m.remetente_id === user.id ? ` <span style="color:${m.lida ? '#4fa3ff' : '#e0453c'}">${m.lida ? '✓✓' : '✓'}</span>` : ''}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
+        <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : `${FASA.escapeHtml(m.texto)}${m.editado_em ? ' <i style="font-size:10.5px;opacity:.7">(editado)</i>' : ''}`)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${!isGroup && m.remetente_id === user.id ? ` <span style="color:${m.lida ? '#4fa3ff' : '#e0453c'}">${m.lida ? '✓✓' : '✓'}</span>` : ''}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${(m.remetente_id === user.id && !m.audio_url && !m.gif_url) ? `<button class="msg-edit-btn" data-id="${m.id}" data-texto="${FASA.escapeHtml(m.texto)}" title="Editar mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✎</button>` : ''}${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`}</div>
       <div style="position:relative">
         <div id="emoji-pop" style="display:none;position:absolute;bottom:64px;left:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);gap:4px;flex-wrap:wrap;width:260px;max-height:220px;overflow-y:auto">
           ${EMOJIS.map(e => `<span style="cursor:pointer;font-size:18px;padding:4px" class="emoji-choice">${e}</span>`).join('')}
@@ -2056,6 +2099,19 @@ async function renderChat() {
     msgsWrap.addEventListener('click', async (e) => {
       const fwdBtn = e.target.closest('.msg-fwd-btn');
       if (fwdBtn) { abrirModalEncaminhar(fwdBtn.dataset.texto); return; }
+      const editBtn = e.target.closest('.msg-edit-btn');
+      if (editBtn) {
+        const novoTexto = prompt('Editar mensagem:', editBtn.dataset.texto);
+        if (novoTexto === null) return;
+        const limpo = novoTexto.trim();
+        if (!limpo) { FASA.toast('A mensagem não pode ficar vazia.'); return; }
+        const { error: editError } = await sb.from('mensagens').update({ texto: limpo, editado_em: new Date().toISOString() }).eq('id', editBtn.dataset.id);
+        if (editError) { FASA.toast('Erro ao editar: ' + editError.message); return; }
+        await carregarMensagens();
+        renderMessagesOnly();
+        paintList();
+        return;
+      }
       const btn = e.target.closest('.msg-del-btn');
       if (!btn) return;
       if (!confirm('Excluir esta mensagem?')) return;
@@ -2174,7 +2230,7 @@ async function renderChat() {
     }
     const pertoDoFim = msgsWrap.scrollTop + msgsWrap.clientHeight >= msgsWrap.scrollHeight - 40;
     msgsWrap.innerHTML = msgs.map(m => `
-      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : FASA.escapeHtml(m.texto))}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${!isGroup && m.remetente_id === user.id ? ` <span style="color:${m.lida ? '#4fa3ff' : '#e0453c'}">${m.lida ? '✓✓' : '✓'}</span>` : ''}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
+      <div class="msg ${m.remetente_id === user.id ? 'out' : 'in'}" data-id="${m.id}">${isGroup && m.remetente_id !== user.id ? `<b style="display:block;font-size:11px;opacity:.8">${FASA.escapeHtml((userById(m.remetente_id) || {}).nome || '')}</b>` : ''}${m.audio_url ? `<audio controls src="${m.audio_url}" style="max-width:220px;height:36px"></audio>` : (m.gif_url ? `<img src="${m.gif_url}" style="max-width:180px;border-radius:10px;display:block">` : `${FASA.escapeHtml(m.texto)}${m.editado_em ? ' <i style="font-size:10.5px;opacity:.7">(editado)</i>' : ''}`)}<span class="time">${new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${!isGroup && m.remetente_id === user.id ? ` <span style="color:${m.lida ? '#4fa3ff' : '#e0453c'}">${m.lida ? '✓✓' : '✓'}</span>` : ''}</span><button class="msg-fwd-btn" data-texto="${FASA.escapeHtml(m.texto)}" title="Encaminhar" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:8px">↗</button>${(m.remetente_id === user.id && !m.audio_url && !m.gif_url) ? `<button class="msg-edit-btn" data-id="${m.id}" data-texto="${FASA.escapeHtml(m.texto)}" title="Editar mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✎</button>` : ''}${m.remetente_id === user.id ? `<button class="msg-del-btn" data-id="${m.id}" title="Excluir mensagem" style="background:none;border:none;color:inherit;opacity:.7;font-size:11px;cursor:pointer;margin-left:4px">✕</button>` : ''}</div>`).join('') || `<div class="empty" style="margin:auto">Nenhuma mensagem ainda. Diga olá!</div>`;
     if (pertoDoFim) msgsWrap.scrollTop = msgsWrap.scrollHeight;
   }
 
