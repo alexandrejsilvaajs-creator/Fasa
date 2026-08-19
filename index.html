@@ -650,6 +650,9 @@ function renderCadastro() {
 function renderFeed() {
   const { user, pageEl } = renderShell('feed', 'Início');
   let arquivoSelecionado = null;
+  const PAGE_SIZE = 8;
+  let temMais = true;
+  let carregando = false;
   if (window._fasaFeedMenuCloser) document.removeEventListener('click', window._fasaFeedMenuCloser);
   window._fasaFeedMenuCloser = (e) => {
     if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu-pop')) return;
@@ -666,12 +669,14 @@ function renderFeed() {
   ];
   function reacaoInfo(tipo) { return REACOES.find(r => r.tipo === tipo) || REACOES[0]; }
 
-  async function fetchPosts() {
+  async function fetchPosts(quantidade) {
     const { data, error } = await sb
       .from('posts')
       .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado), post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
-      .order('criado_em', { ascending: false });
+      .order('criado_em', { ascending: false })
+      .range(0, quantidade - 1);
     if (error) { FASA.toast('Erro ao carregar posts: ' + error.message); return []; }
+    temMais = data.length === quantidade;
     return data;
   }
 
@@ -812,12 +817,26 @@ function renderFeed() {
     refresh();
   }
 
+  let quantidadeCarregada = PAGE_SIZE;
+
   async function refresh() {
-    const list = await fetchPosts();
+    const list = await fetchPosts(quantidadeCarregada);
     const listEl = document.getElementById('posts-list');
     if (!listEl) return;
-    listEl.innerHTML = postsHtml(list);
+    listEl.innerHTML = postsHtml(list) + (temMais ? `<button class="btn btn-ghost btn-block" id="carregar-mais-btn" style="margin-top:8px">Carregar mais publicações</button>` : (list.length ? `<p style="text-align:center;color:var(--muted);font-size:12.5px;margin-top:14px">Você chegou ao fim do feed.</p>` : ''));
     bindPostEvents();
+    const maisBtn = document.getElementById('carregar-mais-btn');
+    if (maisBtn) maisBtn.addEventListener('click', carregarMais);
+  }
+
+  async function carregarMais() {
+    if (carregando || !temMais) return;
+    carregando = true;
+    const maisBtn = document.getElementById('carregar-mais-btn');
+    if (maisBtn) { maisBtn.textContent = 'Carregando...'; maisBtn.disabled = true; }
+    quantidadeCarregada += PAGE_SIZE;
+    await refresh();
+    carregando = false;
   }
 
   function bindPostEvents() {
