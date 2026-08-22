@@ -669,6 +669,12 @@ function renderFeed() {
   ];
   function reacaoInfo(tipo) { return REACOES.find(r => r.tipo === tipo) || REACOES[0]; }
 
+  let bloqueadosIds = [];
+  async function carregarBloqueios() {
+    const { data } = await sb.from('usuario_bloqueios').select('bloqueado_id').eq('bloqueador_id', user.id);
+    bloqueadosIds = (data || []).map(b => b.bloqueado_id);
+  }
+
   async function fetchPosts(quantidade) {
     const { data, error } = await sb
       .from('posts')
@@ -677,7 +683,7 @@ function renderFeed() {
       .range(0, quantidade - 1);
     if (error) { FASA.toast('Erro ao carregar posts: ' + error.message); return []; }
     temMais = data.length === quantidade;
-    return data;
+    return data.filter(p => !bloqueadosIds.includes(p.autor_id));
   }
 
   function anexoHtml(p) {
@@ -717,7 +723,13 @@ function renderFeed() {
               <button class="post-menu-item edit-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">✏️ Editar publicação</button>
               <button class="post-menu-item del-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir publicação</button>
             </div>
-          </div>` : ''}
+          </div>` : `<div style="position:relative">
+            <button class="icon-btn post-menu-btn" title="Opções">⋮</button>
+            <div class="post-menu-pop" style="display:none;position:absolute;top:32px;right:0;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden">
+              <button class="post-menu-item denunciar-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">⚠️ Denunciar</button>
+              <button class="post-menu-item bloquear-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🚫 Bloquear ${FASA.escapeHtml(autor.nome)}</button>
+            </div>
+          </div>`}
         </div>
         <div class="post-body" data-texto="${FASA.escapeHtml(p.texto)}">${FASA.escapeHtml(p.texto)}${p.editado_em ? ' <span style="font-size:11px;color:var(--muted)">(editado)</span>' : ''}</div>
         ${anexoHtml(p)}
@@ -884,6 +896,26 @@ function renderFeed() {
         });
         postEl.querySelector('.cancel-edit-post-btn').addEventListener('click', () => refresh());
       });
+      const bloquearBtn = postEl.querySelector('.bloquear-post-btn');
+      if (bloquearBtn) bloquearBtn.addEventListener('click', async () => {
+        menuPop.style.display = 'none';
+        const autorId = postEl.dataset.autorId;
+        if (!confirm('Bloquear esta pessoa? Você não verá mais as publicações dela no Feed.')) return;
+        const { error } = await sb.from('usuario_bloqueios').insert({ bloqueador_id: user.id, bloqueado_id: autorId });
+        if (error) { FASA.toast('Erro ao bloquear: ' + error.message); return; }
+        FASA.toast('Pessoa bloqueada.');
+        refresh();
+      });
+      const denunciarBtn = postEl.querySelector('.denunciar-post-btn');
+      if (denunciarBtn) denunciarBtn.addEventListener('click', async () => {
+        menuPop.style.display = 'none';
+        const autorId = postEl.dataset.autorId;
+        const motivo = prompt('Por que você está denunciando esta publicação? (ex: conteúdo ofensivo, spam...)');
+        if (motivo === null || !motivo.trim()) return;
+        const { error } = await sb.from('denuncias').insert({ denunciante_id: user.id, denunciado_id: autorId, motivo: motivo.trim(), detalhes: `Publicação: "${postEl.querySelector('.post-body').dataset.texto}"` });
+        if (error) { FASA.toast('Erro ao denunciar: ' + error.message); return; }
+        FASA.toast('Denúncia enviada. A liderança vai avaliar.');
+      });
       const sendBtn = postEl.querySelector('.send-comment');
       if (sendBtn) sendBtn.addEventListener('click', async () => {
         const input = postEl.querySelector('.comment-box input'), texto = input.value.trim();
@@ -909,7 +941,7 @@ function renderFeed() {
     });
   }
 
-  paint();
+  carregarBloqueios().then(paint);
 }
 
 /* ---------------- Perfil ---------------- */
@@ -2304,7 +2336,7 @@ function renderAdmin() {
   if (!user.admin) { pageEl.innerHTML = `<div class="empty"><div class="big">🔒</div>Esta área é restrita à liderança.</div>`; return; }
 
   let tab = 'painel';
-  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'escalas', label: 'Escalas' }, { id: 'ausencias', label: 'Ausências' }, { id: 'banco', label: 'Banco de Horas' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }];
+  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'escalas', label: 'Escalas' }, { id: 'ausencias', label: 'Ausências' }, { id: 'banco', label: 'Banco de Horas' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }, { id: 'denuncias', label: 'Denúncias' }];
   function shellHtml(inner) { return `<div class="tabs">${TABS.map(t => `<div class="tab ${t.id === tab ? 'active' : ''}" data-tab="${t.id}">${t.label}</div>`).join('')}</div>${inner}`; }
   function bindTabs() { pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { tab = t.dataset.tab; render(); })); }
 
@@ -2649,6 +2681,50 @@ function renderAdmin() {
     }));
   }
 
+  async function paintDenuncias() {
+    pageEl.innerHTML = shellHtml(`<div class="empty">Carregando denúncias...</div>`);
+    const { data: denuncias, error } = await sb
+      .from('denuncias')
+      .select('id, motivo, detalhes, status, criado_em, usuarios!denuncias_denunciante_id_fkey(nome), denunciado:usuarios!denuncias_denunciado_id_fkey(id,nome)')
+      .order('criado_em', { ascending: false });
+    if (error) { FASA.toast('Erro ao carregar denúncias: ' + error.message); }
+    const STATUS_COR = { Pendente: 'warn', Resolvida: 'ok', Ignorada: 'off' };
+
+    pageEl.innerHTML = shellHtml(`
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${(denuncias || []).map(d => `
+          <div class="card" data-id="${d.id}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div>
+                <b>Denúncia contra ${FASA.escapeHtml((d.denunciado || {}).nome || '—')}</b>
+                <div style="font-size:12.5px;color:var(--muted)">Por ${FASA.escapeHtml((d.usuarios || {}).nome || '—')} · ${FASA.timeAgo(new Date(d.criado_em).getTime())}</div>
+                <p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0"><b>Motivo:</b> ${FASA.escapeHtml(d.motivo)}</p>
+                ${d.detalhes ? `<p style="font-size:12.5px;color:var(--muted);margin-top:4px">${FASA.escapeHtml(d.detalhes)}</p>` : ''}
+              </div>
+              <span class="badge ${STATUS_COR[d.status] || 'warn'}">${FASA.escapeHtml(d.status)}</span>
+            </div>
+            ${d.status === 'Pendente' ? `<div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn btn-sm btn-primary den-resolver">Marcar como resolvida</button>
+              <button class="btn btn-sm btn-ghost den-ignorar">Ignorar</button>
+            </div>` : ''}
+          </div>`).join('') || `<div class="card"><div class="empty">Nenhuma denúncia registrada.</div></div>`}
+      </div>`);
+    bindTabs();
+
+    pageEl.querySelectorAll('.den-resolver').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.closest('.card[data-id]').dataset.id;
+      const { error: updError } = await sb.from('denuncias').update({ status: 'Resolvida' }).eq('id', id);
+      if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      paintDenuncias();
+    }));
+    pageEl.querySelectorAll('.den-ignorar').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.closest('.card[data-id]').dataset.id;
+      const { error: updError } = await sb.from('denuncias').update({ status: 'Ignorada' }).eq('id', id);
+      if (updError) { FASA.toast('Erro: ' + updError.message); return; }
+      paintDenuncias();
+    }));
+  }
+
   async function paintAvisos() {
     pageEl.innerHTML = shellHtml(`<div class="empty">Carregando avisos...</div>`);
     const { data: avisos, error } = await sb.from('avisos').select('*').order('criado_em', { ascending: false });
@@ -2747,7 +2823,7 @@ function renderAdmin() {
     }));
   }
 
-  function render() { ({ painel: paintPainel, usuarios: paintUsuarios, escalas: paintEscalas, ausencias: paintAusencias, banco: paintBancoHorasAdmin, avisos: paintAvisos, comunidades: paintComunidades, documentos: paintDocumentos })[tab](); }
+  function render() { ({ painel: paintPainel, usuarios: paintUsuarios, escalas: paintEscalas, ausencias: paintAusencias, banco: paintBancoHorasAdmin, avisos: paintAvisos, comunidades: paintComunidades, documentos: paintDocumentos, denuncias: paintDenuncias })[tab](); }
   render();
 }
 
@@ -2794,6 +2870,7 @@ function renderConfiguracoes() {
     { id: 'notificacoes', ic: '🔔', label: 'Notificações', desc: 'Ver suas notificações' },
     { id: 'visibilidade', ic: '👁', label: 'Visibilidade', desc: 'Em breve' },
     { id: 'privacidade', ic: '🛡', label: 'Privacidade dos dados', desc: 'Em breve' },
+    { id: 'bloqueados', ic: '🚫', label: 'Pessoas bloqueadas', desc: 'Ver e desbloquear' },
   ];
   const LINKS_RODAPE = [
     { titulo: 'Central de Ajuda', corpo: `
@@ -2902,6 +2979,22 @@ function renderConfiguracoes() {
         if (error) { FASA.toast('Erro: ' + error.message); return; }
         FASA.toast('Senha atualizada!');
         painel.style.display = 'none';
+      });
+      painel.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (id === 'bloqueados') {
+      painel.style.display = 'block';
+      painel.innerHTML = `<div class="card"><h3 style="margin-bottom:12px">Pessoas bloqueadas</h3><div class="empty">Carregando...</div></div>`;
+      sb.from('usuario_bloqueios').select('id, bloqueado_id, usuarios!usuario_bloqueios_bloqueado_id_fkey(nome)').eq('bloqueador_id', user.id).then(({ data }) => {
+        painel.innerHTML = `<div class="card"><h3 style="margin-bottom:12px">Pessoas bloqueadas</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${(data || []).map(b => `<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px">${FASA.escapeHtml((b.usuarios || {}).nome || '—')}</span><button class="btn btn-sm btn-ghost desbloquear-btn" data-id="${b.id}">Desbloquear</button></div>`).join('') || `<div class="empty">Nenhuma pessoa bloqueada.</div>`}
+          </div></div>`;
+        painel.querySelectorAll('.desbloquear-btn').forEach(btn => btn.addEventListener('click', async () => {
+          await sb.from('usuario_bloqueios').delete().eq('id', btn.dataset.id);
+          FASA.toast('Pessoa desbloqueada.');
+          abrirPainel('bloqueados');
+        }));
       });
       painel.scrollIntoView({ behavior: 'smooth' });
     }
