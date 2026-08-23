@@ -2346,7 +2346,19 @@ function renderAdmin() {
   if (!FASA.ehLideranca(user)) { pageEl.innerHTML = `<div class="empty"><div class="big">🔒</div>Esta área é restrita à liderança.</div>`; return; }
 
   let tab = 'painel';
-  const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'escalas', label: 'Escalas' }, { id: 'ausencias', label: 'Ausências' }, { id: 'banco', label: 'Banco de Horas' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }, { id: 'denuncias', label: 'Denúncias' }];
+  const TABS_TODAS = [
+    { id: 'painel', label: 'Painel', nivel: 'lideranca' },
+    { id: 'usuarios', label: 'Usuários', nivel: 'coordenacao' },
+    { id: 'escalas', label: 'Escalas', nivel: 'lideranca' },
+    { id: 'ausencias', label: 'Ausências', nivel: 'lideranca' },
+    { id: 'banco', label: 'Banco de Horas', nivel: 'lideranca' },
+    { id: 'avisos', label: 'Avisos', nivel: 'lideranca' },
+    { id: 'comunidades', label: 'Comunidades', nivel: 'coordenacao' },
+    { id: 'documentos', label: 'Documentos', nivel: 'coordenacao' },
+    { id: 'denuncias', label: 'Denúncias', nivel: 'lideranca' },
+  ];
+  const TABS = TABS_TODAS.filter(t => FASA.temNivel(user, t.nivel));
+  tab = TABS[0].id;
   function shellHtml(inner) { return `<div class="tabs">${TABS.map(t => `<div class="tab ${t.id === tab ? 'active' : ''}" data-tab="${t.id}">${t.label}</div>`).join('')}</div>${inner}`; }
   function bindTabs() { pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { tab = t.dataset.tab; render(); })); }
 
