@@ -378,6 +378,16 @@ const FASA = (() => {
     document.documentElement.setAttribute('data-theme', tema);
     try { localStorage.setItem('fasa-tema', tema); } catch (e) {}
   }
+  const NIVEL_RANK = { colaborador: 1, lideranca: 2, coordenacao: 3, administrador: 4 };
+  function nivelRank(nivel) { return NIVEL_RANK[nivel] || (nivel ? 0 : 0); }
+  function temNivel(user, minimo) {
+    if (!user) return false;
+    if (user.nivel) return nivelRank(user.nivel) >= NIVEL_RANK[minimo];
+    return !!user.admin; // usuário antigo sem nivel migrado ainda: cai pro comportamento de antes
+  }
+  function ehLideranca(user) { return temNivel(user, 'lideranca'); }
+  function ehCoordenacao(user) { return temNivel(user, 'coordenacao'); }
+  function ehAdministrador(user) { return temNivel(user, 'administrador') || !!(user && user.admin); }
   function bindPwdToggles() {
     document.querySelectorAll('.pwd-toggle').forEach(btn => {
       if (btn.dataset.bound) return;
@@ -401,7 +411,7 @@ const FASA = (() => {
   }
   function go(route) { location.hash = '#/' + route; }
 
-  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles, temaAtual, aplicarTema };
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles, temaAtual, aplicarTema, temNivel, ehLideranca, ehCoordenacao, ehAdministrador };
 })();
 
 const root = document.getElementById('root');
@@ -440,7 +450,7 @@ function renderShell(activeId, title) {
   const navEl = document.getElementById('fasa-nav');
   navEl.innerHTML = FASA.NAV_ITEMS.map(it => `
     <a class="nav-item ${it.id === activeId ? 'active' : ''}" data-route="${it.id}"><span class="ic">${it.icon}</span>${it.label}</a>
-  `).join('') + (user.admin ? `<a class="nav-item ${activeId === 'admin' ? 'active' : ''}" data-route="admin"><span class="ic">⚙</span>Administração</a>` : '');
+  `).join('') + (FASA.ehLideranca(user) ? `<a class="nav-item ${activeId === 'admin' ? 'active' : ''}" data-route="admin"><span class="ic">⚙</span>Administração</a>` : '');
   navEl.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => FASA.go(a.dataset.route)));
 
   document.getElementById('fasa-config').addEventListener('click', () => FASA.go('configuracoes'));
@@ -996,7 +1006,7 @@ async function renderPerfil() {
             ${user.ramal ? `<span class="pill">☎ Ramal ${FASA.escapeHtml(user.ramal)}</span>` : ''}
             ${user.email_corporativo ? `<span class="pill">✉ ${FASA.escapeHtml(user.email_corporativo)}</span>` : ''}
             ${user.data_admissao ? `<span class="pill">📅 Desde ${new Date(user.data_admissao + 'T00:00').toLocaleDateString('pt-BR')}</span>` : ''}
-            ${user.admin ? '<span class="pill muted">Administrador</span>' : ''}
+            ${FASA.ehLideranca(user) ? `<span class="pill muted">${{ lideranca: 'Liderança', coordenacao: 'Coordenação', administrador: 'Administrador' }[user.nivel] || 'Administrador'}</span>` : ''}
           </div>
           ${(user.conquistas || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">${user.conquistas.map(h => `<span class="pill" style="background:#B8860B;color:#fff;border-color:#B8860B">🏅 ${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
           ${(user.especialidades || []).length ? `<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">${user.especialidades.map(h => `<span class="pill" style="background:var(--primary-dk);color:#fff;border-color:var(--primary-dk)">${FASA.escapeHtml(h)}</span>`).join('')}</div>` : ''}
@@ -1282,7 +1292,7 @@ async function renderComunidades() {
 /* ---------------- Avisos ---------------- */
 function renderAvisos() {
   const { user, pageEl } = renderShell('avisos', 'Avisos');
-  const podePublicar = user.admin;
+  const podePublicar = FASA.ehLideranca(user);
 
   async function paint() {
     pageEl.innerHTML = `<div class="empty">Carregando avisos...</div>`;
@@ -1522,9 +1532,9 @@ async function renderEscala() {
           <button class="btn btn-accent" id="ng-submit">Solicitar troca</button>
         ` : `<div class="empty">Você não tem plantões futuros nesta lista pra trocar.</div>`}
       </div>
-      <h3 style="font-size:15px;margin-bottom:12px">${user.admin ? 'Todas as solicitações' : 'Minhas solicitações'}</h3>
+      <h3 style="font-size:15px;margin-bottom:12px">${FASA.ehLideranca(user) ? 'Todas as solicitações' : 'Minhas solicitações'}</h3>
       <div style="display:flex;flex-direction:column;gap:12px">
-        ${(trocas || []).filter(t => user.admin || t.solicitante_id === user.id).map(t => `
+        ${(trocas || []).filter(t => FASA.ehLideranca(user) || t.solicitante_id === user.id).map(t => `
           <div class="card" data-id="${t.id}" data-solicitante-id="${t.solicitante_id}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
               <div>
@@ -1536,7 +1546,7 @@ async function renderEscala() {
               <span class="badge ${STATUS_COR[t.status] || 'off'}">${FASA.escapeHtml(t.status)}</span>
             </div>
             <div style="display:flex;gap:8px;margin-top:10px">
-              ${user.admin && t.status === 'Pendente' ? `<button class="btn btn-sm btn-primary ng-aprovar">Aprovar</button><button class="btn btn-sm btn-ghost ng-recusar">Recusar</button>` : ''}
+              ${FASA.ehLideranca(user) && t.status === 'Pendente' ? `<button class="btn btn-sm btn-primary ng-aprovar">Aprovar</button><button class="btn btn-sm btn-ghost ng-recusar">Recusar</button>` : ''}
               ${(t.solicitante_id === user.id && t.status === 'Pendente') ? `<button class="btn btn-sm btn-ghost ng-cancelar">Cancelar solicitação</button>` : ''}
             </div>
           </div>`).join('') || `<div class="card"><div class="empty">Nenhuma solicitação ainda.</div></div>`}
@@ -1860,7 +1870,7 @@ function renderEnquetes() {
   let numOpcoes = 2;
 
   function formHtml() {
-    if (!user.admin) return '';
+    if (!FASA.ehLideranca(user)) return '';
     let campos = '';
     for (let i = 0; i < numOpcoes; i++) {
       campos += `<div class="field"><input class="eq-opcao" placeholder="Opção ${i + 1}"></div>`;
@@ -1877,7 +1887,7 @@ function renderEnquetes() {
   }
 
   function bindForm() {
-    if (!user.admin) return;
+    if (!FASA.ehLideranca(user)) return;
     document.getElementById('eq-add-opcao').addEventListener('click', () => {
       if (numOpcoes >= 10) { FASA.toast('Máximo de 10 opções.'); return; }
       numOpcoes++;
@@ -1912,12 +1922,12 @@ function renderEnquetes() {
       return `<div class="card" data-id="${e.id}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">
           <h3 style="font-size:15px">${FASA.escapeHtml(e.pergunta)}</h3>
-          ${user.admin ? '<button class="icon-btn del-enquete-btn" title="Excluir enquete">🗑</button>' : ''}
+          ${FASA.ehLideranca(user) ? '<button class="icon-btn del-enquete-btn" title="Excluir enquete">🗑</button>' : ''}
         </div>
         <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">${FASA.timeAgo(new Date(e.criado_em).getTime())}</div>
         ${opcoes.map(o => { const pct = Math.round((o.votos / total) * 100); return `<div class="poll-opt ${voted ? 'voted' : ''}" data-opcao="${o.id}">${voted ? `<div class="fill" style="width:${pct}%"></div>` : ''}<div class="txt"><span>${FASA.escapeHtml(o.texto)}</span><span>${voted ? pct + '%' : ''}</span></div></div>`; }).join('')}
         <div style="font-size:11.5px;color:var(--muted);margin-top:8px">${total} voto(s) ${voted ? '· você já votou' : '· toque em uma opção para votar'}</div></div>`;
-    }).join('') || `<div class="empty">Nenhuma enquete no momento.${user.admin ? '' : ' Peça pra liderança criar uma!'}</div>`}</div>`;
+    }).join('') || `<div class="empty">Nenhuma enquete no momento.${FASA.ehLideranca(user) ? '' : ' Peça pra liderança criar uma!'}</div>`}</div>`;
 
     bindForm();
     pageEl.querySelectorAll('.del-enquete-btn').forEach(btn => btn.addEventListener('click', async (e) => {
@@ -1967,7 +1977,7 @@ function renderSugestoes() {
         const apoios = s.sugestao_apoios || [];
         const apoiado = apoios.some(a => a.usuario_id === user.id);
         const souAutor = s.autor_id === user.id;
-        return `<div class="card" data-id="${s.id}"><div class="post-head"><div class="avatar sm">${FASA.initials(au.nome)}</div><div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(au.nome)}</div><div class="sub">${FASA.timeAgo(new Date(s.criado_em).getTime())}</div></div>${(souAutor || user.admin) ? '<button class="icon-btn del-sug-btn" title="Excluir sugestão">🗑</button>' : ''}</div>
+        return `<div class="card" data-id="${s.id}"><div class="post-head"><div class="avatar sm">${FASA.initials(au.nome)}</div><div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(au.nome)}</div><div class="sub">${FASA.timeAgo(new Date(s.criado_em).getTime())}</div></div>${(souAutor || FASA.ehLideranca(user)) ? '<button class="icon-btn del-sug-btn" title="Excluir sugestão">🗑</button>' : ''}</div>
         <p style="font-size:13.5px;color:var(--ink-soft);margin:10px 0">${FASA.escapeHtml(s.texto)}</p>
         <button class="btn btn-sm ${apoiado ? 'btn-primary' : 'btn-ghost'} apoiar-btn">👍 Apoiar (${apoios.length})</button></div>`;
       }).join('') || `<div class="empty">Nenhuma sugestão ainda. Seja o primeiro!</div>`}</div>`;
@@ -2333,7 +2343,7 @@ async function renderChat() {
 /* ---------------- Admin ---------------- */
 function renderAdmin() {
   const { user, pageEl } = renderShell('admin', 'Administração');
-  if (!user.admin) { pageEl.innerHTML = `<div class="empty"><div class="big">🔒</div>Esta área é restrita à liderança.</div>`; return; }
+  if (!FASA.ehLideranca(user)) { pageEl.innerHTML = `<div class="empty"><div class="big">🔒</div>Esta área é restrita à liderança.</div>`; return; }
 
   let tab = 'painel';
   const TABS = [{ id: 'painel', label: 'Painel' }, { id: 'usuarios', label: 'Usuários' }, { id: 'escalas', label: 'Escalas' }, { id: 'ausencias', label: 'Ausências' }, { id: 'banco', label: 'Banco de Horas' }, { id: 'avisos', label: 'Avisos' }, { id: 'comunidades', label: 'Comunidades' }, { id: 'documentos', label: 'Documentos' }, { id: 'denuncias', label: 'Denúncias' }];
@@ -2374,13 +2384,18 @@ function renderAdmin() {
         Pra adicionar alguém novo, convide pelo <b>Supabase → Authentication → Users → Invite user</b>.
         O perfil aparece aqui automaticamente — é só editar matrícula, cargo e setor.
       </div>
-      <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Setor</th><th>Perfil</th><th>✔️</th><th></th></tr></thead><tbody>
+      <div class="card table-wrap"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Setor</th><th>Nível</th><th>✔️</th><th></th></tr></thead><tbody>
         ${(usuarios || []).map(u => `<tr data-id="${u.id}">
           <td><input class="ed-nome" value="${FASA.escapeHtml(u.nome || '')}" style="border:none;background:none;width:100px;font:inherit"></td>
           <td><input class="ed-matricula" value="${FASA.escapeHtml(u.matricula || '')}" style="border:none;background:none;width:80px;font:inherit"></td>
           <td><input class="ed-cargo" value="${FASA.escapeHtml(u.cargo || '')}" style="border:none;background:none;width:110px;font:inherit"></td>
           <td><input class="ed-setor" value="${FASA.escapeHtml(u.setor || '')}" style="border:none;background:none;width:100px;font:inherit"></td>
-          <td><label class="checkline"><input type="checkbox" class="ed-admin" ${u.admin ? 'checked' : ''}> <span class="badge ${u.admin ? 'ok' : 'off'}">${u.admin ? 'Admin' : 'Colaborador'}</span></label></td>
+          <td><select class="ed-nivel" ${FASA.ehCoordenacao(user) ? '' : 'disabled'} style="font:inherit;padding:4px">
+            <option value="colaborador" ${u.nivel === 'colaborador' ? 'selected' : ''}>Colaborador</option>
+            <option value="lideranca" ${u.nivel === 'lideranca' ? 'selected' : ''}>Liderança</option>
+            <option value="coordenacao" ${(u.nivel === 'coordenacao' ? 'selected' : '')} ${FASA.ehAdministrador(user) ? '' : 'disabled'}>Coordenação</option>
+            <option value="administrador" ${(u.nivel === 'administrador' ? 'selected' : '')} ${FASA.ehAdministrador(user) ? '' : 'disabled'}>Administrador</option>
+          </select></td>
           <td><label class="checkline"><input type="checkbox" class="ed-verificado" ${u.verificado ? 'checked' : ''}> <span title="Perfil verificado">✔️</span></label></td>
           <td style="display:flex;gap:6px"><button class="icon-action salvar-user" title="Salvar">💾</button><button class="icon-action conquista-user" title="Conquistas/medalhas">🏅</button><button class="icon-action del-user" title="Excluir perfil">🗑</button></td>
         </tr>`).join('')}
@@ -2405,15 +2420,18 @@ function renderAdmin() {
         const matricula = tr.querySelector('.ed-matricula').value.trim();
         const cargo = tr.querySelector('.ed-cargo').value.trim();
         const setor = tr.querySelector('.ed-setor').value.trim();
-        const admin = tr.querySelector('.ed-admin').checked;
+        const nivel = tr.querySelector('.ed-nivel').value;
         const verificado = tr.querySelector('.ed-verificado').checked;
-        const { error: updError } = await sb.from('usuarios').update({ nome, matricula, cargo, setor, admin, verificado }).eq('id', id);
+        const payload = { nome, matricula, cargo, setor, verificado };
+        if (FASA.ehCoordenacao(user)) { payload.nivel = nivel; payload.admin = nivel === 'administrador'; }
+        const { error: updError } = await sb.from('usuarios').update(payload).eq('id', id);
         if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
         FASA.toast('Usuário atualizado!');
         paintUsuarios();
       });
       tr.querySelector('.del-user').addEventListener('click', async () => {
         if (id === user.id) { FASA.toast('Você não pode excluir seu próprio perfil.'); return; }
+        if (!FASA.ehAdministrador(user)) { FASA.toast('Só o administrador pode excluir perfis.'); return; }
         if (!confirm('Excluir o perfil deste usuário? Isso não remove o login dele, só os dados no FASA.')) return;
         const { error: delError } = await sb.from('usuarios').delete().eq('id', id);
         if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
