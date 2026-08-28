@@ -738,6 +738,7 @@ function renderFeed() {
             <div class="post-menu-pop" style="display:none;position:absolute;top:32px;right:0;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden">
               <button class="post-menu-item denunciar-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">⚠️ Denunciar</button>
               <button class="post-menu-item bloquear-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🚫 Bloquear ${FASA.escapeHtml(autor.nome)}</button>
+              ${FASA.ehLideranca(user) ? `<button class="post-menu-item moderar-del-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🛡 Excluir (moderação)</button>` : ''}
             </div>
           </div>`}
         </div>
@@ -752,7 +753,7 @@ function renderFeed() {
             ${REACOES.map(r => `<span class="reacao-choice" data-tipo="${r.tipo}" style="cursor:pointer;font-size:22px;padding:2px 4px" title="${r.label}">${r.emoji}</span>`).join('')}
           </div>
         </div>
-        <div class="comments-list">${comentarios.map(c => `<div class="comment-item"><b>${FASA.escapeHtml((c.usuarios || {}).nome || 'Colaborador')}</b><br>${FASA.escapeHtml(c.texto)}</div>`).join('')}</div>
+        <div class="comments-list">${comentarios.map(c => `<div class="comment-item" data-id="${c.id}" data-autor-id="${c.autor_id}" style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b>${FASA.escapeHtml((c.usuarios || {}).nome || 'Colaborador')}</b><br>${FASA.escapeHtml(c.texto)}</div>${(c.autor_id === user.id || FASA.ehLideranca(user)) ? `<button class="del-comment-btn" title="Excluir comentário" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;flex-shrink:0">✕</button>` : ''}</div>`).join('')}</div>
         <div class="comment-box"><input type="text" placeholder="Escreva um comentário..."><button class="btn btn-sm btn-primary send-comment">Enviar</button></div>
       </div>`;
     }).join('') || `<div class="empty"><div class="big">📭</div>Ainda não há publicações. Seja o primeiro a postar!</div>`;
@@ -926,6 +927,19 @@ function renderFeed() {
         if (error) { FASA.toast('Erro ao denunciar: ' + error.message); return; }
         FASA.toast('Denúncia enviada. A liderança vai avaliar.');
       });
+      const moderarBtn = postEl.querySelector('.moderar-del-post-btn');
+      if (moderarBtn) moderarBtn.addEventListener('click', async () => {
+        menuPop.style.display = 'none';
+        const autorId = postEl.dataset.autorId;
+        const motivo = prompt('Motivo da exclusão (moderação):');
+        if (motivo === null) return;
+        if (!confirm('Excluir esta publicação como moderação? Isso fica registrado no histórico de auditoria.')) return;
+        const { error } = await sb.from('posts').delete().eq('id', id);
+        if (error) { FASA.toast('Erro ao excluir: ' + error.message); return; }
+        await sb.from('auditoria_moderacao').insert({ moderador_id: user.id, acao: 'excluir_post', alvo_id: id, alvo_autor_id: autorId, motivo: motivo.trim() || null });
+        FASA.toast('Publicação excluída (moderação).');
+        refresh();
+      });
       const sendBtn = postEl.querySelector('.send-comment');
       if (sendBtn) sendBtn.addEventListener('click', async () => {
         const input = postEl.querySelector('.comment-box input'), texto = input.value.trim();
@@ -940,6 +954,17 @@ function renderFeed() {
         }
         refresh();
       });
+      postEl.querySelectorAll('.del-comment-btn').forEach(btn => btn.addEventListener('click', async () => {
+        const item = btn.closest('.comment-item');
+        const comentarioId = item.dataset.id;
+        if (!confirm('Excluir este comentário?')) return;
+        const { error } = await sb.from('comentarios').delete().eq('id', comentarioId);
+        if (error) { FASA.toast('Erro ao excluir: ' + error.message); return; }
+        if (item.dataset.autorId !== user.id) {
+          await sb.from('auditoria_moderacao').insert({ moderador_id: user.id, acao: 'excluir_comentario', alvo_id: comentarioId, alvo_autor_id: item.dataset.autorId });
+        }
+        refresh();
+      }));
       const delBtn = postEl.querySelector('.del-post-btn');
       if (delBtn) delBtn.addEventListener('click', async () => {
         if (!confirm('Excluir esta publicação? Essa ação não pode ser desfeita.')) return;
@@ -1182,7 +1207,7 @@ function perfilPostsHtml(posts) {
           ${PERFIL_REACOES.map(r => `<span class="reacao-choice" data-tipo="${r.tipo}" style="cursor:pointer;font-size:22px;padding:2px 4px" title="${r.label}">${r.emoji}</span>`).join('')}
         </div>
       </div>
-      <div class="comments-list">${comentarios.map(c => `<div class="comment-item"><b>${FASA.escapeHtml((c.usuarios || {}).nome || 'Colaborador')}</b><br>${FASA.escapeHtml(c.texto)}</div>`).join('')}</div>
+      <div class="comments-list">${comentarios.map(c => `<div class="comment-item" data-id="${c.id}" data-autor-id="${c.autor_id}" style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b>${FASA.escapeHtml((c.usuarios || {}).nome || 'Colaborador')}</b><br>${FASA.escapeHtml(c.texto)}</div>${(c.autor_id === user.id || FASA.ehLideranca(user)) ? `<button class="del-comment-btn" title="Excluir comentário" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;flex-shrink:0">✕</button>` : ''}</div>`).join('')}</div>
       <div class="comment-box"><input type="text" placeholder="Escreva um comentário..."><button class="btn btn-sm btn-primary send-comment">Enviar</button></div>
     </div>`;
   }).join('') : `<div class="empty">Você ainda não publicou nada.</div>`;
@@ -1246,6 +1271,17 @@ function bindPerfilPostEvents() {
       if (error) { FASA.toast('Erro ao comentar: ' + error.message); return; }
       refresh();
     });
+    postEl.querySelectorAll('.del-comment-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const item = btn.closest('.comment-item');
+      const comentarioId = item.dataset.id;
+      if (!confirm('Excluir este comentário?')) return;
+      const { error } = await sb.from('comentarios').delete().eq('id', comentarioId);
+      if (error) { FASA.toast('Erro ao excluir: ' + error.message); return; }
+      if (item.dataset.autorId !== user.id) {
+        await sb.from('auditoria_moderacao').insert({ moderador_id: user.id, acao: 'excluir_comentario', alvo_id: comentarioId, alvo_autor_id: item.dataset.autorId });
+      }
+      refresh();
+    }));
   });
 }
 
