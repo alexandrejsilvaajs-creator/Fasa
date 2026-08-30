@@ -258,69 +258,10 @@ const FASA = (() => {
 
   function seed() {
     if (_db) return;
-    const now = Date.now();
-    const db = {
-      usuarios: [
-        { id: 'u1', nome: 'Alexandre', matricula: '30001', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'alexandre@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 260 },
-        { id: 'u2', nome: 'Thais', matricula: '30002', cargo: 'Coordenadora', setor: 'Farmácia', email: 'thais@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 480 },
-        { id: 'u3', nome: 'Camila', matricula: '30003', cargo: 'Farmacêutica', setor: 'Farmácia', email: 'camila@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 400 },
-        { id: 'u4', nome: 'Welton', matricula: '30004', cargo: 'Líder', setor: 'Farmácia', email: 'welton@fasa.local', senha: '123456', admin: true, tempoEmpresa: 'A definir', pontos: 440 },
-        { id: 'u5', nome: 'Antônio', matricula: '30005', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'antonio@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 210 },
-        { id: 'u6', nome: 'Basílio', matricula: '30006', cargo: 'Técnico de Farmácia', setor: 'Farmácia', email: 'basilio@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 195 },
-        { id: 'u7', nome: 'Vanessa', matricula: '30007', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'vanessa@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 170 },
-        { id: 'u8', nome: 'Sheila', matricula: '30008', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'sheila@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 165 },
-        { id: 'u9', nome: 'Kailane', matricula: '30009', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'kailane@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 150 },
-        { id: 'u10', nome: 'Gislaine', matricula: '30010', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'gislaine@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 140 },
-        { id: 'u11', nome: 'Maria Eduarda', matricula: '30011', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'mariaeduarda@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 130 },
-        { id: 'u12', nome: 'Carolina', matricula: '30012', cargo: 'Auxiliar de Farmácia', setor: 'Farmácia', email: 'carolina@fasa.local', senha: '123456', admin: false, tempoEmpresa: 'A definir', pontos: 120 },
-      ],
-      posts: [
-        { id: 'p1', autorId: 'u4', texto: 'Bom dia, equipe! Hoje às 15h teremos o treinamento sobre medicamentos termolábeis na sala 2. Presença confirmada para quem está na escala.', ts: now - 3600e3 * 2, likes: ['u1', 'u3'], comentarios: [{ autorId: 'u3', texto: 'Confirmado, já anotei!', ts: now - 3400e3 }] },
-        { id: 'p2', autorId: 'u1', texto: 'Alguém tem o contato atualizado do plantão de hoje? Preciso validar uma dispensação.', ts: now - 3600e3 * 5, likes: ['u7'], comentarios: [] },
-        { id: 'p3', autorId: 'u3', texto: 'Conseguimos reduzir o tempo médio de dispensação essa semana 🎉 Obrigada a todos pela parceria!', ts: now - 3600e3 * 22, likes: ['u1', 'u2', 'u4', 'u7'], comentarios: [{ autorId: 'u2', texto: 'Excelente resultado, parabéns a todos!', ts: now - 3600e3 * 20 }] },
-      ],
-      avisos: [
-        { id: 'a1', autorId: 'u2', titulo: 'Atualização do protocolo de antibióticos', ts: now - 3600e3 * 8, texto: 'O protocolo de antibioticoterapia foi revisado pela CCIH. A nova versão já está disponível na Biblioteca, seção Protocolos.' },
-        { id: 'a2', autorId: 'u4', titulo: 'Manutenção do sistema de dispensação', ts: now - 3600e3 * 30, texto: 'Sábado, das 22h às 23h, o sistema de dispensação ficará indisponível para manutenção programada.' },
-      ],
-      biblioteca: [
-        { id: 'd1', nome: 'POP — Dispensação de Antibióticos', tipo: 'PDF', categoria: 'POPs', atualizado: now - 3600e3 * 20 },
-        { id: 'd2', nome: 'Protocolo de Medicamentos Termolábeis', tipo: 'PDF', categoria: 'Protocolos', atualizado: now - 3600e3 * 8 },
-        { id: 'd3', nome: 'Manual do Colaborador FASA', tipo: 'PDF', categoria: 'Manuais', atualizado: now - 3600e3 * 400 },
-        { id: 'd4', nome: 'Treinamento — Boas Práticas de Manipulação', tipo: 'Vídeo', categoria: 'Vídeos', atualizado: now - 3600e3 * 120 },
-        { id: 'd5', nome: 'POP — Controle de Psicotrópicos', tipo: 'PDF', categoria: 'POPs', atualizado: now - 3600e3 * 60 },
-      ],
-      escala: [
-        { dia: 'Segunda', turno: 'Manhã', equipe: ['Alexandre', 'Vanessa'] },
-        { dia: 'Segunda', turno: 'Tarde', equipe: ['Antônio'] },
-        { dia: 'Terça', turno: 'Manhã', equipe: ['Welton', 'Sheila'] },
-        { dia: 'Terça', turno: 'Noite', equipe: ['Basílio'] },
-        { dia: 'Quarta', turno: 'Manhã', equipe: ['Kailane'] },
-        { dia: 'Quinta', turno: 'Tarde', equipe: ['Gislaine', 'Maria Eduarda'] },
-        { dia: 'Sexta', turno: 'Manhã', equipe: ['Carolina', 'Camila'] },
-      ],
-      enquetes: [
-        { id: 'e1', pergunta: 'Qual tema você quer no próximo treinamento?', opcoes: [{ t: 'Medicamentos de alta vigilância', v: 8 }, { t: 'Boas práticas de manipulação', v: 5 }, { t: 'Atendimento humanizado', v: 3 }], votouIds: [] },
-      ],
-      sugestoes: [
-        { id: 's1', autorId: 'u7', texto: 'Poderíamos ter um mural digital com aniversariantes do mês.', ts: now - 3600e3 * 50, apoios: ['u1', 'u3'] },
-        { id: 's2', autorId: 'u1', texto: 'Sugiro criar um checklist rápido dentro do app para conferência de materiais.', ts: now - 3600e3 * 12, apoios: ['u4'] },
-      ],
-      chats: {
-        'u1_u2': [
-          { de: 'u2', texto: 'Oi! Você viu o aviso do treinamento de hoje?', ts: now - 3600e3 * 3 },
-          { de: 'u1', texto: 'Vi sim, já confirmei presença 👍', ts: now - 3600e3 * 2.8 },
-        ],
-        'u1_u3': [
-          { de: 'u3', texto: 'Bom dia! Consegue validar uma dispensação pra mim?', ts: now - 3600e3 * 6 },
-        ],
-      },
-      grupos: [
-        { id: 'g1', nome: 'Plantão de Hoje', membros: ['u1', 'u2', 'u3', 'u4'], msgs: [{ de: 'u4', texto: 'Bom turno a todos! Qualquer intercorrência, avisem por aqui.', ts: now - 3600e3 * 4 }] },
-        { id: 'g2', nome: 'Equipe Farmácia', membros: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10', 'u11', 'u12'], msgs: [{ de: 'u2', texto: 'Reunião de equipe remarcada para quinta às 10h.', ts: now - 3600e3 * 30 }] },
-      ],
-    };
-    _db = db;
+    // O FASA hoje busca tudo direto do Supabase; esse "banco" local só
+    // guarda uma cópia do perfil da pessoa logada, pra telas antigas que
+    // ainda leem daqui em vez de consultar o Supabase de novo.
+    _db = { usuarios: [] };
   }
 
   function getDB() { return _db; }
@@ -494,8 +435,8 @@ function renderLogin() {
         <h1>Bem-vindo de volta</h1>
         <p class="sub">Entre com seu e-mail para acessar o FASA.</p>
         <div class="err" id="login-err">E-mail ou senha inválidos.</div>
-        <div class="field"><label>E-mail</label><input id="usuario" type="text" placeholder="voce@email.com" value="alexandre.jsilva.ajs@gmail.com"></div>
-        <div class="field"><label>Senha</label><div class="pwd-wrap"><input id="senha" type="password" placeholder="••••••••" value="Farmaciasat@2026"><button type="button" class="pwd-toggle" data-target="senha">👁</button></div></div>
+        <div class="field"><label>E-mail</label><input id="usuario" type="text" placeholder="voce@email.com"></div>
+        <div class="field"><label>Senha</label><div class="pwd-wrap"><input id="senha" type="password" placeholder="••••••••"><button type="button" class="pwd-toggle" data-target="senha">👁</button></div></div>
         <div class="field-row">
           <label class="checkline"><input type="checkbox"> Lembrar acesso</label>
           <a href="#" class="link" id="forgot-link">Esqueci minha senha</a>
@@ -760,11 +701,17 @@ function renderFeed() {
   }
 
   function side() {
-    const emPlantao = FASA.getDB().usuarios.slice(0, 3);
     return `
-    <div class="side-card card"><h3>Quem está de plantão agora</h3><div class="mini-list">
-      ${emPlantao.map(u => `<div class="mini-item"><div class="avatar sm">${FASA.initials(u.nome)}</div><div class="t"><div class="n">${FASA.escapeHtml(u.nome)}</div><div class="s">${FASA.escapeHtml(u.setor || '')}</div></div><span class="pill live">on</span></div>`).join('')}
+    <div class="side-card card"><h3>Quem está online agora</h3><div class="mini-list" id="side-plantao"><div class="empty" style="font-size:12px">Carregando...</div></div>
     </div><a class="btn btn-ghost btn-sm btn-block" style="margin-top:14px" data-route="escala">Ver escala completa</a></div>`;
+  }
+
+  async function carregarPlantao() {
+    const cincoMinAtras = new Date(Date.now() - 5 * 60000).toISOString();
+    const { data } = await sb.from('usuarios').select('nome, setor').gt('ultimo_acesso', cincoMinAtras).neq('id', user.id).limit(5);
+    const wrap = document.getElementById('side-plantao');
+    if (!wrap) return;
+    wrap.innerHTML = (data || []).map(u => `<div class="mini-item"><div class="avatar sm">${FASA.initials(u.nome)}</div><div class="t"><div class="n">${FASA.escapeHtml(u.nome)}</div><div class="s">${FASA.escapeHtml(u.setor || '')}</div></div><span class="pill live">on</span></div>`).join('') || `<div class="empty" style="font-size:12px">Ninguém mais online agora.</div>`;
   }
 
   function paintPreview() {
@@ -796,6 +743,8 @@ function renderFeed() {
         <button class="btn btn-primary btn-sm" id="post-submit">Publicar</button></div></div></div>
       <div id="posts-list"><div class="empty">Carregando publicações...</div></div>
     </div><div>${side()}</div></div>`;
+
+    carregarPlantao();
 
     pageEl.querySelectorAll('[data-route]').forEach(a => a.addEventListener('click', () => FASA.go(a.dataset.route)));
 
