@@ -629,12 +629,22 @@ function renderFeed() {
   async function fetchPosts(quantidade) {
     const { data, error } = await sb
       .from('posts')
-      .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado), post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
+      .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado), post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url)), original:posts_original_id(id,texto,arquivo_url,arquivo_tipo,legenda_foto,criado_em,usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado))')
       .order('criado_em', { ascending: false })
       .range(0, quantidade - 1);
     if (error) { FASA.toast('Erro ao carregar posts: ' + error.message); return []; }
     temMais = data.length === quantidade;
     return data.filter(p => !bloqueadosIds.includes(p.autor_id));
+  }
+
+  function postOriginalHtml(original) {
+    if (!original) return `<div class="card" style="background:var(--paper-2);margin-top:8px"><p style="font-size:12.5px;color:var(--muted)">Publicação original não está mais disponível.</p></div>`;
+    const au = original.usuarios || {};
+    return `<div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;margin-top:8px;background:var(--paper-2)">
+      <div class="post-head" style="margin-bottom:8px">${FASA.avatarHtml(au, 'sm')}<div class="meta"><div class="name" style="font-size:13px">${FASA.escapeHtml(au.nome || '—')}${au.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub" style="font-size:11px">${FASA.escapeHtml(au.cargo || '')} · ${FASA.timeAgo(new Date(original.criado_em).getTime())}</div></div></div>
+      <div style="font-size:13px">${FASA.escapeHtml(original.texto || '')}</div>
+      ${original.arquivo_url && (original.arquivo_tipo || '').startsWith('image/') ? `<img src="${original.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : ''}
+    </div>`;
   }
 
   function anexoHtml(p) {
@@ -665,7 +675,7 @@ function renderFeed() {
       const souAutor = p.autor_id === user.id;
       const infoReacao = minhaReacao ? reacaoInfo(minhaReacao.tipo) : null;
       return `
-      <div class="card post" data-id="${p.id}" data-autor-id="${p.autor_id}">
+      <div class="card post" data-id="${p.id}" data-autor-id="${p.autor_id}" data-post-original-id="${p.post_original_id || ''}">
         <div class="post-head">${FASA.avatarHtml(autor)}
           <div class="meta" style="flex:1"><div class="name">${FASA.escapeHtml(autor.nome)}${autor.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub">${FASA.escapeHtml(autor.cargo || '')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div></div>
           ${souAutor ? `<div style="position:relative">
@@ -683,8 +693,8 @@ function renderFeed() {
             </div>
           </div>`}
         </div>
-        <div class="post-body" data-texto="${FASA.escapeHtml(p.texto)}">${FASA.escapeHtml(p.texto)}${p.editado_em ? ' <span style="font-size:11px;color:var(--muted)">(editado)</span>' : ''}</div>
-        ${anexoHtml(p)}
+        <div class="post-body" data-texto="${FASA.escapeHtml(p.texto)}">${p.post_original_id ? '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">🔁 Compartilhou uma publicação</div>' : ''}${FASA.escapeHtml(p.texto)}${p.editado_em ? ' <span style="font-size:11px;color:var(--muted)">(editado)</span>' : ''}</div>
+        ${p.post_original_id ? postOriginalHtml(p.original) : anexoHtml(p)}
         ${resumoReacoes(likes)}
         <div class="post-actions" style="position:relative">
           <button class="like-btn ${infoReacao ? 'liked' : ''}" style="${infoReacao ? `color:${infoReacao.tipo === 'like' ? 'var(--primary-dk)' : 'var(--accent-dk)'}` : ''}">${infoReacao ? `${infoReacao.emoji} ${infoReacao.label}` : '🙂 Reagir'}</button>
@@ -832,7 +842,14 @@ function renderFeed() {
         refresh();
       }));
       postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
-      postEl.querySelector('.share-btn').addEventListener('click', () => FASA.toast('Publicação compartilhada no seu perfil!'));
+      postEl.querySelector('.share-btn').addEventListener('click', async () => {
+        const idOriginal = postEl.dataset.postOriginalId || id;
+        const comentario = prompt('Quer adicionar um comentário? (deixe em branco pra compartilhar direto)') || '';
+        const { error } = await sb.from('posts').insert({ autor_id: user.id, texto: comentario.trim(), post_original_id: idOriginal });
+        if (error) { FASA.toast('Erro ao compartilhar: ' + error.message); return; }
+        FASA.toast('Publicação compartilhada no seu perfil!');
+        refresh();
+      });
       const menuBtn = postEl.querySelector('.post-menu-btn');
       const menuPop = postEl.querySelector('.post-menu-pop');
       if (menuBtn) menuBtn.addEventListener('click', () => { menuPop.style.display = menuPop.style.display === 'none' ? 'block' : 'none'; });
