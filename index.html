@@ -629,7 +629,7 @@ function renderFeed() {
   async function fetchPosts(quantidade) {
     const { data, error } = await sb
       .from('posts')
-      .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado), post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url)), original:posts_original_id(id,texto,arquivo_url,arquivo_tipo,legenda_foto,criado_em,usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado))')
+      .select('*, usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado), post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url)), original:posts!posts_post_original_id_fkey(id,texto,arquivo_url,arquivo_tipo,legenda_foto,criado_em,usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado))')
       .order('criado_em', { ascending: false })
       .range(0, quantidade - 1);
     if (error) { FASA.toast('Erro ao carregar posts: ' + error.message); return []; }
