@@ -1015,15 +1015,17 @@ async function renderPerfil() {
         </div>
         <div style="padding:20px">
           <h3 style="margin-bottom:14px">Editar perfil</h3>
+          ${FASA.ehCoordenacao(user) ? `
           <div class="field"><label>Cargo</label><input id="ep-cargo" value="${FASA.escapeHtml(user.cargo || '')}"></div>
           <div class="field"><label>Setor</label><input id="ep-setor" value="${FASA.escapeHtml(user.setor || '')}"></div>
           <div class="field"><label>Tempo de empresa</label><input id="ep-tempo" value="${FASA.escapeHtml(user.tempo_empresa || '')}"></div>
           <div class="field"><label>Ramal</label><input id="ep-ramal" value="${FASA.escapeHtml(user.ramal || '')}"></div>
           <div class="field"><label>Data de admissão</label><input type="date" id="ep-admissao" value="${user.data_admissao || ''}"></div>
+          <div class="field"><label>E-mail corporativo</label><input type="email" id="ep-email" value="${FASA.escapeHtml(user.email_corporativo || '')}" placeholder="nome@einstein.br"></div>
+          ` : `<p style="font-size:12px;color:var(--muted);margin-bottom:14px">Cargo, setor, ramal e outros dados administrativos só podem ser alterados pela Coordenação/Administração.</p>`}
           <div class="field"><label>Habilidades (separadas por vírgula)</label><input id="ep-habilidades" value="${FASA.escapeHtml((user.habilidades || []).join(', '))}" placeholder="Ex: Excel, Manipulação, Atendimento"></div>
           <div class="field"><label>Interesses (separados por vírgula)</label><input id="ep-interesses" value="${FASA.escapeHtml((user.interesses || []).join(', '))}" placeholder="Ex: Futebol, Culinária, Games"></div>
           <div class="field"><label>Especialidades (separadas por vírgula)</label><input id="ep-especialidades" value="${FASA.escapeHtml((user.especialidades || []).join(', '))}" placeholder="Ex: Oncologia, Farmácia Clínica, Nutrição Parenteral"></div>
-          <div class="field"><label>E-mail corporativo</label><input type="email" id="ep-email" value="${FASA.escapeHtml(user.email_corporativo || '')}" placeholder="nome@einstein.br"></div>
           <div class="field"><label>Bio (uma frase sobre você)</label><textarea id="ep-bio" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit">${FASA.escapeHtml(user.bio || '')}</textarea></div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-primary" id="ep-salvar">Salvar</button>
@@ -1063,22 +1065,25 @@ async function renderPerfil() {
     } else {
       document.getElementById('ep-cancelar').addEventListener('click', () => { editMode = false; paintHeader(); });
       document.getElementById('ep-salvar').addEventListener('click', async () => {
-        const cargo = document.getElementById('ep-cargo').value.trim();
-        const setor = document.getElementById('ep-setor').value.trim();
-        const tempo_empresa = document.getElementById('ep-tempo').value.trim();
-        const ramal = document.getElementById('ep-ramal').value.trim();
-        const data_admissao = document.getElementById('ep-admissao').value || null;
         const habilidades = document.getElementById('ep-habilidades').value.split(',').map(h => h.trim()).filter(Boolean);
         const interesses = document.getElementById('ep-interesses').value.split(',').map(h => h.trim()).filter(Boolean);
         const especialidades = document.getElementById('ep-especialidades').value.split(',').map(h => h.trim()).filter(Boolean);
-        const email_corporativo = document.getElementById('ep-email').value.trim();
         const bio = document.getElementById('ep-bio').value.trim();
-        const { error: updError } = await sb.from('usuarios').update({ cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, email_corporativo, bio }).eq('id', user.id);
+        const payload = { habilidades, interesses, especialidades, bio };
+        if (FASA.ehCoordenacao(user)) {
+          payload.cargo = document.getElementById('ep-cargo').value.trim();
+          payload.setor = document.getElementById('ep-setor').value.trim();
+          payload.tempo_empresa = document.getElementById('ep-tempo').value.trim();
+          payload.ramal = document.getElementById('ep-ramal').value.trim();
+          payload.data_admissao = document.getElementById('ep-admissao').value || null;
+          payload.email_corporativo = document.getElementById('ep-email').value.trim();
+        }
+        const { error: updError } = await sb.from('usuarios').update(payload).eq('id', user.id);
         if (updError) { FASA.toast('Erro ao salvar: ' + updError.message); return; }
-        Object.assign(user, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, email_corporativo, bio });
+        Object.assign(user, payload);
         const db = FASA.getDB();
         const jaExiste = db.usuarios.find(u => u.id === user.id);
-        if (jaExiste) Object.assign(jaExiste, { cargo, setor, tempo_empresa, ramal, data_admissao, habilidades, interesses, especialidades, email_corporativo, bio });
+        if (jaExiste) Object.assign(jaExiste, payload);
         FASA.saveDB(db);
         editMode = false;
         FASA.toast('Perfil atualizado!');
