@@ -1804,6 +1804,21 @@ async function renderEscala() {
 }
 
 /* ---------------- Biblioteca ---------------- */
+function pathDoArquivoBiblioteca(url) {
+  if (!url) return null;
+  if (!url.startsWith('http')) return url; // já é um caminho
+  const marcador = '/biblioteca-arquivos/';
+  const idx = url.indexOf(marcador);
+  return idx >= 0 ? decodeURIComponent(url.slice(idx + marcador.length)) : null;
+}
+async function abrirDocumentoBiblioteca(urlOuCaminho) {
+  const path = pathDoArquivoBiblioteca(urlOuCaminho);
+  if (!path) { FASA.toast('Este documento ainda não tem arquivo anexado.'); return; }
+  const { data, error } = await sb.storage.from('biblioteca-arquivos').createSignedUrl(path, 3600);
+  if (error) { FASA.toast('Erro ao abrir: ' + error.message); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
 function renderBiblioteca() {
   const { user, pageEl } = renderShell('biblioteca', 'Biblioteca');
   const cats = ['Todos', 'POPs', 'Protocolos', 'Manuais', 'Vídeos', 'PDF', 'Fotos'];
@@ -1824,10 +1839,9 @@ function renderBiblioteca() {
     const path = `${user.id}/${Date.now()}-${file.name}`;
     const { error: upError } = await sb.storage.from('biblioteca-arquivos').upload(path, file);
     if (upError) { FASA.toast('Erro ao enviar: ' + upError.message); return; }
-    const { data: pub } = sb.storage.from('biblioteca-arquivos').getPublicUrl(path);
     const tipo = file.type.startsWith('image/') ? 'Foto' : (file.type === 'application/pdf' ? 'PDF' : 'Documento');
     const { error: insError } = await sb.from('biblioteca').insert({
-      nome: file.name, categoria: categoriaPadrao, tipo, arquivo_url: pub.publicUrl, enviado_por: user.id,
+      nome: file.name, categoria: categoriaPadrao, tipo, arquivo_url: path, enviado_por: user.id,
     });
     if (insError) { FASA.toast('Erro ao salvar: ' + insError.message); return; }
     FASA.toast('Documento enviado!');
@@ -1856,9 +1870,7 @@ function renderBiblioteca() {
         <button class="btn btn-ghost btn-sm abrir-doc" data-url="${d.arquivo_url || ''}">Abrir</button></div>`).join('') || `<div class="empty" style="grid-column:1/-1">Nenhum documento nesta categoria.</div>`}</div>`;
 
     pageEl.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { activeCat = t.dataset.cat; paint(); }));
-    pageEl.querySelectorAll('.abrir-doc').forEach(b => b.addEventListener('click', () => {
-      if (b.dataset.url) window.open(b.dataset.url, '_blank'); else FASA.toast('Este documento ainda não tem arquivo anexado.');
-    }));
+    pageEl.querySelectorAll('.abrir-doc').forEach(b => b.addEventListener('click', () => abrirDocumentoBiblioteca(b.dataset.url)));
 
     const docInput = document.getElementById('bib-doc-input');
     const fotoInput = document.getElementById('bib-foto-input');
@@ -2842,8 +2854,7 @@ function renderAdmin() {
         const path = `${user.id}/${Date.now()}-${arquivo.name}`;
         const { error: upError } = await sb.storage.from('biblioteca-arquivos').upload(path, arquivo);
         if (upError) { FASA.toast('Erro ao enviar arquivo: ' + upError.message); return; }
-        const { data: pub } = sb.storage.from('biblioteca-arquivos').getPublicUrl(path);
-        arquivo_url = pub.publicUrl;
+        arquivo_url = path;
       }
 
       const { error: insError } = await sb.from('biblioteca').insert({
@@ -2892,9 +2903,10 @@ async function renderBusca(termo) {
     ${secao('👤 Pessoas', pessoas, p => `<div class="card" style="display:flex;align-items:center;gap:12px;cursor:pointer" data-route="chat">${FASA.avatarHtml(p, 'sm')}<div><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(p.nome)}</div><div style="font-size:12px;color:var(--muted)">${FASA.escapeHtml(p.cargo || '')} · ${FASA.escapeHtml(p.setor || '')}</div></div></div>`)}
     ${secao('📝 Publicações', posts, p => `<div class="card" data-route="feed"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">${FASA.escapeHtml((p.usuarios || {}).nome || '—')} · ${FASA.timeAgo(new Date(p.criado_em).getTime())}</div><div style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div></div>`)}
     ${secao('📢 Avisos', avisos, a => `<div class="card" data-route="avisos"><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(a.titulo)}</div><div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px">${FASA.escapeHtml(a.texto)}</div></div>`)}
-    ${secao('📁 Biblioteca', docs, d => `<a class="card" href="${d.arquivo_url || '#'}" target="_blank" style="display:block;text-decoration:none;color:inherit"><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(d.nome)}</div><div style="font-size:12px;color:var(--muted)">${FASA.escapeHtml(d.categoria || '')}</div></a>`)}
+    ${secao('📁 Biblioteca', docs, d => `<div class="card abrir-doc-busca" data-url="${d.arquivo_url || ''}" style="cursor:pointer"><div style="font-weight:700;font-size:13.5px">${FASA.escapeHtml(d.nome)}</div><div style="font-size:12px;color:var(--muted)">${FASA.escapeHtml(d.categoria || '')}</div></div>`)}
   `;
   pageEl.querySelectorAll('[data-route]').forEach(el => el.addEventListener('click', () => FASA.go(el.dataset.route)));
+  pageEl.querySelectorAll('.abrir-doc-busca').forEach(el => el.addEventListener('click', () => abrirDocumentoBiblioteca(el.dataset.url)));
 }
 
 /* ---------------- Configurações ---------------- */
