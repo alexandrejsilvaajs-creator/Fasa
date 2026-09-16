@@ -986,11 +986,7 @@ async function renderPerfil() {
         <div style="padding:0 20px 24px;text-align:center;margin-top:${user.capa_url ? '-40px' : '-40px'}">
           <div style="position:relative;width:80px;margin:0 auto 12px">
             ${FASA.avatarHtml(user, 'lg')}
-            <button id="foto-menu-btn" title="Opções da foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">⋮</button>
-            <div id="foto-menu-pop" style="display:none;position:absolute;top:34px;right:-40px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden;text-align:left">
-              <button id="foto-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">📷 Alterar foto</button>
-              ${user.foto_url ? `<button id="foto-remover-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir foto</button>` : ''}
-            </div>
+            <button id="foto-btn" title="Alterar foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">📷</button>
             <input type="file" id="foto-input" accept="image/*" style="display:none">
           </div>
           <h1 style="font-size:22px">${FASA.escapeHtml(user.nome)}${user.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</h1>
@@ -1043,29 +1039,10 @@ async function renderPerfil() {
     if (!editMode) {
       document.getElementById('edit-perfil-btn').addEventListener('click', () => { editMode = true; paintHeader(); });
 
-      const fotoMenuBtn = document.getElementById('foto-menu-btn');
-      const fotoMenuPop = document.getElementById('foto-menu-pop');
-      fotoMenuBtn.addEventListener('click', () => { fotoMenuPop.style.display = fotoMenuPop.style.display === 'none' ? 'block' : 'none'; });
-
       const fotoBtn = document.getElementById('foto-btn');
       const fotoInput = document.getElementById('foto-input');
-      fotoBtn.addEventListener('click', () => { fotoMenuPop.style.display = 'none'; fotoInput.click(); });
-      fotoInput.addEventListener('change', () => uploadImagem(fotoInput.files[0], 'avatar', 'foto_url', fotoMenuBtn));
-
-      const fotoRemoverBtn = document.getElementById('foto-remover-btn');
-      if (fotoRemoverBtn) fotoRemoverBtn.addEventListener('click', async () => {
-        fotoMenuPop.style.display = 'none';
-        if (!confirm('Excluir a foto de perfil?')) return;
-        const { error: updError } = await sb.from('usuarios').update({ foto_url: null }).eq('id', user.id);
-        if (updError) { FASA.toast('Erro ao excluir: ' + updError.message); return; }
-        user.foto_url = null;
-        const db = FASA.getDB();
-        const jaExiste = db.usuarios.find(u => u.id === user.id);
-        if (jaExiste) jaExiste.foto_url = null;
-        FASA.saveDB(db);
-        FASA.toast('Foto de perfil removida.');
-        paintHeader();
-      });
+      fotoBtn.addEventListener('click', () => fotoInput.click());
+      fotoInput.addEventListener('change', () => uploadImagem(fotoInput.files[0], 'avatar', 'foto_url', fotoBtn));
 
       const capaBtn = document.getElementById('capa-btn');
       const capaInput = document.getElementById('capa-input');
@@ -1184,17 +1161,10 @@ function perfilPostsHtml(posts) {
     likes.forEach(l => { const t = l.tipo || 'like'; contagem[t] = (contagem[t] || 0) + 1; });
     const ordenado = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
     const comentarios = (p.comentarios || []).sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
-    return `<div class="post" data-id="${p.id}" data-post-original-id="${p.post_original_id || ''}" style="padding:14px 0;border-bottom:1px solid var(--line)">
+    return `<div class="post" data-id="${p.id}" style="padding:14px 0;border-bottom:1px solid var(--line)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div style="color:var(--muted);font-size:11.5px">${FASA.timeAgo(new Date(p.criado_em).getTime())}${p.editado_em ? ' · (editado)' : ''}</div>
-        <div style="position:relative">
-          <button class="icon-btn perfil-post-menu-btn" title="Opções">⋮</button>
-          <div class="perfil-post-menu-pop" style="display:none;position:absolute;top:28px;right:0;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden">
-            <button class="post-menu-item perfil-edit-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">✏️ Editar publicação</button>
-            <button class="post-menu-item perfil-share-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">↗ Compartilhar</button>
-            <button class="post-menu-item perfil-del-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir publicação</button>
-          </div>
-        </div>
+        <button class="btn btn-ghost btn-sm perfil-edit-post-btn" style="padding:2px 8px">✏️ Editar</button>
       </div>
       <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div>
       ${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : ''}
@@ -1245,12 +1215,8 @@ function bindPerfilPostEvents() {
       refresh();
     }));
     postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
-    const menuBtn = postEl.querySelector('.perfil-post-menu-btn');
-    const menuPop = postEl.querySelector('.perfil-post-menu-pop');
-    if (menuBtn) menuBtn.addEventListener('click', () => { menuPop.style.display = menuPop.style.display === 'none' ? 'block' : 'none'; });
     const editBtn = postEl.querySelector('.perfil-edit-post-btn');
     if (editBtn) editBtn.addEventListener('click', () => {
-      if (menuPop) menuPop.style.display = 'none';
       const body = postEl.querySelector('.perfil-post-body');
       const textoAtual = body.dataset.texto;
       body.innerHTML = `<textarea class="perfil-edit-textarea" style="width:100%;min-height:70px;padding:10px;border:1.5px solid var(--line);border-radius:var(--radius-sm);font-family:inherit;font-size:13.5px">${textoAtual}</textarea>
@@ -1267,25 +1233,6 @@ function bindPerfilPostEvents() {
         refresh();
       });
       postEl.querySelector('.perfil-cancel-edit-btn').addEventListener('click', () => refresh());
-    });
-    const shareBtn = postEl.querySelector('.perfil-share-post-btn');
-    if (shareBtn) shareBtn.addEventListener('click', async () => {
-      if (menuPop) menuPop.style.display = 'none';
-      const idOriginal = postEl.dataset.postOriginalId || id;
-      const comentario = prompt('Quer adicionar um comentário? (deixe em branco pra compartilhar direto)') || '';
-      const { error } = await sb.from('posts').insert({ autor_id: user.id, texto: comentario.trim(), post_original_id: idOriginal });
-      if (error) { FASA.toast('Erro ao compartilhar: ' + error.message); return; }
-      FASA.toast('Publicação compartilhada no seu perfil!');
-      refresh();
-    });
-    const delBtn = postEl.querySelector('.perfil-del-post-btn');
-    if (delBtn) delBtn.addEventListener('click', async () => {
-      if (menuPop) menuPop.style.display = 'none';
-      if (!confirm('Excluir esta publicação? Essa ação não pode ser desfeita.')) return;
-      const { error } = await sb.from('posts').delete().eq('id', id);
-      if (error) { FASA.toast('Erro ao excluir: ' + error.message); return; }
-      FASA.toast('Publicação excluída.');
-      refresh();
     });
     const sendBtn = postEl.querySelector('.send-comment');
     if (sendBtn) sendBtn.addEventListener('click', async () => {
@@ -2018,8 +1965,8 @@ function renderEnquetes() {
         const opcaoId = opt.dataset.opcao;
         const { error: voteError } = await sb.from('enquete_votos').insert({ enquete_id: eid, usuario_id: user.id, opcao_id: opcaoId });
         if (voteError) { FASA.toast('Erro ao votar: ' + voteError.message); return; }
-        const { data: opcaoAtual } = await sb.from('enquete_opcoes').select('votos').eq('id', opcaoId).single();
-        await sb.from('enquete_opcoes').update({ votos: (opcaoAtual?.votos || 0) + 1 }).eq('id', opcaoId);
+        const { error: incError } = await sb.rpc('incrementar_voto_enquete', { p_opcao_id: opcaoId });
+        if (incError) { FASA.toast('Erro ao contar voto: ' + incError.message); return; }
         paint();
       }));
     });
