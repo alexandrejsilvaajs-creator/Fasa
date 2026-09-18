@@ -352,7 +352,59 @@ const FASA = (() => {
   }
   function go(route) { location.hash = '#/' + route; }
 
-  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles, temaAtual, aplicarTema, temNivel, ehLideranca, ehCoordenacao, ehAdministrador };
+  function gerarLinkPublicacao(postId) {
+    // Estrutura preparada para uma futura rota pública "/post/:id".
+    // Por enquanto usa a URL atual do app + rota hash compatível com o roteamento existente.
+    return `${window.location.origin}${window.location.pathname}#/post/${postId}`;
+  }
+
+  function abrirCompartilharModal(postId) {
+    const existente = document.getElementById('share-modal');
+    if (existente) existente.remove();
+    const link = gerarLinkPublicacao(postId);
+    const texto = 'Confira esta publicação no FASA';
+    const opcoes = [
+      { ic: '🔗', label: 'Copiar link', action: 'copiar' },
+      { ic: '📱', label: 'WhatsApp', action: 'whatsapp' },
+      { ic: '📘', label: 'Facebook', action: 'facebook' },
+      { ic: '𝕏', label: 'X (Twitter)', action: 'x' },
+    ];
+    if (navigator.share) opcoes.push({ ic: '📤', label: 'Mais opções (apps do celular)', action: 'sistema' });
+    const modal = document.createElement('div');
+    modal.id = 'share-modal';
+    modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;align-items:flex-end;justify-content:center';
+    modal.innerHTML = `
+      <div style="background:var(--card);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:18px;max-height:80vh;overflow-y:auto;box-sizing:border-box">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink)">Compartilhar publicação</h3>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${opcoes.map(o => `<button class="btn btn-ghost btn-block share-opt" data-action="${o.action}" style="text-align:left">${o.ic} ${o.label}</button>`).join('')}
+        </div>
+        <button class="btn btn-ghost btn-block" id="share-cancel-btn" style="margin-top:10px">Cancelar</button>
+      </div>`;
+    document.body.appendChild(modal);
+    const fechar = () => modal.remove();
+    modal.addEventListener('click', (e) => { if (e.target === modal) fechar(); });
+    document.getElementById('share-cancel-btn').addEventListener('click', fechar);
+    modal.querySelectorAll('.share-opt').forEach(btn => btn.addEventListener('click', async () => {
+      const action = btn.dataset.action;
+      if (action === 'copiar') {
+        try { await navigator.clipboard.writeText(link); toast('Link copiado!'); }
+        catch (e) { toast('Não foi possível copiar o link.'); }
+      } else if (action === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(texto + ' ' + link)}`, '_blank');
+      } else if (action === 'facebook') {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`, '_blank');
+      } else if (action === 'x') {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(texto)}&url=${encodeURIComponent(link)}`, '_blank');
+      } else if (action === 'sistema') {
+        try { await navigator.share({ title: 'FASA', text: texto, url: link }); }
+        catch (e) { /* usuário cancelou o compartilhamento nativo */ }
+      }
+      fechar();
+    }));
+  }
+
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles, temaAtual, aplicarTema, temNivel, ehLideranca, ehCoordenacao, ehAdministrador, gerarLinkPublicacao, abrirCompartilharModal };
 })();
 
 const root = document.getElementById('root');
@@ -979,8 +1031,11 @@ async function renderPerfil() {
       <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
         <div style="position:relative;${user.capa_url ? '' : `height:130px;${capaFallback}`}">
           ${user.capa_url ? `<img src="${user.capa_url}" style="width:100%;display:block">` : ''}
-          <button id="capa-btn" title="Alterar capa" style="position:absolute;bottom:10px;right:${user.capa_url ? '96px' : '10px'};background:rgba(22,36,31,.55);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">📷 Capa</button>
-          ${user.capa_url ? `<button id="capa-remover-btn" title="Excluir capa" style="position:absolute;bottom:10px;right:10px;background:rgba(194,69,69,.75);color:#fff;border:none;border-radius:var(--radius-pill);padding:6px 14px;font-size:12px;cursor:pointer">🗑 Excluir</button>` : ''}
+          <button id="capa-menu-btn" title="Opções da capa" style="position:absolute;bottom:10px;right:10px;width:30px;height:30px;border-radius:50%;background:rgba(22,36,31,.55);border:none;color:#fff;font-size:15px;cursor:pointer">⋮</button>
+          <div id="capa-menu-pop" style="display:none;position:absolute;bottom:46px;right:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:200px;overflow:hidden;text-align:left">
+            <button id="capa-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">📷 Alterar foto de capa</button>
+            ${user.capa_url ? `<button id="capa-remover-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir foto de capa</button>` : ''}
+          </div>
           <input type="file" id="capa-input" accept="image/*" style="display:none">
         </div>
         <div style="padding:0 20px 24px;text-align:center;margin-top:${user.capa_url ? '-40px' : '-40px'}">
@@ -988,8 +1043,8 @@ async function renderPerfil() {
             ${FASA.avatarHtml(user, 'lg')}
             <button id="foto-menu-btn" title="Opções da foto" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid #fff;color:#fff;font-size:12px;cursor:pointer">⋮</button>
             <div id="foto-menu-pop" style="display:none;position:absolute;top:34px;right:-40px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden;text-align:left">
-              <button id="foto-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">📷 Alterar foto</button>
-              ${user.foto_url ? `<button id="foto-remover-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir foto</button>` : ''}
+              <button id="foto-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">📷 Alterar foto de perfil</button>
+              ${user.foto_url ? `<button id="foto-remover-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir foto de perfil</button>` : ''}
             </div>
             <input type="file" id="foto-input" accept="image/*" style="display:none">
           </div>
@@ -1040,6 +1095,14 @@ async function renderPerfil() {
   }
 
   function bindHeaderEvents() {
+    if (window._fasaPerfilHeaderMenuCloser) document.removeEventListener('click', window._fasaPerfilHeaderMenuCloser);
+    window._fasaPerfilHeaderMenuCloser = (e) => {
+      const fotoPop = document.getElementById('foto-menu-pop');
+      const capaPop = document.getElementById('capa-menu-pop');
+      if (fotoPop && !e.target.closest('#foto-menu-btn') && !e.target.closest('#foto-menu-pop')) fotoPop.style.display = 'none';
+      if (capaPop && !e.target.closest('#capa-menu-btn') && !e.target.closest('#capa-menu-pop')) capaPop.style.display = 'none';
+    };
+    document.addEventListener('click', window._fasaPerfilHeaderMenuCloser);
     if (!editMode) {
       document.getElementById('edit-perfil-btn').addEventListener('click', () => { editMode = true; paintHeader(); });
 
@@ -1067,13 +1130,18 @@ async function renderPerfil() {
         paintHeader();
       });
 
+      const capaMenuBtn = document.getElementById('capa-menu-btn');
+      const capaMenuPop = document.getElementById('capa-menu-pop');
+      capaMenuBtn.addEventListener('click', () => { capaMenuPop.style.display = capaMenuPop.style.display === 'none' ? 'block' : 'none'; });
+
       const capaBtn = document.getElementById('capa-btn');
       const capaInput = document.getElementById('capa-input');
-      capaBtn.addEventListener('click', () => capaInput.click());
-      capaInput.addEventListener('change', () => uploadImagem(capaInput.files[0], 'capa', 'capa_url', capaBtn));
+      capaBtn.addEventListener('click', () => { capaMenuPop.style.display = 'none'; capaInput.click(); });
+      capaInput.addEventListener('change', () => uploadImagem(capaInput.files[0], 'capa', 'capa_url', capaMenuBtn));
 
       const capaRemoverBtn = document.getElementById('capa-remover-btn');
       if (capaRemoverBtn) capaRemoverBtn.addEventListener('click', async () => {
+        capaMenuPop.style.display = 'none';
         if (!confirm('Excluir a foto de capa?')) return;
         const { error: updError } = await sb.from('usuarios').update({ capa_url: null }).eq('id', user.id);
         if (updError) { FASA.toast('Erro ao excluir: ' + updError.message); return; }
@@ -1219,6 +1287,13 @@ function bindPerfilPostEvents() {
   const listEl = document.getElementById('perfil-posts-list');
   if (!listEl) return;
 
+  if (window._fasaPerfilPostMenuCloser) document.removeEventListener('click', window._fasaPerfilPostMenuCloser);
+  window._fasaPerfilPostMenuCloser = (e) => {
+    if (e.target.closest('.perfil-post-menu-btn') || e.target.closest('.perfil-post-menu-pop')) return;
+    listEl.querySelectorAll('.perfil-post-menu-pop').forEach(p => { p.style.display = 'none'; });
+  };
+  document.addEventListener('click', window._fasaPerfilPostMenuCloser);
+
   async function refresh() {
     const { data: meusPosts } = await sb
       .from('posts')
@@ -1269,14 +1344,10 @@ function bindPerfilPostEvents() {
       postEl.querySelector('.perfil-cancel-edit-btn').addEventListener('click', () => refresh());
     });
     const shareBtn = postEl.querySelector('.perfil-share-post-btn');
-    if (shareBtn) shareBtn.addEventListener('click', async () => {
+    if (shareBtn) shareBtn.addEventListener('click', () => {
       if (menuPop) menuPop.style.display = 'none';
       const idOriginal = postEl.dataset.postOriginalId || id;
-      const comentario = prompt('Quer adicionar um comentário? (deixe em branco pra compartilhar direto)') || '';
-      const { error } = await sb.from('posts').insert({ autor_id: user.id, texto: comentario.trim(), post_original_id: idOriginal });
-      if (error) { FASA.toast('Erro ao compartilhar: ' + error.message); return; }
-      FASA.toast('Publicação compartilhada no seu perfil!');
-      refresh();
+      FASA.abrirCompartilharModal(idOriginal);
     });
     const delBtn = postEl.querySelector('.perfil-del-post-btn');
     if (delBtn) delBtn.addEventListener('click', async () => {
