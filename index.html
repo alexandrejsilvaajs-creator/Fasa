@@ -894,13 +894,9 @@ function renderFeed() {
         refresh();
       }));
       postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
-      postEl.querySelector('.share-btn').addEventListener('click', async () => {
+      postEl.querySelector('.share-btn').addEventListener('click', () => {
         const idOriginal = postEl.dataset.postOriginalId || id;
-        const comentario = prompt('Quer adicionar um comentário? (deixe em branco pra compartilhar direto)') || '';
-        const { error } = await sb.from('posts').insert({ autor_id: user.id, texto: comentario.trim(), post_original_id: idOriginal });
-        if (error) { FASA.toast('Erro ao compartilhar: ' + error.message); return; }
-        FASA.toast('Publicação compartilhada no seu perfil!');
-        refresh();
+        FASA.abrirCompartilharModal(idOriginal);
       });
       const menuBtn = postEl.querySelector('.post-menu-btn');
       const menuPop = postEl.querySelector('.post-menu-pop');
