@@ -352,59 +352,37 @@ const FASA = (() => {
   }
   function go(route) { location.hash = '#/' + route; }
 
-  function gerarLinkPublicacao(postId) {
-    // Estrutura preparada para uma futura rota pública "/post/:id".
-    // Por enquanto usa a URL atual do app + rota hash compatível com o roteamento existente.
-    return `${window.location.origin}${window.location.pathname}#/post/${postId}`;
-  }
-
-  function abrirCompartilharModal(postId) {
+  function abrirCompartilharModal(postId, onShared) {
     const existente = document.getElementById('share-modal');
     if (existente) existente.remove();
-    const link = gerarLinkPublicacao(postId);
-    const texto = 'Confira esta publicação no FASA';
-    const opcoes = [
-      { ic: '🔗', label: 'Copiar link', action: 'copiar' },
-      { ic: '📱', label: 'WhatsApp', action: 'whatsapp' },
-      { ic: '📘', label: 'Facebook', action: 'facebook' },
-      { ic: '𝕏', label: 'X (Twitter)', action: 'x' },
-    ];
-    if (navigator.share) opcoes.push({ ic: '📤', label: 'Mais opções (apps do celular)', action: 'sistema' });
     const modal = document.createElement('div');
     modal.id = 'share-modal';
     modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;align-items:flex-end;justify-content:center';
     modal.innerHTML = `
       <div style="background:var(--card);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:18px;max-height:80vh;overflow-y:auto;box-sizing:border-box">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink)">Compartilhar publicação</h3>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${opcoes.map(o => `<button class="btn btn-ghost btn-block share-opt" data-action="${o.action}" style="text-align:left">${o.ic} ${o.label}</button>`).join('')}
-        </div>
-        <button class="btn btn-ghost btn-block" id="share-cancel-btn" style="margin-top:10px">Cancelar</button>
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink)">Compartilhar no FASA</h3>
+        <textarea id="share-comentario" placeholder="Adicione um comentário (opcional)" style="width:100%;min-height:70px;padding:10px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;resize:vertical;box-sizing:border-box;background:var(--paper-2);color:var(--ink)"></textarea>
+        <button class="btn btn-primary btn-block" id="share-confirm-btn" style="margin-top:12px">🔁 Compartilhar no Feed</button>
+        <button class="btn btn-ghost btn-block" id="share-cancel-btn" style="margin-top:8px">Cancelar</button>
       </div>`;
     document.body.appendChild(modal);
     const fechar = () => modal.remove();
     modal.addEventListener('click', (e) => { if (e.target === modal) fechar(); });
     document.getElementById('share-cancel-btn').addEventListener('click', fechar);
-    modal.querySelectorAll('.share-opt').forEach(btn => btn.addEventListener('click', async () => {
-      const action = btn.dataset.action;
-      if (action === 'copiar') {
-        try { await navigator.clipboard.writeText(link); toast('Link copiado!'); }
-        catch (e) { toast('Não foi possível copiar o link.'); }
-      } else if (action === 'whatsapp') {
-        window.open(`https://wa.me/?text=${encodeURIComponent(texto + ' ' + link)}`, '_blank');
-      } else if (action === 'facebook') {
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`, '_blank');
-      } else if (action === 'x') {
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(texto)}&url=${encodeURIComponent(link)}`, '_blank');
-      } else if (action === 'sistema') {
-        try { await navigator.share({ title: 'FASA', text: texto, url: link }); }
-        catch (e) { /* usuário cancelou o compartilhamento nativo */ }
-      }
+    document.getElementById('share-confirm-btn').addEventListener('click', async (e) => {
+      const user = currentUser();
+      if (!user) { fechar(); return; }
+      const comentario = (document.getElementById('share-comentario').value || '').trim();
+      e.target.disabled = true;
+      const { error } = await sb.from('posts').insert({ autor_id: user.id, texto: comentario, post_original_id: postId });
+      if (error) { toast('Erro ao compartilhar: ' + error.message); e.target.disabled = false; return; }
+      toast('Publicação compartilhada no FASA!');
       fechar();
-    }));
+      if (typeof onShared === 'function') onShared();
+    });
   }
 
-  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles, temaAtual, aplicarTema, temNivel, ehLideranca, ehCoordenacao, ehAdministrador, gerarLinkPublicacao, abrirCompartilharModal };
+  return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles, temaAtual, aplicarTema, temNivel, ehLideranca, ehCoordenacao, ehAdministrador, abrirCompartilharModal };
 })();
 
 const root = document.getElementById('root');
@@ -690,10 +668,12 @@ function renderFeed() {
   }
 
   function postOriginalHtml(original) {
-    if (!original) return `<div class="card" style="background:var(--paper-2);margin-top:8px"><p style="font-size:12.5px;color:var(--muted)">Publicação original não está mais disponível.</p></div>`;
-    const au = original.usuarios || {};
+    if (!original || !original.id) return `<div class="card" style="background:var(--paper-2);margin-top:8px"><p style="font-size:12.5px;color:var(--muted)">Publicação original não está mais disponível.</p></div>`;
+    const auRaw = original.usuarios;
+    const au = Array.isArray(auRaw) ? (auRaw[0] || {}) : (auRaw || {});
+    const dataValida = original.criado_em && !isNaN(new Date(original.criado_em).getTime());
     return `<div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;margin-top:8px;background:var(--paper-2)">
-      <div class="post-head" style="margin-bottom:8px">${FASA.avatarHtml(au, 'sm')}<div class="meta"><div class="name" style="font-size:13px">${FASA.escapeHtml(au.nome || '—')}${au.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub" style="font-size:11px">${FASA.escapeHtml(au.cargo || '')} · ${FASA.timeAgo(new Date(original.criado_em).getTime())}</div></div></div>
+      <div class="post-head" style="margin-bottom:8px">${FASA.avatarHtml(au, 'sm')}<div class="meta"><div class="name" style="font-size:13px">${FASA.escapeHtml(au.nome || 'Usuário')}${au.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub" style="font-size:11px">${au.cargo ? FASA.escapeHtml(au.cargo) + ' · ' : ''}${dataValida ? FASA.timeAgo(new Date(original.criado_em).getTime()) : ''}</div></div></div>
       <div style="font-size:13px">${FASA.escapeHtml(original.texto || '')}</div>
       ${original.arquivo_url && (original.arquivo_tipo || '').startsWith('image/') ? `<img src="${original.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : ''}
     </div>`;
@@ -896,7 +876,7 @@ function renderFeed() {
       postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
       postEl.querySelector('.share-btn').addEventListener('click', () => {
         const idOriginal = postEl.dataset.postOriginalId || id;
-        FASA.abrirCompartilharModal(idOriginal);
+        FASA.abrirCompartilharModal(idOriginal, refresh);
       });
       const menuBtn = postEl.querySelector('.post-menu-btn');
       const menuPop = postEl.querySelector('.post-menu-pop');
@@ -1343,7 +1323,7 @@ function bindPerfilPostEvents() {
     if (shareBtn) shareBtn.addEventListener('click', () => {
       if (menuPop) menuPop.style.display = 'none';
       const idOriginal = postEl.dataset.postOriginalId || id;
-      FASA.abrirCompartilharModal(idOriginal);
+      FASA.abrirCompartilharModal(idOriginal, refresh);
     });
     const delBtn = postEl.querySelector('.perfil-del-post-btn');
     if (delBtn) delBtn.addEventListener('click', async () => {
