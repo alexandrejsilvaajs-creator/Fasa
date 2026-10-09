@@ -357,10 +357,17 @@ const FASA = (() => {
 
 const root = document.getElementById('root');
 let _chatPollInterval = null;
+let _chatTypingInterval = null;
+let _chatChannel = null;
+function pararChatTempoReal() {
+  if (_chatPollInterval) { clearInterval(_chatPollInterval); _chatPollInterval = null; }
+  if (_chatTypingInterval) { clearInterval(_chatTypingInterval); _chatTypingInterval = null; }
+  if (_chatChannel) { try { sb.removeChannel(_chatChannel); } catch (e) {} _chatChannel = null; }
+}
 
 /* ---------------- Shell (sidebar + topbar) ---------------- */
 function renderShell(activeId, title) {
-  if (_chatPollInterval && activeId !== 'chat') { clearInterval(_chatPollInterval); _chatPollInterval = null; }
+  if (activeId !== 'chat') pararChatTempoReal();
   const user = FASA.currentUser();
   root.innerHTML = `
     <div class="overlay-bg" id="fasa-overlay"></div>
@@ -2392,21 +2399,41 @@ async function renderChat() {
   document.getElementById('chat-search-input').addEventListener('input', (e) => { search = e.target.value; paintList(); });
   paintList(); paintMain();
 
-  if (_chatPollInterval) clearInterval(_chatPollInterval);
-  _chatPollInterval = setInterval(async () => {
+  pararChatTempoReal();
+
+  async function atualizarChat() {
     await carregarMensagens();
     renderMessagesOnly();
     paintList();
-    if (activeId && activeType === 'user') {
-      const { data: outro } = await sb.from('usuarios').select('digitando_em, digitando_para').eq('id', activeId).single();
-      const subEl = document.getElementById('chat-sub-status');
-      if (subEl && outro) {
-        const digitandoAgora = outro.digitando_para === user.id && outro.digitando_em && (Date.now() - new Date(outro.digitando_em).getTime()) < 5000;
-        if (digitandoAgora) subEl.innerHTML = '<i style="color:var(--accent)">digitando...</i>';
-        else { const infoAtual = outros.find(u => u.id === activeId); if (infoAtual) subEl.textContent = FASA.statusOnline(infoAtual.ultimo_acesso); }
-      }
+  }
+  async function atualizarDigitando() {
+    if (!(activeId && activeType === 'user')) return;
+    const { data: outro } = await sb.from('usuarios').select('digitando_em, digitando_para').eq('id', activeId).single();
+    const subEl = document.getElementById('chat-sub-status');
+    if (subEl && outro) {
+      const digitandoAgora = outro.digitando_para === user.id && outro.digitando_em && (Date.now() - new Date(outro.digitando_em).getTime()) < 5000;
+      if (digitandoAgora) subEl.innerHTML = '<i style="color:var(--accent)">digitando...</i>';
+      else { const infoAtual = outros.find(u => u.id === activeId); if (infoAtual) subEl.textContent = FASA.statusOnline(infoAtual.ultimo_acesso); }
     }
-  }, 4000);
+  }
+
+  // Tempo real: atualiza assim que chega/muda uma mensagem. Enquanto nenhum evento
+  // em tempo real chegar, mantém a consulta periódica de 4s como garantia.
+  let tempoRealAtivo = false;
+  function agendarPolling(ms) {
+    if (_chatPollInterval) clearInterval(_chatPollInterval);
+    _chatPollInterval = setInterval(atualizarChat, ms);
+  }
+  let _debounceRT = null;
+  _chatChannel = sb.channel('chat-mensagens-' + user.id)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'mensagens' }, () => {
+      if (!tempoRealAtivo) { tempoRealAtivo = true; agendarPolling(30000); }
+      clearTimeout(_debounceRT);
+      _debounceRT = setTimeout(atualizarChat, 250);
+    })
+    .subscribe();
+  agendarPolling(4000);
+  _chatTypingInterval = setInterval(atualizarDigitando, 4000);
 }
 
 /* ---------------- Admin ---------------- */
