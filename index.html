@@ -651,7 +651,7 @@ function renderFeed() {
     return filtrados;
   }
 
-  function postOriginalHtml(original) {
+  window.postOriginalHtml = function(original) {
     if (!original) return `<div class="card" style="background:var(--paper-2);margin-top:8px"><p style="font-size:12.5px;color:var(--muted)">Publicação original não está mais disponível.</p></div>`;
     const au = original.usuarios || {};
     return `<div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;margin-top:8px;background:var(--paper-2)">
@@ -977,7 +977,6 @@ async function renderPerfil() {
 
   if (error) { FASA.toast('Erro ao carregar perfil: ' + error.message); }
   const posts = meusPosts || [];
-  await anexarOriginaisCompartilhados(posts);
   const curtidasRecebidas = posts.reduce((s, p) => s + (p.post_likes || []).length, 0);
 
   const conquistas = [
@@ -1178,18 +1177,16 @@ function perfilPostsHtml(posts) {
     likes.forEach(l => { const t = l.tipo || 'like'; contagem[t] = (contagem[t] || 0) + 1; });
     const ordenado = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
     const comentarios = (p.comentarios || []).sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
-    return `<div class="post" data-id="${p.id}" data-autor-id="${p.autor_id}" data-post-original-id="${p.post_original_id || ''}" data-arquivo-url="${p.arquivo_url || ''}" style="padding:14px 0;border-bottom:1px solid var(--line)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;position:relative">
-        <div style="color:var(--muted);font-size:11.5px">${FASA.timeAgo(new Date(p.criado_em).getTime())}${p.editado_em ? ' · (editado)' : ''}</div>
-        <button class="icon-btn perfil-post-menu-btn" title="Opções">⋮</button>
-        <div class="perfil-post-menu-pop" style="display:none;position:absolute;top:28px;right:0;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);z-index:6;min-width:170px;overflow:hidden">
-          <button class="post-menu-item perfil-edit-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">✏️ Editar</button>
-          <button class="post-menu-item perfil-share-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:var(--ink);cursor:pointer">↗ Compartilhar</button>
-          <button class="post-menu-item perfil-del-post-btn" style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;font-size:13.5px;color:#e0453c;cursor:pointer">🗑 Excluir</button>
+    return `<div class="post" data-id="${p.id}" data-autor-id="${p.autor_id}" data-arquivo-url="${p.arquivo_url || ''}" style="padding:14px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="color:var(--muted);font-size:11.5px">${FASA.timeAgo(new Date(p.criado_em).getTime())}${p.editado_em ? ' · (editado)' : ''}${p.post_original_id ? ' · 🔁 compartilhada' : ''}</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm perfil-edit-post-btn" style="padding:2px 8px">✏️ Editar</button>
+          <button class="btn btn-ghost btn-sm perfil-del-post-btn" style="padding:2px 8px;color:#e0453c">🗑 Excluir</button>
         </div>
       </div>
-      <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${p.post_original_id ? '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">🔁 Compartilhou uma publicação</div>' : ''}${FASA.escapeHtml(p.texto)}</div>
-      ${p.post_original_id ? postOriginalHtml(p.original) : (p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : '')}
+      <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div>
+      ${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : ''}
       ${likes.length ? `<div style="display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);padding:6px 0">
         <span>${ordenado.slice(0, 3).map(([t]) => perfilReacaoInfo(t).emoji).join('')}</span><span>${likes.length}</span>
       </div>` : ''}
@@ -1217,9 +1214,7 @@ function bindPerfilPostEvents() {
       .select('*, post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
       .eq('autor_id', user.id)
       .order('criado_em', { ascending: false });
-    const lista = meusPosts || [];
-    await anexarOriginaisCompartilhados(lista);
-    listEl.innerHTML = perfilPostsHtml(lista);
+    listEl.innerHTML = perfilPostsHtml(meusPosts || []);
     bindPerfilPostEvents();
   }
 
@@ -1239,22 +1234,8 @@ function bindPerfilPostEvents() {
       refresh();
     }));
     postEl.querySelector('.comment-btn').addEventListener('click', () => postEl.querySelector('.comment-box').classList.toggle('open'));
-    const menuBtn = postEl.querySelector('.perfil-post-menu-btn');
-    const menuPop = postEl.querySelector('.perfil-post-menu-pop');
-    if (menuBtn) menuBtn.addEventListener('click', () => { menuPop.style.display = menuPop.style.display === 'none' ? 'block' : 'none'; });
-    const shareBtn = postEl.querySelector('.perfil-share-post-btn');
-    if (shareBtn) shareBtn.addEventListener('click', async () => {
-      menuPop.style.display = 'none';
-      const idOriginal = postEl.dataset.postOriginalId || id;
-      const comentario = prompt('Quer adicionar um comentário? (deixe em branco pra compartilhar direto)') || '';
-      const { error: shareError } = await sb.from('posts').insert({ autor_id: user.id, texto: comentario.trim(), post_original_id: idOriginal });
-      if (shareError) { FASA.toast('Erro ao compartilhar: ' + shareError.message); return; }
-      FASA.toast('Publicação compartilhada no seu perfil!');
-      refresh();
-    });
     const delBtn = postEl.querySelector('.perfil-del-post-btn');
     if (delBtn) delBtn.addEventListener('click', async () => {
-      menuPop.style.display = 'none';
       if (!confirm('Excluir esta publicação? Essa ação não pode ser desfeita.')) return;
       const { error: delError } = await sb.from('posts').delete().eq('id', id);
       if (delError) { FASA.toast('Erro ao excluir: ' + delError.message); return; }
@@ -1264,7 +1245,6 @@ function bindPerfilPostEvents() {
     });
     const editBtn = postEl.querySelector('.perfil-edit-post-btn');
     if (editBtn) editBtn.addEventListener('click', () => {
-      menuPop.style.display = 'none';
       const body = postEl.querySelector('.perfil-post-body');
       const textoAtual = body.dataset.texto;
       body.innerHTML = `<textarea class="perfil-edit-textarea" style="width:100%;min-height:70px;padding:10px;border:1.5px solid var(--line);border-radius:var(--radius-sm);font-family:inherit;font-size:13.5px">${textoAtual}</textarea>
@@ -1391,6 +1371,12 @@ function renderAvisos() {
 }
 
 /* ---------------- Escala ---------------- */
+function dataLocalISO(d) {
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
 async function renderEscala() {
   const { user, pageEl } = renderShell('escala', 'Escalas');
   pageEl.innerHTML = `<div class="empty">Carregando escala...</div>`;
@@ -1410,7 +1396,7 @@ async function renderEscala() {
   let busca = '';
   let subview = 'calendario';
 
-  function iso(d) { return d.toISOString().slice(0, 10); }
+  function iso(d) { return dataLocalISO(d); }
   function addDias(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
   function inicioSemana(d) { const r = new Date(d); r.setDate(r.getDate() - r.getDay()); return r; }
   const DIAS_CURTO = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -2551,7 +2537,7 @@ function renderAdmin() {
       if (aba === 'plantao-diurno') return ['Manhã', 'Tarde'];
       return null; // sem escolha — o turno é o próprio nome da aba
     }
-    const hojeISO = new Date().toISOString().slice(0, 10);
+    const hojeISO = dataLocalISO(new Date());
 
     pageEl.innerHTML = shellHtml(`
       <div class="card" style="margin-bottom:18px">
@@ -2625,7 +2611,7 @@ function renderAdmin() {
       .select('id, tipo, status, data_inicio, data_fim, observacao, usuario_id, usuarios!ausencias_usuario_id_fkey(nome)')
       .order('data_inicio', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar ausências: ' + error.message); }
-    const hojeISO = new Date().toISOString().slice(0, 10);
+    const hojeISO = dataLocalISO(new Date());
     const STATUS_COR = { Pendente: 'warn', Aprovada: 'ok', Recusada: 'off' };
     const pendentes = (ausencias || []).filter(a => a.status === 'Pendente');
     const resto = (ausencias || []).filter(a => a.status !== 'Pendente');
@@ -2711,7 +2697,7 @@ function renderAdmin() {
       .select('id, tipo, horas, data, aba, observacao, status, usuario_id, usuarios!banco_horas_usuario_id_fkey(nome)')
       .order('data', { ascending: false });
     if (error) { FASA.toast('Erro ao carregar banco de horas: ' + error.message); }
-    const hojeISO = new Date().toISOString().slice(0, 10);
+    const hojeISO = dataLocalISO(new Date());
     const STATUS_COR = { Pendente: 'warn', Aprovada: 'ok', Recusada: 'off' };
     const pendentes = (lancamentos || []).filter(l => l.status === 'Pendente');
     const resto = (lancamentos || []).filter(l => l.status !== 'Pendente');
