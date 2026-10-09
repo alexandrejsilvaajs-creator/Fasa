@@ -2923,7 +2923,8 @@ function renderAdmin() {
 async function renderBusca(termo) {
   const { pageEl } = renderShell('busca', 'Busca');
   pageEl.innerHTML = `<div class="empty">Buscando...</div>`;
-  const t = termo.trim();
+  // Remove caracteres que quebram o filtro do PostgREST e escapa curingas do LIKE
+  const t = termo.replace(/[,()"\\*]/g, ' ').replace(/[%_]/g, m => '\\' + m).replace(/\s+/g, ' ').trim();
   if (!t) { pageEl.innerHTML = `<div class="empty">Digite algo na barra de busca no topo.</div>`; return; }
 
   const [{ data: pessoas }, { data: posts }, { data: avisos }, { data: docs }] = await Promise.all([
