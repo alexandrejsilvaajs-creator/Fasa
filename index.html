@@ -936,7 +936,7 @@ function renderFeed() {
         if (error) { FASA.toast('Erro ao comentar: ' + error.message); return; }
         const autorPost = postEl.dataset.autorId;
         if (autorPost && autorPost !== user.id) {
-          await sb.from('notificacoes').insert({
+          await enviarNotificacao({
             usuario_id: autorPost, tipo: 'comentario', titulo: `${user.nome} comentou na sua publicação`, texto, link: 'feed',
           });
         }
@@ -1374,7 +1374,7 @@ function renderAvisos() {
       if (insError) { FASA.toast('Erro ao publicar: ' + insError.message); return; }
       const { data: todos } = await sb.from('usuarios').select('id').neq('id', user.id);
       if (todos && todos.length) {
-        await sb.from('notificacoes').insert(todos.map(u => ({
+        await enviarNotificacao(todos.map(u => ({
           usuario_id: u.id, tipo: 'aviso', titulo: '📢 Novo aviso: ' + titulo, texto, link: 'avisos',
         })));
       }
@@ -1626,7 +1626,7 @@ async function renderEscala() {
       if (aprovar) aprovar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Aprovada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
-        if (solicitanteId) await sb.from('notificacoes').insert({ usuario_id: solicitanteId, tipo: 'troca', titulo: '✅ Sua troca de plantão foi aprovada', link: 'escala' });
+        if (solicitanteId) await enviarNotificacao({ usuario_id: solicitanteId, tipo: 'troca', titulo: '✅ Sua troca de plantão foi aprovada', link: 'escala' });
         FASA.toast('Troca aprovada! Ajuste a escala em Administração se necessário.');
         paintNegTurnos();
       });
@@ -1634,7 +1634,7 @@ async function renderEscala() {
       if (recusar) recusar.addEventListener('click', async () => {
         const { error: updError } = await sb.from('trocas_plantao').update({ status: 'Recusada', respondido_em: new Date().toISOString() }).eq('id', id);
         if (updError) { FASA.toast('Erro: ' + updError.message); return; }
-        if (solicitanteId) await sb.from('notificacoes').insert({ usuario_id: solicitanteId, tipo: 'troca', titulo: '❌ Sua troca de plantão foi recusada', link: 'escala' });
+        if (solicitanteId) await enviarNotificacao({ usuario_id: solicitanteId, tipo: 'troca', titulo: '❌ Sua troca de plantão foi recusada', link: 'escala' });
         FASA.toast('Troca recusada.');
         paintNegTurnos();
       });
@@ -1865,6 +1865,19 @@ async function abrirDocumentoBiblioteca(urlOuCaminho) {
   const { data, error } = await sb.storage.from('biblioteca-arquivos').createSignedUrl(path, 3600);
   if (error) { FASA.toast('Erro ao abrir: ' + error.message); return; }
   window.open(data.signedUrl, '_blank');
+}
+
+/* Cria notificações sem nunca quebrar a ação principal; avisa quem agiu se falhar. */
+async function enviarNotificacao(dados) {
+  try {
+    const { error } = await enviarNotificacao(dados);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.warn('Falha ao criar notificação:', e);
+    FASA.toast('A ação foi concluída, mas não foi possível enviar a notificação.');
+    return false;
+  }
 }
 
 async function excluirArquivoDoStorage(bucket, url) {
@@ -2688,7 +2701,7 @@ function renderAdmin() {
       const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('ausencias').update({ status: 'Aprovada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
-      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '✅ Sua solicitação de ausência foi aprovada', link: 'escala' });
+      if (usuarioId) await enviarNotificacao({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '✅ Sua solicitação de ausência foi aprovada', link: 'escala' });
       FASA.toast('Ausência aprovada!');
       paintAusencias();
     }));
@@ -2697,7 +2710,7 @@ function renderAdmin() {
       const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('ausencias').update({ status: 'Recusada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
-      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '❌ Sua solicitação de ausência foi recusada', link: 'escala' });
+      if (usuarioId) await enviarNotificacao({ usuario_id: usuarioId, tipo: 'ausencia', titulo: '❌ Sua solicitação de ausência foi recusada', link: 'escala' });
       FASA.toast('Solicitação recusada.');
       paintAusencias();
     }));
@@ -2774,7 +2787,7 @@ function renderAdmin() {
       const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('banco_horas').update({ status: 'Aprovada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
-      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '✅ Seu lançamento no banco de horas foi aprovado', link: 'escala' });
+      if (usuarioId) await enviarNotificacao({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '✅ Seu lançamento no banco de horas foi aprovado', link: 'escala' });
       FASA.toast('Lançamento aprovado!');
       paintBancoHorasAdmin();
     }));
@@ -2783,7 +2796,7 @@ function renderAdmin() {
       const id = card.dataset.id, usuarioId = card.dataset.usuarioId;
       const { error: updError } = await sb.from('banco_horas').update({ status: 'Recusada' }).eq('id', id);
       if (updError) { FASA.toast('Erro: ' + updError.message); return; }
-      if (usuarioId) await sb.from('notificacoes').insert({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '❌ Seu lançamento no banco de horas foi recusado', link: 'escala' });
+      if (usuarioId) await enviarNotificacao({ usuario_id: usuarioId, tipo: 'banco_horas', titulo: '❌ Seu lançamento no banco de horas foi recusado', link: 'escala' });
       FASA.toast('Solicitação recusada.');
       paintBancoHorasAdmin();
     }));
