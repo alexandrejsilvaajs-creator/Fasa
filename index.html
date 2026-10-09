@@ -1070,6 +1070,7 @@ async function renderPerfil() {
         if (!confirm('Excluir a foto de capa?')) return;
         const { error: updError } = await sb.from('usuarios').update({ capa_url: null }).eq('id', user.id);
         if (updError) { FASA.toast('Erro ao excluir: ' + updError.message); return; }
+        await excluirArquivoDoStorage('avatars', user.capa_url);
         user.capa_url = null;
         const db = FASA.getDB();
         const jaExiste = db.usuarios.find(u => u.id === user.id);
@@ -1123,11 +1124,17 @@ async function renderPerfil() {
     const { error: updError } = await sb.from('usuarios').update({ [coluna]: url }).eq('id', user.id);
     if (updError) { FASA.toast('Erro ao salvar imagem: ' + updError.message); paintHeader(); return; }
 
+    const urlAntiga = user[coluna];
     user[coluna] = url;
     const db = FASA.getDB();
     const jaExiste = db.usuarios.find(u => u.id === user.id);
     if (jaExiste) jaExiste[coluna] = url;
     FASA.saveDB(db);
+
+    // Se a extensão mudou (ex.: .jpg -> .png), o arquivo antigo ficaria órfão no Storage
+    if (urlAntiga && urlAntiga.split('?')[0] !== url.split('?')[0]) {
+      await excluirArquivoDoStorage('avatars', urlAntiga.split('?')[0]);
+    }
 
     FASA.toast('Imagem atualizada!');
     paintHeader();
