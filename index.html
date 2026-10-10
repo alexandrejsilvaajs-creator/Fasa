@@ -643,29 +643,9 @@ function renderFeed() {
     temMais = data.length === quantidade;
     const filtrados = data.filter(p => !bloqueadosIds.includes(p.autor_id));
 
-    // Busca os posts originais (de compartilhamentos) numa consulta separada,
-    // sem depender do PostgREST resolver um auto-relacionamento na tabela posts.
-    const idsOriginais = [...new Set(filtrados.filter(p => p.post_original_id).map(p => p.post_original_id))];
-    if (idsOriginais.length) {
-      const { data: originais } = await sb
-        .from('posts')
-        .select('id,texto,arquivo_url,arquivo_tipo,legenda_foto,criado_em,usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado)')
-        .in('id', idsOriginais);
-      const mapaOriginais = new Map((originais || []).map(o => [o.id, o]));
-      filtrados.forEach(p => { if (p.post_original_id) p.original = mapaOriginais.get(p.post_original_id) || null; });
-    }
+    await anexarOriginais(filtrados);
 
     return filtrados;
-  }
-
-  window.postOriginalHtml = function(original) {
-    if (!original) return `<div class="card" style="background:var(--paper-2);margin-top:8px"><p style="font-size:12.5px;color:var(--muted)">Publicação original não está mais disponível.</p></div>`;
-    const au = original.usuarios || {};
-    return `<div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;margin-top:8px;background:var(--paper-2)">
-      <div class="post-head" style="margin-bottom:8px">${FASA.avatarHtml(au, 'sm')}<div class="meta"><div class="name" style="font-size:13px">${FASA.escapeHtml(au.nome || '—')}${au.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub" style="font-size:11px">${FASA.escapeHtml(au.cargo || '')} · ${FASA.timeAgo(new Date(original.criado_em).getTime())}</div></div></div>
-      <div style="font-size:13px">${FASA.escapeHtml(original.texto || '')}</div>
-      ${original.arquivo_url && (original.arquivo_tipo || '').startsWith('image/') ? `<img src="${original.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : ''}
-    </div>`;
   }
 
   function anexoHtml(p) {
@@ -969,6 +949,30 @@ function renderFeed() {
 }
 
 /* ---------------- Perfil ---------------- */
+/* Busca os posts originais de compartilhamentos numa consulta separada
+   (evita depender do PostgREST resolver o auto-relacionamento da tabela posts). */
+async function anexarOriginais(lista) {
+  const ids = [...new Set((lista || []).filter(p => p.post_original_id).map(p => p.post_original_id))];
+  if (!ids.length) return lista;
+  const { data: originais } = await sb
+    .from('posts')
+    .select('id,texto,arquivo_url,arquivo_tipo,legenda_foto,criado_em,usuarios!posts_autor_id_fkey(nome,cargo,foto_url,verificado)')
+    .in('id', ids);
+  const mapa = new Map((originais || []).map(o => [o.id, o]));
+  lista.forEach(p => { if (p.post_original_id) p.original = mapa.get(p.post_original_id) || null; });
+  return lista;
+}
+
+function postOriginalHtml(original) {
+  if (!original) return `<div class="card" style="background:var(--paper-2);margin-top:8px"><p style="font-size:12.5px;color:var(--muted)">Publicação original não está mais disponível.</p></div>`;
+  const au = original.usuarios || {};
+  return `<div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;margin-top:8px;background:var(--paper-2)">
+    <div class="post-head" style="margin-bottom:8px">${FASA.avatarHtml(au, 'sm')}<div class="meta"><div class="name" style="font-size:13px">${FASA.escapeHtml(au.nome || '—')}${au.verificado ? ' <span style="color:#1d9bf0" title="Perfil verificado">✔️</span>' : ''}</div><div class="sub" style="font-size:11px">${FASA.escapeHtml(au.cargo || '')} · ${FASA.timeAgo(new Date(original.criado_em).getTime())}</div></div></div>
+    <div style="font-size:13px">${FASA.escapeHtml(original.texto || '')}</div>
+    ${original.arquivo_url && (original.arquivo_tipo || '').startsWith('image/') ? `<img src="${original.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">` : ''}
+  </div>`;
+}
+
 async function renderPerfil() {
   const { user, pageEl } = renderShell('perfil', 'Meu Perfil');
   pageEl.innerHTML = `<div class="empty">Carregando perfil...</div>`;
@@ -984,6 +988,7 @@ async function renderPerfil() {
 
   if (error) { FASA.toast('Erro ao carregar perfil: ' + error.message); }
   const posts = meusPosts || [];
+  await anexarOriginais(posts);
   const curtidasRecebidas = posts.reduce((s, p) => s + (p.post_likes || []).length, 0);
 
   const conquistas = [
@@ -1199,8 +1204,8 @@ function perfilPostsHtml(posts) {
           <button class="btn btn-ghost btn-sm perfil-del-post-btn" style="padding:2px 8px;color:#e0453c">🗑 Excluir</button>
         </div>
       </div>
-      <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div>
-      ${p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : ''}
+      <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${p.post_original_id ? '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">🔁 Compartilhou uma publicação</div>' : ''}${FASA.escapeHtml(p.texto)}</div>
+      ${p.post_original_id ? postOriginalHtml(p.original) : (p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : '')}
       ${likes.length ? `<div style="display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);padding:6px 0">
         <span>${ordenado.slice(0, 3).map(([t]) => perfilReacaoInfo(t).emoji).join('')}</span><span>${likes.length}</span>
       </div>` : ''}
@@ -1228,6 +1233,7 @@ function bindPerfilPostEvents() {
       .select('*, post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
       .eq('autor_id', user.id)
       .order('criado_em', { ascending: false });
+    await anexarOriginais(meusPosts || []);
     listEl.innerHTML = perfilPostsHtml(meusPosts || []);
     bindPerfilPostEvents();
   }
