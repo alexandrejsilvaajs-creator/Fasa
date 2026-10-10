@@ -1870,7 +1870,7 @@ async function abrirDocumentoBiblioteca(urlOuCaminho) {
 /* Cria notificações sem nunca quebrar a ação principal; avisa quem agiu se falhar. */
 async function enviarNotificacao(dados) {
   try {
-    const { error } = await enviarNotificacao(dados);
+    const { error } = await sb.from('notificacoes').insert(dados);
     if (error) throw error;
     return true;
   } catch (e) {
