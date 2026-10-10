@@ -984,11 +984,11 @@ async function renderPerfil() {
     .from('posts')
     .select('*, post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
     .eq('autor_id', meuId)
+    .is('post_original_id', null)
     .order('criado_em', { ascending: false });
 
   if (error) { FASA.toast('Erro ao carregar perfil: ' + error.message); }
   const posts = meusPosts || [];
-  await anexarOriginais(posts);
   const curtidasRecebidas = posts.reduce((s, p) => s + (p.post_likes || []).length, 0);
 
   const conquistas = [
@@ -1198,14 +1198,14 @@ function perfilPostsHtml(posts) {
     const comentarios = (p.comentarios || []).sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
     return `<div class="post" data-id="${p.id}" data-autor-id="${p.autor_id}" data-arquivo-url="${p.arquivo_url || ''}" style="padding:14px 0;border-bottom:1px solid var(--line)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="color:var(--muted);font-size:11.5px">${FASA.timeAgo(new Date(p.criado_em).getTime())}${p.editado_em ? ' · (editado)' : ''}${p.post_original_id ? ' · 🔁 compartilhada' : ''}</div>
+        <div style="color:var(--muted);font-size:11.5px">${FASA.timeAgo(new Date(p.criado_em).getTime())}${p.editado_em ? ' · (editado)' : ''}</div>
         <div style="display:flex;gap:6px">
           <button class="btn btn-ghost btn-sm perfil-edit-post-btn" style="padding:2px 8px">✏️ Editar</button>
           <button class="btn btn-ghost btn-sm perfil-del-post-btn" style="padding:2px 8px;color:#e0453c">🗑 Excluir</button>
         </div>
       </div>
-      <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${p.post_original_id ? '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">🔁 Compartilhou uma publicação</div>' : ''}${FASA.escapeHtml(p.texto)}</div>
-      ${p.post_original_id ? postOriginalHtml(p.original) : (p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : '')}
+      <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div>
+      ${(p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${p.arquivo_url}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${p.arquivo_url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : '')}
       ${likes.length ? `<div style="display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);padding:6px 0">
         <span>${ordenado.slice(0, 3).map(([t]) => perfilReacaoInfo(t).emoji).join('')}</span><span>${likes.length}</span>
       </div>` : ''}
@@ -1232,8 +1232,8 @@ function bindPerfilPostEvents() {
       .from('posts')
       .select('*, post_likes(usuario_id,tipo), comentarios(id,autor_id,texto,criado_em,usuarios!comentarios_autor_id_fkey(nome,foto_url))')
       .eq('autor_id', user.id)
+      .is('post_original_id', null)
       .order('criado_em', { ascending: false });
-    await anexarOriginais(meusPosts || []);
     listEl.innerHTML = perfilPostsHtml(meusPosts || []);
     bindPerfilPostEvents();
   }
