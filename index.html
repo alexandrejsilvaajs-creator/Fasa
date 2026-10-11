@@ -355,6 +355,37 @@ const FASA = (() => {
   return { seed, getDB, saveDB, getSession, setSession, clearSession, currentUser, initials, avatarHtml, timeAgo, statusOnline, escapeHtml, logoMark, toast, go, getJoined, setJoined, COMUNIDADES, NAV_ITEMS, bindPwdToggles, temaAtual, aplicarTema, temNivel, ehLideranca, ehCoordenacao, ehAdministrador };
 })();
 
+/* ---------------- Validação de arquivos (tamanho e tipo) ---------------- */
+const LIMITE_ARQUIVO_MB = 10;
+const LIMITE_IMAGEM_PERFIL_MB = 5;
+const EXTENSOES_BLOQUEADAS = /\.(exe|bat|cmd|com|scr|msi|dll|jar|apk|vbs|ps1|sh|js|mjs|html?|svg|php)$/i;
+const IMAGENS_PERMITIDAS = /^image\/(jpeg|jpg|png|webp|gif|heic|heif)$/i;
+function validarArquivo(file, opcoes = {}) {
+  if (!file) return false;
+  const maxMB = opcoes.maxMB || LIMITE_ARQUIVO_MB;
+  if (file.size === 0) { FASA.toast('O arquivo está vazio.'); return false; }
+  if (file.size > maxMB * 1024 * 1024) {
+    FASA.toast(`O arquivo tem ${(file.size / 1024 / 1024).toFixed(1)} MB. O limite é ${maxMB} MB.`);
+    return false;
+  }
+  if (opcoes.somenteImagem && !IMAGENS_PERMITIDAS.test(file.type || '')) {
+    FASA.toast('Envie uma imagem nos formatos JPG, PNG, WEBP, GIF ou HEIC.');
+    return false;
+  }
+  if (EXTENSOES_BLOQUEADAS.test(file.name || '')) {
+    FASA.toast('Este tipo de arquivo não é permitido. Use PDF, Word, Excel, imagem ou vídeo.');
+    return false;
+  }
+  return true;
+}
+/* Nome seguro para o Storage: sem acentos, espaços ou símbolos que causam erro de envio. */
+function nomeSeguro(nome) {
+  const partes = String(nome || 'arquivo').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const ext = (partes.match(/\.([A-Za-z0-9]{1,8})$/) || [])[1];
+  const base = partes.replace(/\.[A-Za-z0-9]{1,8}$/, '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'arquivo';
+  return ext ? `${base}.${ext.toLowerCase()}` : base;
+}
+
 const root = document.getElementById('root');
 let _chatPollInterval = null;
 let _chatTypingInterval = null;
@@ -763,8 +794,8 @@ function renderFeed() {
     const anexoInput = document.getElementById('anexo-input-composer');
     document.getElementById('foto-btn-composer').addEventListener('click', () => fotoInput.click());
     document.getElementById('anexo-btn-composer').addEventListener('click', () => anexoInput.click());
-    fotoInput.addEventListener('change', () => { if (fotoInput.files[0]) { arquivoSelecionado = fotoInput.files[0]; paintPreview(); } });
-    anexoInput.addEventListener('change', () => { if (anexoInput.files[0]) { arquivoSelecionado = anexoInput.files[0]; paintPreview(); } });
+    fotoInput.addEventListener('change', () => { const f = fotoInput.files[0]; if (f && validarArquivo(f, { somenteImagem: true })) { arquivoSelecionado = f; paintPreview(); } fotoInput.value = ''; });
+    anexoInput.addEventListener('change', () => { const f = anexoInput.files[0]; if (f && validarArquivo(f)) { arquivoSelecionado = f; paintPreview(); } anexoInput.value = ''; });
 
     document.getElementById('post-submit').addEventListener('click', async () => {
       const ta = document.getElementById('post-text'), texto = ta.value.trim();
@@ -775,7 +806,7 @@ function renderFeed() {
 
       let payload = { autor_id: user.id, texto };
       if (arquivoSelecionado) {
-        const path = `${user.id}/${Date.now()}-${arquivoSelecionado.name}`;
+        const path = `${user.id}/${Date.now()}-${nomeSeguro(arquivoSelecionado.name)}`;
         const { error: upError } = await sb.storage.from('posts-media').upload(path, arquivoSelecionado);
         if (upError) { FASA.toast('Erro ao enviar arquivo: ' + upError.message); btn.disabled = false; btn.textContent = 'Publicar'; return; }
         const { data: pub } = sb.storage.from('posts-media').getPublicUrl(path);
@@ -1123,6 +1154,7 @@ async function renderPerfil() {
 
   async function uploadImagem(file, nomeArquivo, coluna, btnEl) {
     if (!file) return;
+    if (!validarArquivo(file, { somenteImagem: true, maxMB: LIMITE_IMAGEM_PERFIL_MB })) return;
     btnEl.textContent = '…';
     const ext = file.name.split('.').pop();
     const path = `${user.id}/${nomeArquivo}.${ext}`;
@@ -1911,8 +1943,9 @@ function renderBiblioteca() {
 
   async function enviarArquivo(file, categoriaPadrao) {
     if (!file) return;
+    if (!validarArquivo(file)) return;
     FASA.toast('Enviando...');
-    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const path = `${user.id}/${Date.now()}-${nomeSeguro(file.name)}`;
     const { error: upError } = await sb.storage.from('biblioteca-arquivos').upload(path, file);
     if (upError) { FASA.toast('Erro ao enviar: ' + upError.message); return; }
     const tipo = file.type.startsWith('image/') ? 'Foto' : (file.type === 'application/pdf' ? 'PDF' : 'Documento');
@@ -2349,6 +2382,7 @@ async function renderChat() {
           gravador.onstop = async () => {
             stream.getTracks().forEach(t => t.stop());
             const blob = new Blob(chunks, { type: 'audio/webm' });
+            if (blob.size > 5 * 1024 * 1024) { FASA.toast('O áudio passou de 5 MB. Grave uma mensagem mais curta.'); micBtn.textContent = '🎤'; return; }
             const path = `${user.id}/${Date.now()}.webm`;
             micBtn.textContent = '⏳';
             const { error: upError } = await sb.storage.from('chat-audio').upload(path, blob);
@@ -2944,10 +2978,11 @@ function renderAdmin() {
       const categoria = document.getElementById('nd-categoria').value, tipo = document.getElementById('nd-tipo').value;
       const arquivo = document.getElementById('nd-arquivo').files[0];
       if (!nomeDigitado && !arquivo) { FASA.toast('Escreva um nome ou anexe um arquivo.'); return; }
+      if (arquivo && !validarArquivo(arquivo)) return;
 
       let arquivo_url = null;
       if (arquivo) {
-        const path = `${user.id}/${Date.now()}-${arquivo.name}`;
+        const path = `${user.id}/${Date.now()}-${nomeSeguro(arquivo.name)}`;
         const { error: upError } = await sb.storage.from('biblioteca-arquivos').upload(path, arquivo);
         if (upError) { FASA.toast('Erro ao enviar arquivo: ' + upError.message); return; }
         arquivo_url = path;
