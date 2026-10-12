@@ -424,7 +424,7 @@ function renderShell(activeId, title) {
     <div class="overlay-bg" id="fasa-overlay"></div>
     <div class="app-shell">
       <aside class="sidebar" id="fasa-sidebar">
-        <div class="brand">${FASA.logoMark(30)} FASA <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:4px">v6.2</span></div>
+        <div class="brand">${FASA.logoMark(30)} FASA <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:4px">v6.3</span></div>
         <nav class="nav-group" id="fasa-nav"></nav>
         <div class="sidebar-user">
           ${FASA.avatarHtml(user, 'sm')}
@@ -1261,7 +1261,7 @@ function perfilPostsHtml(posts) {
       </div>
       <div class="perfil-post-body" data-texto="${FASA.escapeHtml(p.texto)}" style="font-size:13.5px">${FASA.escapeHtml(p.texto)}</div>
       ${(p.arquivo_url ? ((p.arquivo_tipo || '').startsWith('image/') ? `<img src="${FASA.urlSegura(p.arquivo_url)}" style="max-width:100%;border-radius:8px;margin-top:8px;display:block">${p.legenda_foto ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:6px">${FASA.escapeHtml(p.legenda_foto)}</p>` : ''}` : `<a href="${FASA.urlSegura(p.arquivo_url)}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:8px;color:var(--primary-dk)">📎 ${FASA.escapeHtml(p.arquivo_nome || 'Anexo')}</a>`) : '')}
-      ${likes.length ? `<div style="display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);padding:6px 0">
+      ${likes.length ? `<div class="resumo-reacoes" title="Ver quem reagiu" style="display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);padding:6px 0;cursor:pointer">
         <span>${ordenado.slice(0, 3).map(([t]) => perfilReacaoInfo(t).emoji).join('')}</span><span>${likes.length}</span>
       </div>` : ''}
       <div class="post-actions" style="position:relative">
